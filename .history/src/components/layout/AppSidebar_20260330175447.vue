@@ -316,25 +316,27 @@ const handleShopChange = (event: Event) => {
           </RouterLink>
 
           <RouterLink to="/bank-accounts" class="menu-link" @click="emit('close-mobile')">
-            <span class="menu-icon bank-accounts">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="M3 10h18" />
-                <path d="M7 15h4" />
-              </svg>
-            </span>
-            <span>Bank Accounts</span>
-          </RouterLink>
+    <span class="menu-icon bank-accounts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M7 15h4" />
+      </svg>
+    </span>
+    <span>Bank Accounts</span>
+  </RouterLink>
 
-          <RouterLink to="/bank-ledgers" class="menu-link" @click="emit('close-mobile')">
-            <span class="menu-icon bank-ledgers">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 4h14v16H5z" />
-                <path d="M9 8h6M9 12h6M9 16h4" />
-              </svg>
-            </span>
-            <span>Bank Ledgers</span>
-          </RouterLink>
+  <RouterLink to="/bank-ledgers" class="menu-link" @click="emit('close-mobile')">
+    <span class="menu-icon bank-ledgers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 4h14v16H5z" />
+        <path d="M9 8h6M9 12h6M9 16h4" />
+      </svg>
+    </span>
+    <span>Bank Ledgers</span>
+  </RouterLink>
+</div>
+
         </div>
       </div>
 
@@ -668,8 +670,6 @@ const handleShopChange = (event: Event) => {
 .menu-icon.suppliers { color: #3b82f6; }
 .menu-icon.users { color: #64748b; }
 .menu-icon.expenses { color: #dc2626; }
-.menu-icon.bank-accounts { color: #0ea5e9; }
-.menu-icon.bank-ledgers { color: #8b5cf6; }
 .menu-icon.reports { color: #22c55e; }
 .menu-icon.expense-report { color: #ef4444; }
 .menu-icon.sales-chart { color: #10b981; }

@@ -91,6 +91,10 @@ const routes = [
         component: ExpensesView,
         meta: { title: 'Expenses', section: 'finance' },
       },
+      
+      { path: '/bank-accounts', component: BankAccountsView },
+      { path: '/bank-ledgers', component: BankLedgersView },
+
       {
         path: 'categories',
         name: 'categories',
@@ -169,20 +173,6 @@ const routes = [
         component: ExpenseChartView,
         meta: { title: 'Expense Chart', section: 'reports' },
       },
-
-      {
-        path: 'bank-accounts',
-        name: 'bank-accounts',
-        component: BankAccountsView,
-        meta: { title: 'Bank Accounts', section: 'finance' },
-      },
-      {
-        path: 'bank-ledgers',
-        name: 'bank-ledgers',
-        component: BankLedgersView,
-        meta: { title: 'Bank Ledgers', section: 'finance' },
-      },
-
       {
         path: 'settings',
         name: 'settings',

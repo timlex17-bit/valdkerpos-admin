@@ -170,19 +170,7 @@ const routes = [
         meta: { title: 'Expense Chart', section: 'reports' },
       },
 
-      {
-        path: 'bank-accounts',
-        name: 'bank-accounts',
-        component: BankAccountsView,
-        meta: { title: 'Bank Accounts', section: 'finance' },
-      },
-      {
-        path: 'bank-ledgers',
-        name: 'bank-ledgers',
-        component: BankLedgersView,
-        meta: { title: 'Bank Ledgers', section: 'finance' },
-      },
-
+      
       {
         path: 'settings',
         name: 'settings',

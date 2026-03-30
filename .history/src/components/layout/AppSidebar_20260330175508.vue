@@ -668,8 +668,6 @@ const handleShopChange = (event: Event) => {
 .menu-icon.suppliers { color: #3b82f6; }
 .menu-icon.users { color: #64748b; }
 .menu-icon.expenses { color: #dc2626; }
-.menu-icon.bank-accounts { color: #0ea5e9; }
-.menu-icon.bank-ledgers { color: #8b5cf6; }
 .menu-icon.reports { color: #22c55e; }
 .menu-icon.expense-report { color: #ef4444; }
 .menu-icon.sales-chart { color: #10b981; }

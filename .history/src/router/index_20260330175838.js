@@ -8,8 +8,7 @@ import OrdersView from '@/views/orders/OrdersView.vue'
 import CustomersView from '@/views/customers/CustomersView.vue'
 import SuppliersView from '@/views/suppliers/SuppliersView.vue'
 import ExpensesView from '@/views/expenses/ExpensesView.vue'
-import BankAccountsView from '@/views/finance/BankAccountsView.vue'
-import BankLedgersView from '@/views/finance/BankLedgersView.vue'
+
 import CategoriesView from '@/views/categories/CategoriesView.vue'
 import UnitsView from '@/views/units/UnitsView.vue'
 import UsersView from '@/views/users/UsersView.vue'
@@ -169,20 +168,6 @@ const routes = [
         component: ExpenseChartView,
         meta: { title: 'Expense Chart', section: 'reports' },
       },
-
-      {
-        path: 'bank-accounts',
-        name: 'bank-accounts',
-        component: BankAccountsView,
-        meta: { title: 'Bank Accounts', section: 'finance' },
-      },
-      {
-        path: 'bank-ledgers',
-        name: 'bank-ledgers',
-        component: BankLedgersView,
-        meta: { title: 'Bank Ledgers', section: 'finance' },
-      },
-
       {
         path: 'settings',
         name: 'settings',
