@@ -519,28 +519,11 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
+import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type ShiftRecord = Record<string, any>
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
-})
-
-api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('token') ||
-    localStorage.getItem('auth_token') ||
-    sessionStorage.getItem('token') ||
-    ''
-
-  if (token) {
-    config.headers.Authorization = `Token ${token}`
-  }
-
-  return config
-})
 
 const search = ref('')
 const statusFilter = ref('')
@@ -884,7 +867,7 @@ function getInitials(name: unknown): string {
 
 async function fetchShopMe() {
   try {
-    const response = await api.get('/api/shop/me/')
+    const response = await api.get(ENDPOINTS.SHOP_ME)
     const data = response.data || {}
     currentShopId.value = data.id || data.shop?.id || null
 
@@ -901,7 +884,7 @@ async function fetchShifts() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get('/api/shifts/')
+    const response = await api.get(ENDPOINTS.SHIFTS)
     const data = response.data
 
     let rows: any[] = []
@@ -932,7 +915,7 @@ async function fetchShifts() {
 
 async function fetchCurrentShift() {
   try {
-    const response = await api.get('/api/shifts/current/')
+    const response = await api.get(ENDPOINTS.SHIFTS_CURRENT)
     const data = response.data || null
 
     if (!data || data.open === false || !data.shift) {
@@ -1012,7 +995,7 @@ async function submitOpenShift() {
   openingShift.value = true
 
   try {
-    await api.post('/api/shifts/open/', {
+    await api.post(ENDPOINTS.SHIFTS_OPEN, {
       shop: Number(openForm.value.shop),
       opening_cash: Number(openForm.value.opening_cash).toFixed(2),
     })
@@ -1050,11 +1033,11 @@ async function submitCloseShift() {
 
   try {
     if (closingShiftId.value) {
-      await api.post(`/api/shifts/${closingShiftId.value}/close/`, {
+      await api.post(`${ENDPOINTS.SHIFTS}${closingShiftId.value}/close/`, {
         closing_cash: Number(closeForm.value.closing_cash).toFixed(2),
       })
     } else {
-      await api.post('/api/shifts/close/', {
+      await api.post(ENDPOINTS.SHIFTS_CLOSE, {
         closing_cash: Number(closeForm.value.closing_cash).toFixed(2),
       })
     }
@@ -1082,7 +1065,7 @@ async function submitCloseShift() {
 
 async function fetchShiftReport(id: number) {
   try {
-    const response = await api.get(`/api/shifts/${id}/report/`)
+    const response = await api.get(`${ENDPOINTS.SHIFTS}${id}/report/`)
     shiftReport.value = response.data || {}
     showReportModal.value = true
   } catch (error: any) {

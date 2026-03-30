@@ -483,8 +483,9 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
+import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type ModalMode = 'create' | 'edit' | 'view'
 
@@ -579,24 +580,6 @@ const form = reactive({
   note: '',
   returned_at: '',
   items: [] as FormItem[],
-})
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
-})
-
-api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('token') ||
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('access_token')
-
-  if (token) {
-    config.headers.Authorization = `Token ${token}`
-  }
-
-  config.headers['Content-Type'] = 'application/json'
-  return config
 })
 
 function resolveCustomerName(customer: any) {
@@ -935,23 +918,10 @@ async function fetchReturns() {
   errorMessage.value = ''
 
   try {
-    const { data } = await api.get('/api/productreturns/')
-
-    console.log('PRODUCT RETURNS RAW:', data)
-    console.log('RAW FIRST ITEM:', Array.isArray(data) ? data[0] : data)
-
+    const { data } = await api.get(ENDPOINTS.PRODUCT_RETURNS)
     productReturns.value = Array.isArray(data)
       ? data.map(normalizeReturn)
       : []
-
-    console.log('PRODUCT RETURNS NORMALIZED:', productReturns.value)
-    console.log('NORMALIZED FIRST ITEM:', productReturns.value[0])
-
-    if (productReturns.value[0]) {
-      console.log('FIRST returned_at:', productReturns.value[0].returned_at)
-      console.log('FIRST returned_by:', productReturns.value[0].returned_by)
-      console.log('FIRST returned_by_name:', productReturns.value[0].returned_by_name)
-    }
   } catch (error: any) {
     console.error('Failed to fetch product returns:', error)
     errorMessage.value =
@@ -964,7 +934,7 @@ async function fetchReturns() {
 
 async function fetchCustomers() {
   try {
-    const { data } = await api.get('/api/customers/')
+    const { data } = await api.get(ENDPOINTS.CUSTOMERS)
     const raw = Array.isArray(data) ? data : data?.results || []
     customers.value = raw.map((item: any) => ({
       id: item.id,
@@ -977,7 +947,7 @@ async function fetchCustomers() {
 
 async function fetchProducts() {
   try {
-    const { data } = await api.get('/api/products/')
+    const { data } = await api.get(ENDPOINTS.PRODUCTS)
     const raw = Array.isArray(data) ? data : data?.results || []
     products.value = raw.map((item: any) => ({
       id: item.id,
@@ -998,9 +968,9 @@ async function saveReturn() {
     const payload = buildPayload()
 
     if (modalMode.value === 'create') {
-      await api.post('/api/productreturns/', payload)
+      await api.post(ENDPOINTS.PRODUCT_RETURNS, payload)
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await api.put(`/api/productreturns/${editingId.value}/`, payload)
+      await api.put(`${ENDPOINTS.PRODUCT_RETURNS}${editingId.value}/`, payload)
     }
 
     await fetchReturns()
@@ -1023,7 +993,7 @@ async function removeReturn(id: number) {
 
   submitting.value = true
   try {
-    await api.delete(`/api/productreturns/${id}/`)
+    await api.delete(`${ENDPOINTS.PRODUCT_RETURNS}${id}/`)
     productReturns.value = productReturns.value.filter((item) => item.id !== id)
   } catch (error: any) {
     console.error('Failed to delete product return:', error)

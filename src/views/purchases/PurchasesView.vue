@@ -605,8 +605,9 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
+import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type SupplierOption = {
   id: number
@@ -647,24 +648,6 @@ type Purchase = {
 
 type ModalMode = 'create' | 'edit' | 'view'
 type TabKey = 'general' | 'items'
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
-})
-
-api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('token') ||
-    localStorage.getItem('auth_token') ||
-    sessionStorage.getItem('token') ||
-    ''
-
-  if (token) {
-    config.headers.Authorization = `Token ${token}`
-  }
-
-  return config
-})
 
 const search = ref('')
 const dateFilter = ref('')
@@ -903,7 +886,7 @@ function buildUpdatePayload() {
 
 async function fetchSuppliers() {
   try {
-    const response = await api.get('/api/suppliers/')
+    const response = await api.get(ENDPOINTS.SUPPLIERS)
     const rows = Array.isArray(response.data) ? response.data : []
     supplierOptions.value = rows.map((row: any) => ({
       id: row.id,
@@ -919,7 +902,7 @@ async function fetchPurchases() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get('/api/purchases/')
+    const response = await api.get(ENDPOINTS.PURCHASES)
     purchases.value = Array.isArray(response.data) ? response.data : []
   } catch (error: any) {
     errorMessage.value =
@@ -940,14 +923,10 @@ async function savePurchase() {
   try {
     if (modalMode.value === 'create') {
       const payload = buildCreatePayload()
-      await api.post('/api/purchases/', payload, {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      await api.post(ENDPOINTS.PURCHASES, payload)
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
       const payload = buildUpdatePayload()
-      await api.patch(`/api/purchases/${editingId.value}/`, payload, {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      await api.patch(`${ENDPOINTS.PURCHASES}${editingId.value}/`, payload)
     }
 
     await fetchPurchases()
@@ -978,7 +957,7 @@ async function removePurchase(id: number) {
   deletingId.value = id
 
   try {
-    await api.delete(`/api/purchases/${id}/`)
+    await api.delete(`${ENDPOINTS.PURCHASES}${id}/`)
     purchases.value = purchases.value.filter((purchase) => purchase.id !== id)
   } catch (error: any) {
     alert(

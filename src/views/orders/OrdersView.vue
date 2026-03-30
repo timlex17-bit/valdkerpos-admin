@@ -523,8 +523,9 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
+import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type OrderType = 'GENERAL' | 'DINE_IN' | 'TAKE_OUT' | 'DELIVERY'
 
@@ -551,24 +552,6 @@ type Order = {
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
-})
-
-api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('token') ||
-    localStorage.getItem('auth_token') ||
-    sessionStorage.getItem('token') ||
-    ''
-
-  if (token) {
-    config.headers.Authorization = `Token ${token}`
-  }
-
-  return config
-})
 
 const search = ref('')
 const paymentFilter = ref('')
@@ -882,7 +865,7 @@ async function fetchOrders() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get('/api/orders/')
+    const response = await api.get(ENDPOINTS.ORDERS)
     const rawOrders = Array.isArray(response.data) ? response.data : []
     orders.value = rawOrders.map(normalizeOrder)
   } catch (error: any) {
@@ -905,13 +888,9 @@ async function saveOrder() {
     const payload = buildPayload()
 
     if (modalMode.value === 'create') {
-      await api.post('/api/orders/', payload, {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      await api.post(ENDPOINTS.ORDERS, payload)
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await api.patch(`/api/orders/${editingId.value}/`, payload, {
-        headers: { 'Content-Type': 'application/json' },
-      })
+      await api.patch(`${ENDPOINTS.ORDERS}${editingId.value}/`, payload)
     }
 
     await fetchOrders()
@@ -942,7 +921,7 @@ async function removeOrder(id: number) {
   deletingId.value = id
 
   try {
-    await api.delete(`/api/orders/${id}/`)
+    await api.delete(`${ENDPOINTS.ORDERS}${id}/`)
     orders.value = orders.value.filter((o) => o.id !== id)
   } catch (error: any) {
     alert(

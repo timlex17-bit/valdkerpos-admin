@@ -520,8 +520,9 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
+import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type ModalMode = 'create' | 'edit' | 'view'
 
@@ -577,8 +578,6 @@ type LookupOption = {
   id: number
   name: string
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 const search = ref('')
 const categoryFilter = ref('')
@@ -659,19 +658,6 @@ const currentPreviewImage = computed(() => {
   return form.image || ''
 })
 
-function getAuthHeaders() {
-  const token =
-    localStorage.getItem('token') ||
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('access_token')
-
-  return token
-    ? {
-        Authorization: `Token ${token}`,
-      }
-    : {}
-}
-
 function normalizeLookupRows(payload: any): LookupOption[] {
   const rows = Array.isArray(payload)
     ? payload
@@ -719,11 +705,7 @@ function normalizeProduct(raw: any): Product {
 }
 
 async function fetchProducts() {
-  const response = await axios.get(`${API_BASE_URL}/api/products/`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
-  })
+  const response = await api.get(ENDPOINTS.PRODUCTS)
 
   const rows = Array.isArray(response.data)
     ? response.data
@@ -736,11 +718,7 @@ async function fetchProducts() {
 
 async function fetchCategories() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/categories/`, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    })
+    const response = await api.get(ENDPOINTS.CATEGORIES)
     categoryOptions.value = normalizeLookupRows(response.data)
   } catch (err) {
     console.error('Failed to fetch categories:', err)
@@ -750,11 +728,7 @@ async function fetchCategories() {
 
 async function fetchSuppliers() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/suppliers/`, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    })
+    const response = await api.get(ENDPOINTS.SUPPLIERS)
     supplierOptions.value = normalizeLookupRows(response.data)
   } catch (err) {
     console.error('Failed to fetch suppliers:', err)
@@ -764,11 +738,7 @@ async function fetchSuppliers() {
 
 async function fetchUnits() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/units/`, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    })
+    const response = await api.get(ENDPOINTS.UNITS)
     unitOptions.value = normalizeLookupRows(response.data)
   } catch (err) {
     console.error('Failed to fetch units:', err)
@@ -849,11 +819,7 @@ async function openEditModal(product: Product) {
   showModal.value = true
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/products/${product.id}/`, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    })
+    const response = await api.get(`${ENDPOINTS.PRODUCTS}${product.id}/`)
     fillForm(normalizeProduct(response.data))
   } catch (err) {
     console.error('Failed to retrieve product detail:', err)
@@ -867,11 +833,7 @@ async function openViewModal(product: Product) {
   showModal.value = true
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/products/${product.id}/`, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    })
+    const response = await api.get(`${ENDPOINTS.PRODUCTS}${product.id}/`)
     fillForm(normalizeProduct(response.data))
   } catch (err) {
     console.error('Failed to retrieve product detail:', err)
@@ -937,19 +899,9 @@ async function saveProduct() {
     const payload = buildPayload()
 
     if (modalMode.value === 'create') {
-      await axios.post(`${API_BASE_URL}/api/products/`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-      })
+      await api.post(ENDPOINTS.PRODUCTS, payload)
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await axios.put(`${API_BASE_URL}/api/products/${editingId.value}/`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-      })
+      await api.put(`${ENDPOINTS.PRODUCTS}${editingId.value}/`, payload)
     }
 
     closeModal()
@@ -971,12 +923,7 @@ async function removeProduct(id: number) {
   if (!ok) return
 
   try {
-    await axios.delete(`${API_BASE_URL}/api/products/${id}/`, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    })
-
+    await api.delete(`${ENDPOINTS.PRODUCTS}${id}/`)
     await fetchAllData()
   } catch (err: any) {
     console.error('Failed to delete product:', err)
