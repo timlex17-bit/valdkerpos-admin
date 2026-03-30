@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
-import api from '@/services/api'
 
 type AccountType = 'BANK' | 'EWALLET' | 'QRIS'
 
@@ -32,7 +32,23 @@ type FormState = {
   note: string
 }
 
-const BANK_ACCOUNTS_ENDPOINT = '/api/bank-accounts/'
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
 
 const bankAccounts = ref<BankAccount[]>([])
 const loading = ref(false)
@@ -98,55 +114,6 @@ const totalCurrentBalance = computed(() =>
 const totalOpeningBalance = computed(() =>
   bankAccounts.value.reduce((sum, item) => sum + toNumber(item.opening_balance), 0)
 )
-
-function extractRows(data: any) {
-  if (Array.isArray(data)) return data
-  if (Array.isArray(data?.results)) return data.results
-  return []
-}
-
-function normalizeBankAccount(raw: any): BankAccount {
-  return {
-    id: Number(raw?.id ?? 0),
-    shop_id: Number(raw?.shop_id ?? 0),
-    shop_name: raw?.shop_name ?? '',
-    shop_code: raw?.shop_code ?? '',
-    name: raw?.name ?? '',
-    bank_name: raw?.bank_name ?? '',
-    account_number: raw?.account_number ?? '',
-    account_holder: raw?.account_holder ?? '',
-    account_type: (raw?.account_type ?? 'BANK') as AccountType,
-    opening_balance: String(raw?.opening_balance ?? '0.00'),
-    current_balance: String(raw?.current_balance ?? '0.00'),
-    is_active: Boolean(raw?.is_active),
-    note: raw?.note ?? '',
-    created_at: raw?.created_at ?? '',
-  }
-}
-
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstValue = firstKey ? data[firstKey] : null
-
-    if (Array.isArray(firstValue) && firstValue.length) {
-      return String(firstValue[0])
-    }
-
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return error?.message || fallback
-}
 
 function toNumber(value: string | number | null | undefined) {
   const parsed = Number(value ?? 0)
@@ -266,13 +233,13 @@ async function fetchBankAccounts() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get(BANK_ACCOUNTS_ENDPOINT)
-    const rows = extractRows(response.data)
-    bankAccounts.value = rows.map(normalizeBankAccount)
+    const response = await api.get('/api/bank-accounts/')
+    bankAccounts.value = Array.isArray(response.data) ? response.data : []
   } catch (error: any) {
     console.error('Failed to load bank accounts:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to load bank accounts.')
-    bankAccounts.value = []
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Failed to load bank accounts.'
   } finally {
     loading.value = false
   }
@@ -290,10 +257,10 @@ async function saveBankAccount() {
     const payload = getPayload()
 
     if (isEditMode.value && editingId.value) {
-      await api.put(`${BANK_ACCOUNTS_ENDPOINT}${editingId.value}/`, payload)
+      await api.put(`/api/bank-accounts/${editingId.value}/`, payload)
       successMessage.value = 'Bank account updated successfully.'
     } else {
-      await api.post(BANK_ACCOUNTS_ENDPOINT, payload)
+      await api.post('/api/bank-accounts/', payload)
       successMessage.value = 'Bank account created successfully.'
     }
 
@@ -301,7 +268,15 @@ async function saveBankAccount() {
     closeModal()
   } catch (error: any) {
     console.error('Failed to save bank account:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to save bank account.')
+    const data = error?.response?.data
+
+    if (typeof data === 'object' && data !== null) {
+      const firstKey = Object.keys(data)[0]
+      const firstValue = Array.isArray(data[firstKey]) ? data[firstKey][0] : data[firstKey]
+      errorMessage.value = String(firstValue || 'Failed to save bank account.')
+    } else {
+      errorMessage.value = data?.detail || 'Failed to save bank account.'
+    }
   } finally {
     saving.value = false
   }
@@ -316,12 +291,14 @@ async function deleteBankAccount(id: number) {
   successMessage.value = ''
 
   try {
-    await api.delete(`${BANK_ACCOUNTS_ENDPOINT}${id}/`)
+    await api.delete(`/api/bank-accounts/${id}/`)
     successMessage.value = 'Bank account deleted successfully.'
     await fetchBankAccounts()
   } catch (error: any) {
     console.error('Failed to delete bank account:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to delete bank account.')
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Failed to delete bank account.'
   } finally {
     deletingId.value = null
   }

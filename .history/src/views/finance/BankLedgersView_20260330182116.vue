@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
-import api from '@/services/api'
 
 type Direction = 'IN' | 'OUT'
 
@@ -33,7 +33,23 @@ type BankLedger = {
   created_by: number | null
 }
 
-const BANK_LEDGERS_ENDPOINT = '/api/bank-ledgers/'
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
 
 const ledgers = ref<BankLedger[]>([])
 const loading = ref(false)
@@ -102,58 +118,6 @@ const accountOptions = computed(() => {
   return [...new Set(ledgers.value.map((item) => item.bank_account_name).filter(Boolean))]
 })
 
-function extractRows(data: any) {
-  if (Array.isArray(data)) return data
-  if (Array.isArray(data?.results)) return data.results
-  return []
-}
-
-function normalizeLedger(raw: any): BankLedger {
-  return {
-    id: Number(raw?.id ?? 0),
-    shop_id: Number(raw?.shop_id ?? 0),
-    shop_name: raw?.shop_name ?? '',
-    shop_code: raw?.shop_code ?? '',
-    bank_account: Number(raw?.bank_account ?? 0),
-    bank_account_name: raw?.bank_account_name ?? '',
-    transaction_type: (raw?.transaction_type ?? 'ADJUSTMENT') as TransactionType,
-    direction: (raw?.direction ?? 'IN') as Direction,
-    amount: String(raw?.amount ?? '0.00'),
-    balance_before: String(raw?.balance_before ?? '0.00'),
-    balance_after: String(raw?.balance_after ?? '0.00'),
-    reference_order: raw?.reference_order ?? null,
-    reference_order_invoice: raw?.reference_order_invoice ?? '',
-    reference_payment: raw?.reference_payment ?? null,
-    description: raw?.description ?? '',
-    created_at: raw?.created_at ?? '',
-    created_by: raw?.created_by ?? null,
-  }
-}
-
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstValue = firstKey ? data[firstKey] : null
-
-    if (Array.isArray(firstValue) && firstValue.length) {
-      return String(firstValue[0])
-    }
-
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return error?.message || fallback
-}
-
 function toNumber(value: string | number | null | undefined) {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -208,13 +172,13 @@ async function fetchLedgers() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get(BANK_LEDGERS_ENDPOINT)
-    const rows = extractRows(response.data)
-    ledgers.value = rows.map(normalizeLedger)
+    const response = await api.get('/api/bank-ledgers/')
+    ledgers.value = Array.isArray(response.data) ? response.data : []
   } catch (error: any) {
     console.error('Failed to load bank ledgers:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to load bank ledgers.')
-    ledgers.value = []
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Failed to load bank ledgers.'
   } finally {
     loading.value = false
   }
@@ -226,11 +190,13 @@ async function openDetail(id: number) {
   selectedLedger.value = null
 
   try {
-    const response = await api.get(`${BANK_LEDGERS_ENDPOINT}${id}/`)
-    selectedLedger.value = normalizeLedger(response.data)
+    const response = await api.get(`/api/bank-ledgers/${id}/`)
+    selectedLedger.value = response.data
   } catch (error: any) {
     console.error('Failed to load bank ledger detail:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to load bank ledger detail.')
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Failed to load bank ledger detail.'
     showDetailModal.value = false
   } finally {
     detailLoading.value = false
