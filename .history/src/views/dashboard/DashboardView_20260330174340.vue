@@ -14,9 +14,7 @@
       </div>
 
       <div class="header-actions">
-        <button class="add-btn">
-          Export Summary
-        </button>
+        <button class="secondary-btn">Export Summary</button>
       </div>
     </section>
 
@@ -1037,10 +1035,7 @@ function getInitial(value: string) {
   }
 
   .add-btn,
-  .secondary-btn {
-    width: 100%;
-    justify-content: center;
-  }
+  secondary-btn
 
   .stats-grid-6 {
     grid-template-columns: 1fr;

@@ -14,7 +14,9 @@
       </div>
 
       <div class="header-actions">
+        <button class="secondary-btn">New Order</button>
         <button class="add-btn">
+          <span></span>
           Export Summary
         </button>
       </div>

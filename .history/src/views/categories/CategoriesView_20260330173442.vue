@@ -95,8 +95,12 @@
 
               <td>
                 <div class="category-cell">
-                  <div class="category-avatar category-avatar--empty">
-                    <span>{{ getInitial(item.name) }}</span>
+                  <div
+                    class="category-avatar"
+                    :class="{ 'category-avatar--empty': !item.icon_url }"
+                  >
+                    <img v-if="item.icon_url" :src="item.icon_url" :alt="item.name" />
+                    <span v-else>{{ getInitial(item.name) }}</span>
                   </div>
 
                   <div>
@@ -105,6 +109,7 @@
                   </div>
                 </div>
               </td>
+
               <td>
                 <div v-if="item.icon_url" class="icon-preview">
                   <img :src="item.icon_url" :alt="item.name" />

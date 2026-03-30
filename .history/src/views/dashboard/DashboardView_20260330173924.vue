@@ -14,7 +14,9 @@
       </div>
 
       <div class="header-actions">
+        <button class="secondary-btn">Export Summary</button>
         <button class="add-btn">
+          <span></span>
           Export Summary
         </button>
       </div>

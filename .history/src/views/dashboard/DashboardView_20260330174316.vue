@@ -14,9 +14,7 @@
       </div>
 
       <div class="header-actions">
-        <button class="add-btn">
-          Export Summary
-        </button>
+        <button class="secondary-btn">Export Summary</button>
       </div>
     </section>
 
@@ -547,8 +545,17 @@ function getInitial(value: string) {
 }
 
 .secondary-btn {
-  background: #eef2f7;
-  color: #334155;
+  background: #F3F4F6;
+  color: #111827;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-btn:hover {
+  background: #E5E7EB;
 }
 
 .ghost-btn {

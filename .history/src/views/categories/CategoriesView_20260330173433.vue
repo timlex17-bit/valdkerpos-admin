@@ -94,17 +94,19 @@
               </td>
 
               <td>
-                <div class="category-cell">
-                  <div class="category-avatar category-avatar--empty">
-                    <span>{{ getInitial(item.name) }}</span>
-                  </div>
+                <td>
+  <div class="category-cell">
+    <div class="category-avatar category-avatar--empty">
+      <span>{{ getInitial(item.name) }}</span>
+    </div>
 
-                  <div>
-                    <div class="title-main">{{ item.name }}</div>
-                    <div class="sub-text">Owner category</div>
-                  </div>
-                </div>
-              </td>
+    <div>
+      <div class="title-main">{{ item.name }}</div>
+      <div class="sub-text">Owner category</div>
+    </div>
+  </div>
+</td>
+
               <td>
                 <div v-if="item.icon_url" class="icon-preview">
                   <img :src="item.icon_url" :alt="item.name" />

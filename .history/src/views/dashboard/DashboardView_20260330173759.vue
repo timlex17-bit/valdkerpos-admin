@@ -14,10 +14,15 @@
       </div>
 
       <div class="header-actions">
-        <button class="add-btn">
-          Export Summary
-        </button>
-      </div>
+  <button class="secondary-btn" @click="exportSummary">
+    Export Summary
+  </button>
+
+  <button class="add-btn" @click="goToPOS">
+    <span>+</span>
+    New Order
+  </button>
+</div>
     </section>
 
     <!-- KPI Cards -->
