@@ -87,7 +87,7 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Return List FINAL-777</h2>
+          <h2>Return List</h2>
           <p>{{ filteredReturns.length }} return(s) found</p>
         </div>
 
