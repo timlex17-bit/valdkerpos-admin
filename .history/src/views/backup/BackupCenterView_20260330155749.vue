@@ -459,6 +459,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type BackupStatus = 'Success' | 'Failed' | 'Running'
 type BackupType = 'Auto' | 'Manual'
@@ -479,16 +480,6 @@ type BackupHistoryItem = {
   canRestore: boolean
   canDownload: boolean
   canDelete: boolean
-}
-
-const BACKUP_ENDPOINTS = {
-  SUMMARY: '/api/backup-center/summary/',
-  SETTINGS: '/api/backup-settings/',
-  HISTORY: '/api/backups/',
-  RUN: '/api/backups/run/',
-  detail: (id: number | string) => `/api/backups/${id}/`,
-  download: (id: number | string) => `/api/backups/${id}/download/`,
-  restore: (id: number | string) => `/api/backups/${id}/restore/`,
 }
 
 const backupSettings = reactive({
@@ -692,12 +683,12 @@ function mapBackupHistoryItem(item: any): BackupHistoryItem {
 }
 
 async function fetchSummary() {
-  const response = await api.get(BACKUP_ENDPOINTS.SUMMARY)
+  const response = await api.get(ENDPOINTS.BACKUP_CENTER_SUMMARY)
   applySummaryData(response.data || {})
 }
 
 async function fetchSettings() {
-  const response = await api.get(BACKUP_ENDPOINTS.SETTINGS)
+  const response = await api.get(ENDPOINTS.BACKUP_SETTINGS)
   applySettingsData(response.data || {})
   snapshotInitialSettings()
 }
@@ -715,7 +706,7 @@ async function fetchBackupHistory() {
       params.status = statusFilter.value.toLowerCase()
     }
 
-    const response = await api.get(BACKUP_ENDPOINTS.HISTORY, { params })
+    const response = await api.get(ENDPOINTS.BACKUPS, { params })
     const rows = Array.isArray(response.data)
       ? response.data
       : Array.isArray(response.data?.results)
@@ -744,7 +735,7 @@ async function saveBackupSettings() {
       default_restore_mode: backupSettings.defaultRestoreMode,
     }
 
-    const response = await api.patch(BACKUP_ENDPOINTS.SETTINGS, payload)
+    const response = await api.patch(ENDPOINTS.BACKUP_SETTINGS, payload)
 
     applySettingsData(response.data || {})
     snapshotInitialSettings()
@@ -766,7 +757,7 @@ async function runBackupNow() {
       include_settings: backupSettings.includeSettings,
     }
 
-    const response = await api.post(BACKUP_ENDPOINTS.RUN, payload)
+    const response = await api.post(ENDPOINTS.BACKUPS_RUN, payload)
 
     showFlash(response.data?.message || 'Manual backup completed successfully.')
     await Promise.all([fetchSummary(), fetchBackupHistory()])
@@ -779,7 +770,7 @@ async function runBackupNow() {
 
 async function viewBackup(item: BackupHistoryItem) {
   try {
-    const response = await api.get(BACKUP_ENDPOINTS.detail(item.id))
+    const response = await api.get(`${ENDPOINTS.BACKUPS}${item.id}/`)
     selectedBackup.value = mapBackupHistoryItem(response.data)
     showDetailModal.value = true
   } catch (error) {
@@ -823,7 +814,7 @@ async function confirmRestore() {
   restoring.value = true
   try {
     const response = await api.post(
-      BACKUP_ENDPOINTS.restore(restoreForm.backupId),
+      `${ENDPOINTS.BACKUPS}${restoreForm.backupId}/restore/`,
       {
         mode: restoreForm.mode,
         confirm_overwrite: true,
@@ -846,7 +837,7 @@ async function downloadBackup(item: BackupHistoryItem) {
   }
 
   try {
-    const response = await api.get(BACKUP_ENDPOINTS.download(item.id), {
+    const response = await api.get(`${ENDPOINTS.BACKUPS}${item.id}/download/`, {
       responseType: 'blob',
     })
 
@@ -871,7 +862,7 @@ async function deleteBackup(id: number) {
   if (!confirmed) return
 
   try {
-    await api.delete(BACKUP_ENDPOINTS.detail(id))
+    await api.delete(`${ENDPOINTS.BACKUPS}${id}/`)
     backupHistory.value = backupHistory.value.filter((item) => item.id !== id)
     await fetchSummary()
     showFlash('Backup deleted successfully.')

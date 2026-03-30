@@ -1,11 +1,11 @@
 <template>
-  <section class="suppliers-page">
+  <section class="customers-page">
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Suppliers</h1>
+          <h1 class="page-title">Customers</h1>
           <p class="page-subtitle">
-            Manage supplier data for your current shop.
+            Manage customer data for your current shop.
           </p>
         </div>
 
@@ -14,33 +14,33 @@
           <span class="sep">/</span>
           <span>POS</span>
           <span class="sep">/</span>
-          <span class="current">Suppliers</span>
+          <span class="current">Customers</span>
         </nav>
       </div>
 
       <button class="btn btn-primary" @click="openCreateModal">
         <span class="btn-icon">＋</span>
-        Add Supplier
+        Add Customer
       </button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Total Suppliers</div>
-        <div class="stat-value">{{ filteredSuppliers.length }}</div>
+        <div class="stat-label">Total Customers</div>
+        <div class="stat-value">{{ filteredCustomers.length }}</div>
         <div class="stat-note">Current visible records</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">With Contact Person</div>
-        <div class="stat-value">{{ suppliersWithContact }}</div>
-        <div class="stat-note">Suppliers with contact person filled</div>
+        <div class="stat-label">Members with Points</div>
+        <div class="stat-value">{{ customersWithPoints }}</div>
+        <div class="stat-note">Customers with points above 0</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Top Visible Supplier</div>
-        <div class="stat-value stat-truncate">{{ firstSupplierName }}</div>
-        <div class="stat-note">First match in current filtered list</div>
+        <div class="stat-label">Top Customer</div>
+        <div class="stat-value stat-truncate">{{ topCustomerName }}</div>
+        <div class="stat-note">Highest points holder</div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by name, contact person, cell, email, or address..."
+            placeholder="Search by name, phone, email, or address..."
           />
         </div>
 
@@ -64,13 +64,13 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Supplier List</h2>
-          <p>{{ filteredSuppliers.length }} supplier(s) found</p>
+          <h2>Customer List</h2>
+          <p>{{ filteredCustomers.length }} customer(s) found</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading suppliers...
+        Loading customers...
       </div>
 
       <div v-else-if="errorMessage" class="error-state">
@@ -78,83 +78,81 @@
       </div>
 
       <div v-else class="table-wrapper desktop-table">
-        <table class="supplier-table">
+        <table class="customer-table">
           <thead>
             <tr>
               <th>ID</th>
               <th>Name</th>
-              <th>Contact Person</th>
               <th>Cell</th>
               <th>Email</th>
               <th>Address</th>
+              <th>Points</th>
               <th class="text-right">Action</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr v-if="filteredSuppliers.length === 0">
+            <tr v-if="filteredCustomers.length === 0">
               <td colspan="7" class="empty-cell">
-                No suppliers found.
+                No customers found.
               </td>
             </tr>
 
-            <tr v-for="supplier in filteredSuppliers" :key="supplier.id">
+            <tr v-for="customer in filteredCustomers" :key="customer.id">
               <td>
-                <span class="id-badge">#{{ supplier.id }}</span>
+                <span class="id-badge">#{{ customer.id }}</span>
               </td>
 
               <td>
-                <div class="supplier-name-cell">
+                <div class="customer-name-cell">
                   <div class="avatar">
-                    {{ getInitials(supplier.name) }}
+                    {{ getInitials(customer.name) }}
                   </div>
                   <div>
-                    <div class="supplier-name">{{ supplier.name }}</div>
-                    <div class="supplier-meta">
-                      {{ supplier.email || 'No email' }}
+                    <div class="customer-name">{{ customer.name }}</div>
+                    <div class="customer-meta">
+                      {{ customer.email || 'No email' }}
                     </div>
                   </div>
                 </div>
               </td>
 
               <td>
-                <span class="contact-text">
-                  {{ supplier.contact_person || '-' }}
-                </span>
-              </td>
-
-              <td>
                 <span class="cell-text">
-                  {{ supplier.cell || '-' }}
+                  {{ customer.cell || '-' }}
                 </span>
               </td>
 
               <td>
                 <span class="email-text">
-                  {{ supplier.email || '-' }}
+                  {{ customer.email || '-' }}
                 </span>
               </td>
 
               <td class="address-cell">
                 <span class="address-text">
-                  {{ supplier.address || '-' }}
+                  {{ customer.address || '-' }}
                 </span>
+              </td>
+
+              <td>
+                <span class="points-badge">{{ customer.points }}</span>
               </td>
 
               <td class="text-right">
                 <div class="row-actions">
-                  <button class="btn btn-sm btn-outline" @click="openViewModal(supplier)">
+                  <button class="btn btn-sm btn-outline" @click="openViewModal(customer)">
                     View
                   </button>
-                  <button class="btn btn-sm btn-warning" @click="openEditModal(supplier)">
+                  <button class="btn btn-sm btn-warning" @click="openEditModal(customer)">
                     Edit
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
-                    :disabled="deletingId === supplier.id"
-                    @click="removeSupplier(supplier.id)"
+                    :disabled="deletingId === customer.id"
+                    @click="removeCustomer(customer.id)"
                   >
-                    {{ deletingId === supplier.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === customer.id ? 'Deleting...' : 'Delete' }}
                   </button>
                 </div>
               </td>
@@ -164,62 +162,62 @@
       </div>
 
       <div v-if="!loading && !errorMessage" class="mobile-list">
-        <div v-if="filteredSuppliers.length === 0" class="mobile-empty">
-          No suppliers found.
+        <div
+          v-if="filteredCustomers.length === 0"
+          class="mobile-empty"
+        >
+          No customers found.
         </div>
 
         <div
-          v-for="supplier in filteredSuppliers"
-          :key="supplier.id"
+          v-for="customer in filteredCustomers"
+          :key="customer.id"
           class="mobile-card"
         >
           <div class="mobile-card-top">
-            <div class="supplier-name-cell">
+            <div class="customer-name-cell">
               <div class="avatar">
-                {{ getInitials(supplier.name) }}
+                {{ getInitials(customer.name) }}
               </div>
               <div>
-                <div class="supplier-name">{{ supplier.name }}</div>
-                <div class="supplier-meta">ID #{{ supplier.id }}</div>
+                <div class="customer-name">{{ customer.name }}</div>
+                <div class="customer-meta">ID #{{ customer.id }}</div>
               </div>
             </div>
+
+            <span class="points-badge">{{ customer.points }} pts</span>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Contact Person</span>
-              <span class="contact-text">{{ supplier.contact_person || '-' }}</span>
-            </div>
-
-            <div class="info-item">
               <span class="label">Cell</span>
-              <span class="cell-text">{{ supplier.cell || '-' }}</span>
+              <span class="cell-text">{{ customer.cell || '-' }}</span>
             </div>
 
             <div class="info-item">
               <span class="label">Email</span>
-              <span class="email-text">{{ supplier.email || '-' }}</span>
+              <span class="email-text">{{ customer.email || '-' }}</span>
             </div>
 
             <div class="info-item full">
               <span class="label">Address</span>
-              <span class="address-text">{{ supplier.address || '-' }}</span>
+              <span class="address-text">{{ customer.address || '-' }}</span>
             </div>
           </div>
 
           <div class="mobile-actions">
-            <button class="btn btn-sm btn-outline" @click="openViewModal(supplier)">
+            <button class="btn btn-sm btn-outline" @click="openViewModal(customer)">
               View
             </button>
-            <button class="btn btn-sm btn-warning" @click="openEditModal(supplier)">
+            <button class="btn btn-sm btn-warning" @click="openEditModal(customer)">
               Edit
             </button>
             <button
               class="btn btn-sm btn-danger"
-              :disabled="deletingId === supplier.id"
-              @click="removeSupplier(supplier.id)"
+              :disabled="deletingId === customer.id"
+              @click="removeCustomer(customer.id)"
             >
-              {{ deletingId === supplier.id ? 'Deleting...' : 'Delete' }}
+              {{ deletingId === customer.id ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -234,16 +232,16 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Supplier'
+                    ? 'Add Customer'
                     : modalMode === 'edit'
-                    ? 'Edit Supplier'
-                    : 'Supplier Detail'
+                    ? 'Edit Customer'
+                    : 'Customer Detail'
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View supplier information'
+                    ? 'View customer information'
                     : 'Fill in the form below'
                 }}
               </p>
@@ -253,24 +251,14 @@
           </div>
 
           <div class="modal-body">
-            <form class="supplier-form" @submit.prevent="saveSupplier">
+            <form class="customer-form" @submit.prevent="saveCustomer">
               <div class="form-grid">
                 <div class="form-group">
                   <label>Name <span>*</span></label>
                   <input
                     v-model="form.name"
                     type="text"
-                    placeholder="Enter supplier name"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Contact Person</label>
-                  <input
-                    v-model="form.contact_person"
-                    type="text"
-                    placeholder="Enter contact person"
+                    placeholder="Enter customer name"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -295,12 +283,23 @@
                   />
                 </div>
 
+                <div class="form-group">
+                  <label>Points</label>
+                  <input
+                    v-model.number="form.points"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    :disabled="modalMode === 'view' || saving"
+                  />
+                </div>
+
                 <div class="form-group full">
                   <label>Address</label>
                   <textarea
                     v-model="form.address"
                     rows="5"
-                    placeholder="Enter supplier address"
+                    placeholder="Enter customer address"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -318,7 +317,7 @@
                   {{
                     saving
                       ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
-                      : (modalMode === 'create' ? 'Save Supplier' : 'Update Supplier')
+                      : (modalMode === 'create' ? 'Save Customer' : 'Update Customer')
                   }}
                 </button>
               </div>
@@ -584,7 +583,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.suppliers-page {
+.customers-page {
   padding: 24px;
   background: #f5f7fb;
   min-height: 100vh;
@@ -762,36 +761,36 @@ onMounted(() => {
   overflow-x: auto;
 }
 
-.supplier-table {
+.customer-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 980px;
 }
 
-.supplier-table th,
-.supplier-table td {
+.customer-table th,
+.customer-table td {
   padding: 16px;
   text-align: left;
   border-bottom: 1px solid #edf2f7;
   vertical-align: middle;
 }
 
-.supplier-table th {
+.customer-table th {
   font-size: 13px;
   color: #64748b;
   font-weight: 700;
   background: #fbfcfe;
 }
 
-.supplier-table td {
+.customer-table td {
   color: #334155;
 }
 
-.supplier-table tbody tr:hover {
+.customer-table tbody tr:hover {
   background: #fafcff;
 }
 
-.supplier-name-cell {
+.customer-name-cell {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -810,20 +809,19 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.supplier-name {
+.customer-name {
   font-weight: 700;
   color: #162033;
   line-height: 1.4;
 }
 
-.supplier-meta {
+.customer-meta {
   margin-top: 2px;
   font-size: 12px;
   color: #7c8798;
   line-height: 1.4;
 }
 
-.contact-text,
 .cell-text,
 .email-text,
 .address-text {
@@ -846,6 +844,19 @@ onMounted(() => {
   color: #2563eb;
   font-size: 12px;
   font-weight: 700;
+}
+
+.points-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ecfdf3;
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .row-actions {
@@ -1073,7 +1084,7 @@ onMounted(() => {
   padding: 24px;
 }
 
-.supplier-form {
+.customer-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -1150,7 +1161,7 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .suppliers-page {
+  .customers-page {
     padding: 16px;
   }
 
@@ -1191,10 +1202,6 @@ onMounted(() => {
 
   .page-header > .btn {
     width: 100%;
-  }
-
-  .mobile-actions .btn {
-    flex: 1 1 calc(33.333% - 8px);
   }
 }
 </style>

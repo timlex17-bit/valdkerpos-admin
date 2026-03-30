@@ -425,6 +425,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type ValidationErrorRow = {
   id: number
@@ -462,15 +463,6 @@ type ImportValidateResponse = {
     error?: string
     error_message?: string
   }>
-}
-
-const IMPORT_ENDPOINTS = {
-  TEMPLATE: '/api/import-master-data/template/',
-  TEMPLATE_INFO: '/api/import-master-data/template/info/',
-  JOBS: '/api/import-master-data/jobs/',
-  detail: (id: number | string) => `/api/import-master-data/jobs/${id}/`,
-  validate: (id: number | string) => `/api/import-master-data/jobs/${id}/validate/`,
-  confirm: (id: number | string) => `/api/import-master-data/jobs/${id}/confirm/`,
 }
 
 const currentStep = ref(1)
@@ -577,7 +569,7 @@ async function downloadTemplate() {
   currentStep.value = Math.max(currentStep.value, 1)
 
   try {
-    const response = await api.get(IMPORT_ENDPOINTS.TEMPLATE, {
+    const response = await api.get(ENDPOINTS.IMPORT_MASTER_DATA_TEMPLATE, {
       responseType: 'blob',
     })
 
@@ -635,7 +627,7 @@ async function uploadFile(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await api.post(IMPORT_ENDPOINTS.JOBS, formData, {
+    const response = await api.post(ENDPOINTS.IMPORT_MASTER_DATA_JOBS, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -669,7 +661,11 @@ async function validatePreview() {
   currentStep.value = 3
 
   try {
-    const response = await api.post(IMPORT_ENDPOINTS.validate(importJobId.value), {})
+    const response = await api.post(
+      `${ENDPOINTS.IMPORT_MASTER_DATA_JOBS}${importJobId.value}/validate/`,
+      {}
+    )
+
     applyValidateResponse(response.data)
     showFlash('Validation preview generated.')
   } catch (error) {
@@ -684,7 +680,7 @@ async function refreshImportJob() {
 
   loadingJob.value = true
   try {
-    const response = await api.get(IMPORT_ENDPOINTS.detail(importJobId.value))
+    const response = await api.get(`${ENDPOINTS.IMPORT_MASTER_DATA_JOBS}${importJobId.value}/`)
     applyUploadOrDetailResponse(response.data)
     showFlash('Import job refreshed.')
   } catch (error) {
@@ -710,7 +706,7 @@ async function startImport() {
 
   try {
     const response = await api.post(
-      IMPORT_ENDPOINTS.confirm(importJobId.value),
+      `${ENDPOINTS.IMPORT_MASTER_DATA_JOBS}${importJobId.value}/confirm/`,
       {
         confirm_import: true,
       }

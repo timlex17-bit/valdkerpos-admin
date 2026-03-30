@@ -423,8 +423,8 @@
 </template>
 
 <script setup lang="ts">
+import axios, { AxiosError } from 'axios'
 import { computed, ref } from 'vue'
-import api from '@/services/api'
 
 type ValidationErrorRow = {
   id: number
@@ -464,10 +464,15 @@ type ImportValidateResponse = {
   }>
 }
 
-const IMPORT_ENDPOINTS = {
-  TEMPLATE: '/api/import-master-data/template/',
-  TEMPLATE_INFO: '/api/import-master-data/template/info/',
-  JOBS: '/api/import-master-data/jobs/',
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://127.0.0.1:8000'
+
+const IMPORT_API = {
+  template: '/api/import-master-data/template/',
+  templateInfo: '/api/import-master-data/template/info/',
+  upload: '/api/import-master-data/jobs/',
   detail: (id: number | string) => `/api/import-master-data/jobs/${id}/`,
   validate: (id: number | string) => `/api/import-master-data/jobs/${id}/validate/`,
   confirm: (id: number | string) => `/api/import-master-data/jobs/${id}/confirm/`,
@@ -498,6 +503,28 @@ const validationErrors = ref<ValidationErrorRow[]>([])
 const canImport = computed(() => {
   return !!importJobId.value && validationSummary.value.validRows > 0 && !importing.value
 })
+
+function getToken(): string {
+  return (
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    localStorage.getItem('access_token') ||
+    ''
+  )
+}
+
+function getAuthHeaders(extra: Record<string, string> = {}) {
+  const token = getToken()
+  return {
+    ...(token ? { Authorization: `Token ${token}` } : {}),
+    ...extra,
+  }
+}
+
+function apiUrl(path: string) {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${API_BASE_URL}${path}`
+}
 
 function extractFilenameFromHeaders(headers: any, fallback = 'valdker_master_import_template.xlsx') {
   const disposition = headers?.['content-disposition'] || headers?.['Content-Disposition']
@@ -550,8 +577,9 @@ function applyValidateResponse(data: ImportValidateResponse) {
     : []
 }
 
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
+function getErrorMessage(error: unknown, fallback = 'Request failed.') {
+  const err = error as AxiosError<any>
+  const data = err?.response?.data
 
   if (typeof data === 'string') return data
   if (data?.detail) return String(data.detail)
@@ -569,7 +597,7 @@ function getErrorMessage(error: any, fallback = 'Request failed.') {
     }
   }
 
-  return error?.message || fallback
+  return err?.message || fallback
 }
 
 async function downloadTemplate() {
@@ -577,8 +605,9 @@ async function downloadTemplate() {
   currentStep.value = Math.max(currentStep.value, 1)
 
   try {
-    const response = await api.get(IMPORT_ENDPOINTS.TEMPLATE, {
+    const response = await axios.get(apiUrl(IMPORT_API.template), {
       responseType: 'blob',
+      headers: getAuthHeaders(),
     })
 
     const blob = new Blob([response.data])
@@ -635,10 +664,10 @@ async function uploadFile(file: File) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await api.post(IMPORT_ENDPOINTS.JOBS, formData, {
-      headers: {
+    const response = await axios.post(apiUrl(IMPORT_API.upload), formData, {
+      headers: getAuthHeaders({
         'Content-Type': 'multipart/form-data',
-      },
+      }),
     })
 
     applyUploadOrDetailResponse(response.data)
@@ -669,7 +698,14 @@ async function validatePreview() {
   currentStep.value = 3
 
   try {
-    const response = await api.post(IMPORT_ENDPOINTS.validate(importJobId.value), {})
+    const response = await axios.post(
+      apiUrl(IMPORT_API.validate(importJobId.value)),
+      {},
+      {
+        headers: getAuthHeaders(),
+      }
+    )
+
     applyValidateResponse(response.data)
     showFlash('Validation preview generated.')
   } catch (error) {
@@ -684,7 +720,10 @@ async function refreshImportJob() {
 
   loadingJob.value = true
   try {
-    const response = await api.get(IMPORT_ENDPOINTS.detail(importJobId.value))
+    const response = await axios.get(apiUrl(IMPORT_API.detail(importJobId.value)), {
+      headers: getAuthHeaders(),
+    })
+
     applyUploadOrDetailResponse(response.data)
     showFlash('Import job refreshed.')
   } catch (error) {
@@ -709,10 +748,13 @@ async function startImport() {
   currentStep.value = 4
 
   try {
-    const response = await api.post(
-      IMPORT_ENDPOINTS.confirm(importJobId.value),
+    const response = await axios.post(
+      apiUrl(IMPORT_API.confirm(importJobId.value)),
       {
         confirm_import: true,
+      },
+      {
+        headers: getAuthHeaders(),
       }
     )
 

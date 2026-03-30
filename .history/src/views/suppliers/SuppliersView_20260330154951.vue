@@ -337,9 +337,8 @@
 </template>
 
 <script setup lang="ts">
+import axios from 'axios'
 import { computed, onMounted, reactive, ref } from 'vue'
-import api from '@/services/api'
-import { ENDPOINTS } from '@/services/endpoints'
 
 type Supplier = {
   id: number
@@ -351,6 +350,24 @@ type Supplier = {
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
 
 const search = ref('')
 const showModal = ref(false)
@@ -395,23 +412,6 @@ const suppliersWithContact = computed(() => {
 const firstSupplierName = computed(() => {
   return filteredSuppliers.value[0]?.name || '-'
 })
-
-function normalizeSupplier(raw: any): Supplier {
-  return {
-    id: Number(raw?.id ?? 0),
-    name: raw?.name ?? '',
-    contact_person: raw?.contact_person ?? '',
-    cell: raw?.cell ?? '',
-    email: raw?.email ?? '',
-    address: raw?.address ?? '',
-  }
-}
-
-function extractRows(data: any) {
-  if (Array.isArray(data)) return data
-  if (Array.isArray(data?.results)) return data.results
-  return []
-}
 
 function resetForm() {
   form.id = 0
@@ -464,7 +464,7 @@ function resetFilters() {
 }
 
 function getInitials(name: string) {
-  return String(name || '')
+  return (name || '')
     .split(' ')
     .filter(Boolean)
     .map((part) => part[0])
@@ -504,16 +504,13 @@ async function fetchSuppliers() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get(ENDPOINTS.SUPPLIERS)
-    const rows = extractRows(response.data)
-    suppliers.value = rows.map(normalizeSupplier)
+    const response = await api.get('/api/suppliers/')
+    suppliers.value = Array.isArray(response.data) ? response.data : []
   } catch (error: any) {
-    console.error('Failed to fetch suppliers:', error)
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
       'Failed to load suppliers.'
-    suppliers.value = []
   } finally {
     loading.value = false
   }
@@ -529,11 +526,11 @@ async function saveSupplier() {
     const payload = buildPayload()
 
     if (modalMode.value === 'create') {
-      await api.post(ENDPOINTS.SUPPLIERS, payload, {
+      await api.post('/api/suppliers/', payload, {
         headers: { 'Content-Type': 'application/json' },
       })
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await api.patch(`${ENDPOINTS.SUPPLIERS}${editingId.value}/`, payload, {
+      await api.patch(`/api/suppliers/${editingId.value}/`, payload, {
         headers: { 'Content-Type': 'application/json' },
       })
     }
@@ -565,7 +562,7 @@ async function removeSupplier(id: number) {
   deletingId.value = id
 
   try {
-    await api.delete(`${ENDPOINTS.SUPPLIERS}${id}/`)
+    await api.delete(`/api/suppliers/${id}/`)
     suppliers.value = suppliers.value.filter((s) => s.id !== id)
   } catch (error: any) {
     alert(
