@@ -69,7 +69,15 @@
         </div>
       </div>
 
-      <div class="table-wrapper desktop-table">
+      <div v-if="loading" class="loading-state">
+        Loading customers...
+      </div>
+
+      <div v-else-if="errorMessage" class="error-state">
+        {{ errorMessage }}
+      </div>
+
+      <div v-else class="table-wrapper desktop-table">
         <table class="customer-table">
           <thead>
             <tr>
@@ -94,6 +102,7 @@
               <td>
                 <span class="id-badge">#{{ customer.id }}</span>
               </td>
+
               <td>
                 <div class="customer-name-cell">
                   <div class="avatar">
@@ -107,12 +116,29 @@
                   </div>
                 </div>
               </td>
-              <td>{{ customer.cell || '-' }}</td>
-              <td>{{ customer.email || '-' }}</td>
-              <td class="address-cell">{{ customer.address || '-' }}</td>
+
+              <td>
+                <span class="cell-text">
+                  {{ customer.cell || '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="email-text">
+                  {{ customer.email || '-' }}
+                </span>
+              </td>
+
+              <td class="address-cell">
+                <span class="address-text">
+                  {{ customer.address || '-' }}
+                </span>
+              </td>
+
               <td>
                 <span class="points-badge">{{ customer.points }}</span>
               </td>
+
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(customer)">
@@ -121,8 +147,12 @@
                   <button class="btn btn-sm btn-warning" @click="openEditModal(customer)">
                     Edit
                   </button>
-                  <button class="btn btn-sm btn-danger" @click="removeCustomer(customer.id)">
-                    Delete
+                  <button
+                    class="btn btn-sm btn-danger"
+                    :disabled="deletingId === customer.id"
+                    @click="removeCustomer(customer.id)"
+                  >
+                    {{ deletingId === customer.id ? 'Deleting...' : 'Delete' }}
                   </button>
                 </div>
               </td>
@@ -131,7 +161,7 @@
         </table>
       </div>
 
-      <div class="mobile-list">
+      <div v-if="!loading && !errorMessage" class="mobile-list">
         <div
           v-if="filteredCustomers.length === 0"
           class="mobile-empty"
@@ -161,15 +191,17 @@
           <div class="mobile-info-grid">
             <div class="info-item">
               <span class="label">Cell</span>
-              <span>{{ customer.cell || '-' }}</span>
+              <span class="cell-text">{{ customer.cell || '-' }}</span>
             </div>
+
             <div class="info-item">
               <span class="label">Email</span>
-              <span>{{ customer.email || '-' }}</span>
+              <span class="email-text">{{ customer.email || '-' }}</span>
             </div>
+
             <div class="info-item full">
               <span class="label">Address</span>
-              <span>{{ customer.address || '-' }}</span>
+              <span class="address-text">{{ customer.address || '-' }}</span>
             </div>
           </div>
 
@@ -180,8 +212,12 @@
             <button class="btn btn-sm btn-warning" @click="openEditModal(customer)">
               Edit
             </button>
-            <button class="btn btn-sm btn-danger" @click="removeCustomer(customer.id)">
-              Delete
+            <button
+              class="btn btn-sm btn-danger"
+              :disabled="deletingId === customer.id"
+              @click="removeCustomer(customer.id)"
+            >
+              {{ deletingId === customer.id ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -223,7 +259,7 @@
                     v-model="form.name"
                     type="text"
                     placeholder="Enter customer name"
-                    :disabled="modalMode === 'view'"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
@@ -233,7 +269,7 @@
                     v-model="form.cell"
                     type="text"
                     placeholder="Enter phone number"
-                    :disabled="modalMode === 'view'"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
@@ -243,7 +279,7 @@
                     v-model="form.email"
                     type="email"
                     placeholder="Enter email address"
-                    :disabled="modalMode === 'view'"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
@@ -254,7 +290,7 @@
                     type="number"
                     min="0"
                     placeholder="0"
-                    :disabled="modalMode === 'view'"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
@@ -264,17 +300,25 @@
                     v-model="form.address"
                     rows="5"
                     placeholder="Enter customer address"
-                    :disabled="modalMode === 'view'"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
+              </div>
+
+              <div v-if="formError" class="form-error">
+                {{ formError }}
               </div>
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light" @click="closeModal">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary">
-                  {{ modalMode === 'create' ? 'Save Customer' : 'Update Customer' }}
+                <button type="submit" class="btn btn-primary" :disabled="saving">
+                  {{
+                    saving
+                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
+                      : (modalMode === 'create' ? 'Save Customer' : 'Update Customer')
+                  }}
                 </button>
               </div>
 
@@ -292,7 +336,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 type Customer = {
   id: number
@@ -305,61 +350,35 @@ type Customer = {
 
 type ModalMode = 'create' | 'edit' | 'view'
 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
+
 const search = ref('')
 const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
 const editingId = ref<number | null>(null)
 
-const customers = ref<Customer[]>([
-  {
-    id: 6,
-    name: 'Doviana',
-    cell: '+67077391203',
-    email: 'rivaldojoseguterres@gmail.com',
-    address: 'Dili, Timor-Leste',
-    points: 10,
-  },
-  {
-    id: 5,
-    name: 'Kerry Figueredo',
-    cell: '+67077838292',
-    email: 'kerryfigueredo@gmail.com',
-    address: 'Becora, Dili',
-    points: 18,
-  },
-  {
-    id: 4,
-    name: 'Cirilo Guterres',
-    cell: '+67077304323',
-    email: 'ciriloguterres@gmail.com',
-    address: 'Comoro, Dili',
-    points: 0,
-  },
-  {
-    id: 3,
-    name: 'Francisca Ximenes',
-    cell: '+67077391202',
-    email: 'franciscaximenes@gmail.com',
-    address: 'Fatuhada, Dili',
-    points: 5,
-  },
-  {
-    id: 2,
-    name: 'Doviana Granadeiro',
-    cell: '+67077456312',
-    email: 'dovianagranadeiro09@gmail.com',
-    address: 'Manleuana, Dili',
-    points: 7,
-  },
-  {
-    id: 1,
-    name: 'Alexander Guterres',
-    cell: '+67077924898',
-    email: 'alexanderfrancisco25@email.com',
-    address: 'Tasi Tolu, Dili',
-    points: 0,
-  },
-])
+const customers = ref<Customer[]>([])
+const loading = ref(false)
+const saving = ref(false)
+const deletingId = ref<number | null>(null)
+const errorMessage = ref('')
+const formError = ref('')
 
 const form = reactive<Customer>({
   id: 0,
@@ -377,20 +396,20 @@ const filteredCustomers = computed(() => {
   return customers.value.filter((customer) => {
     return (
       customer.name.toLowerCase().includes(q) ||
-      customer.cell.toLowerCase().includes(q) ||
-      customer.email.toLowerCase().includes(q) ||
-      customer.address.toLowerCase().includes(q)
+      (customer.cell || '').toLowerCase().includes(q) ||
+      (customer.email || '').toLowerCase().includes(q) ||
+      (customer.address || '').toLowerCase().includes(q)
     )
   })
 })
 
 const customersWithPoints = computed(() => {
-  return customers.value.filter((c) => c.points > 0).length
+  return customers.value.filter((c) => Number(c.points) > 0).length
 })
 
 const topCustomerName = computed(() => {
   if (!customers.value.length) return '-'
-  const sorted = [...customers.value].sort((a, b) => b.points - a.points)
+  const sorted = [...customers.value].sort((a, b) => Number(b.points) - Number(a.points))
   return sorted[0]?.name || '-'
 })
 
@@ -401,15 +420,16 @@ function resetForm() {
   form.email = ''
   form.address = ''
   form.points = 0
+  formError.value = ''
 }
 
 function fillForm(customer: Customer) {
   form.id = customer.id
-  form.name = customer.name
-  form.cell = customer.cell
-  form.email = customer.email
-  form.address = customer.address
-  form.points = customer.points
+  form.name = customer.name || ''
+  form.cell = customer.cell || ''
+  form.email = customer.email || ''
+  form.address = customer.address || ''
+  form.points = Number(customer.points) || 0
 }
 
 function openCreateModal() {
@@ -439,61 +459,130 @@ function closeModal() {
   resetForm()
 }
 
-function saveCustomer() {
-  if (!form.name.trim()) {
-    alert('Customer name is required.')
-    return
-  }
-
-  if (modalMode.value === 'create') {
-    const nextId =
-      customers.value.length > 0
-        ? Math.max(...customers.value.map((c) => c.id)) + 1
-        : 1
-
-    customers.value.unshift({
-      id: nextId,
-      name: form.name.trim(),
-      cell: form.cell.trim(),
-      email: form.email.trim(),
-      address: form.address.trim(),
-      points: Number(form.points) || 0,
-    })
-  } else if (modalMode.value === 'edit' && editingId.value !== null) {
-    const index = customers.value.findIndex((c) => c.id === editingId.value)
-    if (index !== -1) {
-      customers.value[index] = {
-        id: editingId.value,
-        name: form.name.trim(),
-        cell: form.cell.trim(),
-        email: form.email.trim(),
-        address: form.address.trim(),
-        points: Number(form.points) || 0,
-      }
-    }
-  }
-
-  closeModal()
-}
-
-function removeCustomer(id: number) {
-  const ok = window.confirm('Delete this customer?')
-  if (!ok) return
-  customers.value = customers.value.filter((c) => c.id !== id)
-}
-
 function resetFilters() {
   search.value = ''
 }
 
 function getInitials(name: string) {
-  return name
+  return (name || '')
     .split(' ')
+    .filter(Boolean)
     .map((part) => part[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase() || 'CU'
 }
+
+function buildPayload() {
+  return {
+    name: form.name.trim(),
+    cell: form.cell.trim(),
+    email: form.email.trim() || null,
+    address: form.address.trim(),
+    points: Number(form.points) || 0,
+  }
+}
+
+function validateForm() {
+  formError.value = ''
+
+  if (!form.name.trim()) {
+    formError.value = 'Customer name is required.'
+    return false
+  }
+
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    formError.value = 'Email format is invalid.'
+    return false
+  }
+
+  if (Number(form.points) < 0) {
+    formError.value = 'Points cannot be negative.'
+    return false
+  }
+
+  return true
+}
+
+async function fetchCustomers() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await api.get('/api/customers/')
+    customers.value = Array.isArray(response.data) ? response.data : []
+  } catch (error: any) {
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Failed to load customers.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveCustomer() {
+  if (!validateForm()) return
+
+  saving.value = true
+  formError.value = ''
+
+  try {
+    const payload = buildPayload()
+
+    if (modalMode.value === 'create') {
+      await api.post('/api/customers/', payload, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    } else if (modalMode.value === 'edit' && editingId.value !== null) {
+      await api.patch(`/api/customers/${editingId.value}/`, payload, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    await fetchCustomers()
+    closeModal()
+  } catch (error: any) {
+    const data = error?.response?.data
+    if (data && typeof data === 'object') {
+      const firstKey = Object.keys(data)[0]
+      if (firstKey) {
+        const firstValue = data[firstKey]
+        formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
+      } else {
+        formError.value = 'Failed to save customer.'
+      }
+    } else {
+      formError.value = error?.message || 'Failed to save customer.'
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeCustomer(id: number) {
+  const ok = window.confirm('Delete this customer?')
+  if (!ok) return
+
+  deletingId.value = id
+
+  try {
+    await api.delete(`/api/customers/${id}/`)
+    customers.value = customers.value.filter((c) => c.id !== id)
+  } catch (error: any) {
+    alert(
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Failed to delete customer.'
+    )
+  } finally {
+    deletingId.value = null
+  }
+}
+
+onMounted(() => {
+  fetchCustomers()
+})
 </script>
 
 <style scoped>
@@ -516,6 +605,8 @@ function getInitials(name: string) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  flex: 1 1 420px;
 }
 
 .page-title {
@@ -523,12 +614,14 @@ function getInitials(name: string) {
   font-size: 32px;
   font-weight: 800;
   color: #162033;
+  line-height: 1.1;
 }
 
 .page-subtitle {
   margin: 6px 0 0;
   color: #6b7280;
   font-size: 14px;
+  line-height: 1.6;
 }
 
 .breadcrumb {
@@ -567,6 +660,7 @@ function getInitials(name: string) {
 
 .stat-card {
   padding: 20px;
+  min-width: 0;
 }
 
 .stat-label {
@@ -576,15 +670,18 @@ function getInitials(name: string) {
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: clamp(24px, 3vw, 28px);
   font-weight: 800;
   color: #172033;
+  line-height: 1.1;
+  word-break: break-word;
 }
 
 .stat-note {
   margin-top: 8px;
   font-size: 13px;
   color: #94a3b8;
+  line-height: 1.5;
 }
 
 .stat-truncate {
@@ -621,6 +718,7 @@ function getInitials(name: string) {
   font-size: 14px;
   outline: none;
   transition: 0.2s ease;
+  color: #162033;
 }
 
 .search-box input:focus {
@@ -687,6 +785,10 @@ function getInitials(name: string) {
   background: #fbfcfe;
 }
 
+.customer-table td {
+  color: #334155;
+}
+
 .customer-table tbody tr:hover {
   background: #fafcff;
 }
@@ -713,12 +815,22 @@ function getInitials(name: string) {
 .customer-name {
   font-weight: 700;
   color: #162033;
+  line-height: 1.4;
 }
 
 .customer-meta {
   margin-top: 2px;
   font-size: 12px;
   color: #7c8798;
+  line-height: 1.4;
+}
+
+.cell-text,
+.email-text,
+.address-text {
+  color: #162033;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .address-cell {
@@ -825,6 +937,33 @@ function getInitials(name: string) {
   padding: 24px 0;
 }
 
+.loading-state,
+.error-state {
+  padding: 24px;
+  border-radius: 16px;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.loading-state {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.error-state {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.form-error {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .btn {
   border: none;
   outline: none;
@@ -836,6 +975,11 @@ function getInitials(name: string) {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .btn-primary {

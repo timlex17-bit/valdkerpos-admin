@@ -18,10 +18,16 @@
         </nav>
       </div>
 
-      <button class="btn btn-primary add-btn" @click="openCreateModal">
-        <span class="btn-icon">＋</span>
-        Add Product
-      </button>
+      <div class="header-actions">
+        <button class="btn btn-light" @click="fetchAllData" :disabled="loading">
+          {{ loading ? 'Loading...' : 'Refresh' }}
+        </button>
+
+        <button class="btn btn-primary add-btn" @click="openCreateModal">
+          <span class="btn-icon">＋</span>
+          Add Product
+        </button>
+      </div>
     </div>
 
     <div class="stats-grid">
@@ -44,6 +50,10 @@
       </div>
     </div>
 
+    <div v-if="error" class="alert-error">
+      {{ error }}
+    </div>
+
     <div class="toolbar-card">
       <div class="toolbar-grid">
         <div class="search-box toolbar-item toolbar-search">
@@ -59,11 +69,11 @@
           <select v-model="categoryFilter" class="filter-select">
             <option value="">All categories</option>
             <option
-              v-for="category in uniqueCategories"
-              :key="category"
-              :value="category"
+              v-for="category in categoryOptions"
+              :key="category.id"
+              :value="String(category.id)"
             >
-              {{ category }}
+              {{ category.name }}
             </option>
           </select>
         </div>
@@ -72,11 +82,11 @@
           <select v-model="supplierFilter" class="filter-select">
             <option value="">All suppliers</option>
             <option
-              v-for="supplier in uniqueSuppliers"
-              :key="supplier"
-              :value="supplier"
+              v-for="supplier in supplierOptions"
+              :key="supplier.id"
+              :value="String(supplier.id)"
             >
-              {{ supplier }}
+              {{ supplier.name }}
             </option>
           </select>
         </div>
@@ -84,9 +94,10 @@
         <div class="toolbar-item">
           <select v-model="itemTypeFilter" class="filter-select">
             <option value="">All item types</option>
-            <option value="Product">Product</option>
-            <option value="Service">Service</option>
-            <option value="Part">Part</option>
+            <option value="product">Product</option>
+            <option value="menu">Menu</option>
+            <option value="service">Service</option>
+            <option value="sparepart">Sparepart</option>
           </select>
         </div>
 
@@ -125,7 +136,7 @@
           </thead>
 
           <tbody>
-            <tr v-if="filteredProducts.length === 0">
+            <tr v-if="!loading && filteredProducts.length === 0">
               <td colspan="11" class="empty-cell">
                 No products found.
               </td>
@@ -140,8 +151,8 @@
                 <div class="product-main">
                   <div class="product-thumb-wrap">
                     <img
-                      v-if="product.product_image"
-                      :src="product.product_image"
+                      v-if="product.image_url"
+                      :src="product.image_url"
                       :alt="product.name"
                       class="product-thumb"
                     />
@@ -161,13 +172,13 @@
 
               <td>{{ product.code }}</td>
               <td>{{ product.sku || '-' }}</td>
-              <td>{{ product.item_type }}</td>
-              <td>{{ product.category || '-' }}</td>
+              <td>{{ formatItemType(product.item_type) }}</td>
+              <td>{{ product.category_name || '-' }}</td>
               <td class="price-cell">${{ formatMoney(product.sell_price) }}</td>
-              <td class="supplier-cell">{{ product.supplier || '-' }}</td>
+              <td class="supplier-cell">{{ product.supplier_name || '-' }}</td>
               <td>
-                <span :class="['stock-badge', product.stock < 20 ? 'stock-low' : 'stock-ok']">
-                  {{ product.stock }}
+                <span :class="['stock-badge', Number(product.stock) < 20 ? 'stock-low' : 'stock-ok']">
+                  {{ displayNumber(product.stock) }}
                 </span>
               </td>
               <td>
@@ -195,7 +206,7 @@
       </div>
 
       <div class="mobile-list">
-        <div v-if="filteredProducts.length === 0" class="mobile-empty">
+        <div v-if="!loading && filteredProducts.length === 0" class="mobile-empty">
           No products found.
         </div>
 
@@ -208,8 +219,8 @@
             <div class="product-main">
               <div class="product-thumb-wrap">
                 <img
-                  v-if="product.product_image"
-                  :src="product.product_image"
+                  v-if="product.image_url"
+                  :src="product.image_url"
                   :alt="product.name"
                   class="product-thumb"
                 />
@@ -236,15 +247,15 @@
             </div>
             <div class="info-item">
               <span class="label">Type</span>
-              <span class="value">{{ product.item_type }}</span>
+              <span class="value">{{ formatItemType(product.item_type) }}</span>
             </div>
             <div class="info-item">
               <span class="label">Category</span>
-              <span class="value">{{ product.category || '-' }}</span>
+              <span class="value">{{ product.category_name || '-' }}</span>
             </div>
             <div class="info-item">
               <span class="label">Supplier</span>
-              <span class="value">{{ product.supplier || '-' }}</span>
+              <span class="value">{{ product.supplier_name || '-' }}</span>
             </div>
             <div class="info-item">
               <span class="label">Sell Price</span>
@@ -252,7 +263,7 @@
             </div>
             <div class="info-item">
               <span class="label">Stock</span>
-              <span class="value">{{ product.stock }}</span>
+              <span class="value">{{ displayNumber(product.stock) }}</span>
             </div>
             <div class="info-item full">
               <span class="label">Description</span>
@@ -272,6 +283,10 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div v-if="loading" class="loading-box">
+        Loading products...
       </div>
     </div>
 
@@ -337,40 +352,53 @@
                 <div class="form-group">
                   <label>Item Type <span>*</span></label>
                   <select v-model="form.item_type" :disabled="modalMode === 'view'">
-                    <option value="Product">Product</option>
-                    <option value="Service">Service</option>
-                    <option value="Part">Part</option>
+                    <option value="product">Product</option>
+                    <option value="menu">Menu</option>
+                    <option value="service">Service</option>
+                    <option value="sparepart">Sparepart</option>
                   </select>
                 </div>
 
                 <div class="form-group">
                   <label>Category</label>
-                  <input
-                    v-model="form.category"
-                    type="text"
-                    placeholder="Enter category"
-                    :disabled="modalMode === 'view'"
-                  />
+                  <select v-model="form.category_id" :disabled="modalMode === 'view'">
+                    <option :value="null">Select category</option>
+                    <option
+                      v-for="category in categoryOptions"
+                      :key="category.id"
+                      :value="category.id"
+                    >
+                      {{ category.name }}
+                    </option>
+                  </select>
                 </div>
 
                 <div class="form-group">
                   <label>Unit</label>
-                  <input
-                    v-model="form.unit"
-                    type="text"
-                    placeholder="Enter unit"
-                    :disabled="modalMode === 'view'"
-                  />
+                  <select v-model="form.unit_id" :disabled="modalMode === 'view'">
+                    <option :value="null">Select unit</option>
+                    <option
+                      v-for="unit in unitOptions"
+                      :key="unit.id"
+                      :value="unit.id"
+                    >
+                      {{ unit.name }}
+                    </option>
+                  </select>
                 </div>
 
                 <div class="form-group">
                   <label>Supplier</label>
-                  <input
-                    v-model="form.supplier"
-                    type="text"
-                    placeholder="Enter supplier"
-                    :disabled="modalMode === 'view'"
-                  />
+                  <select v-model="form.supplier_id" :disabled="modalMode === 'view'">
+                    <option :value="null">Select supplier</option>
+                    <option
+                      v-for="supplier in supplierOptions"
+                      :key="supplier.id"
+                      :value="supplier.id"
+                    >
+                      {{ supplier.name }}
+                    </option>
+                  </select>
                 </div>
 
                 <div class="form-group">
@@ -378,7 +406,6 @@
                   <input
                     v-model.number="form.stock"
                     type="number"
-                    min="0"
                     step="1"
                     :disabled="modalMode === 'view'"
                   />
@@ -387,9 +414,8 @@
                 <div class="form-group">
                   <label>Buy Price <span>*</span></label>
                   <input
-                    v-model.number="form.buy_price"
+                    v-model="form.buy_price"
                     type="number"
-                    min="0"
                     step="0.01"
                     :disabled="modalMode === 'view'"
                   />
@@ -398,20 +424,18 @@
                 <div class="form-group">
                   <label>Sell Price <span>*</span></label>
                   <input
-                    v-model.number="form.sell_price"
+                    v-model="form.sell_price"
                     type="number"
-                    min="0"
                     step="0.01"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Weight <span>*</span></label>
+                  <label>Weight</label>
                   <input
-                    v-model.number="form.weight"
+                    v-model="form.weight"
                     type="number"
-                    min="0"
                     step="0.01"
                     :disabled="modalMode === 'view'"
                   />
@@ -452,27 +476,19 @@
                 </div>
 
                 <div class="form-group full">
-                  <label>Product Image</label>
-                  <div class="image-upload-box">
-                    <input
-                      ref="fileInputRef"
-                      type="file"
-                      accept="image/*"
-                      :disabled="modalMode === 'view'"
-                      @change="onImageChange"
-                    />
+                  <label>Image URL</label>
+                  <input
+                    v-model="form.image"
+                    type="text"
+                    placeholder="Enter image URL"
+                    :disabled="modalMode === 'view'"
+                  />
+                </div>
 
-                    <div v-if="form.product_image" class="image-preview-wrap">
-                      <img :src="form.product_image" alt="Preview" class="image-preview" />
-                      <button
-                        v-if="modalMode !== 'view'"
-                        type="button"
-                        class="btn btn-danger btn-sm"
-                        @click="removeImage"
-                      >
-                        Remove Image
-                      </button>
-                    </div>
+                <div class="form-group full" v-if="currentPreviewImage">
+                  <label>Preview</label>
+                  <div class="image-preview-wrap">
+                    <img :src="currentPreviewImage" alt="Preview" class="image-preview" />
                   </div>
                 </div>
               </div>
@@ -481,8 +497,12 @@
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary modal-btn">
-                  {{ modalMode === 'create' ? 'Save Product' : 'Update Product' }}
+                <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
+                  {{
+                    saving
+                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
+                      : (modalMode === 'create' ? 'Save Product' : 'Update Product')
+                  }}
                 </button>
               </div>
 
@@ -500,29 +520,65 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
 
-type ItemType = 'Product' | 'Service' | 'Part'
 type ModalMode = 'create' | 'edit' | 'view'
+
+type RelatedCategory = {
+  id: number
+  name: string
+  icon?: string
+  icon_url?: string
+}
+
+type RelatedSupplier = {
+  id: number
+  name: string
+  contact_person?: string
+  cell?: string
+  email?: string
+  address?: string
+}
+
+type RelatedUnit = {
+  id: number
+  name: string
+}
 
 type Product = {
   id: number
   name: string
-  code: string
   sku: string
-  item_type: ItemType
-  category: string
+  code: string
+  item_type: string
+  track_stock: boolean
   description: string
   stock: number
-  track_stock: boolean
-  buy_price: number
-  sell_price: number
-  weight: number
-  unit: string
-  supplier: string
-  product_image: string
+  buy_price: string
+  sell_price: string
+  weight: string
   is_active: boolean
+  image: string
+  image_url: string
+  shop_id: number | null
+  category: RelatedCategory | null
+  supplier: RelatedSupplier | null
+  unit: RelatedUnit | null
+  category_id: number | null
+  supplier_id: number | null
+  unit_id: number | null
+  category_name: string
+  supplier_name: string
+  unit_name: string
 }
+
+type LookupOption = {
+  id: number
+  name: string
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 const search = ref('')
 const categoryFilter = ref('')
@@ -532,108 +588,33 @@ const itemTypeFilter = ref('')
 const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
 const editingId = ref<number | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
 
-const products = ref<Product[]>([
-  {
-    id: 8,
-    name: 'Busy',
-    code: '9354104000031',
-    sku: '',
-    item_type: 'Product',
-    category: 'Drink',
-    description: 'Cold drink item.',
-    stock: 500,
-    track_stock: true,
-    buy_price: 1.5,
-    sell_price: 2.5,
-    weight: 0.3,
-    unit: 'Bottle',
-    supplier: 'Wellys Unipessoal',
-    product_image: '',
-    is_active: true,
-  },
-  {
-    id: 7,
-    name: 'Service Oli',
-    code: '123',
-    sku: '123',
-    item_type: 'Service',
-    category: 'Workshop',
-    description: 'Oil service package.',
-    stock: 1000,
-    track_stock: false,
-    buy_price: 2.5,
-    sell_price: 3.5,
-    weight: 0.35,
-    unit: 'Service',
-    supplier: 'Rymond Unipessoal',
-    product_image: '',
-    is_active: true,
-  },
-  {
-    id: 6,
-    name: 'Ice Cream',
-    code: '63737378373',
-    sku: '',
-    item_type: 'Product',
-    category: 'Frozen',
-    description: 'Sweet frozen snack.',
-    stock: 100,
-    track_stock: true,
-    buy_price: 0.65,
-    sell_price: 1.0,
-    weight: 0.2,
-    unit: 'Cup',
-    supplier: 'Leader Unipessoal',
-    product_image: '',
-    is_active: true,
-  },
-  {
-    id: 5,
-    name: 'Oli Yamaha Lube',
-    code: '6937467600037',
-    sku: '6937467600037',
-    item_type: 'Part',
-    category: 'Workshop',
-    description: 'Engine oil product.',
-    stock: 500,
-    track_stock: true,
-    buy_price: 4.25,
-    sell_price: 5.5,
-    weight: 1,
-    unit: 'Bottle',
-    supplier: 'Wellys Unipessoal',
-    product_image: '',
-    is_active: true,
-  },
-])
+const loading = ref(false)
+const saving = ref(false)
+const error = ref('')
 
-const form = reactive<Product>({
+const products = ref<Product[]>([])
+const categoryOptions = ref<LookupOption[]>([])
+const supplierOptions = ref<LookupOption[]>([])
+const unitOptions = ref<LookupOption[]>([])
+
+const form = reactive({
   id: 0,
   name: '',
   code: '',
   sku: '',
-  item_type: 'Product',
-  category: '',
+  item_type: 'product',
   description: '',
   stock: 0,
   track_stock: true,
-  buy_price: 0,
-  sell_price: 0,
-  weight: 0,
-  unit: '',
-  supplier: '',
-  product_image: '',
+  buy_price: '0.00',
+  sell_price: '0.00',
+  weight: '0.00',
+  image: '',
   is_active: true,
-})
-
-const uniqueCategories = computed(() => {
-  return [...new Set(products.value.map((p) => p.category).filter(Boolean))]
-})
-
-const uniqueSuppliers = computed(() => {
-  return [...new Set(products.value.map((p) => p.supplier).filter(Boolean))]
+  category_id: null as number | null,
+  supplier_id: null as number | null,
+  unit_id: null as number | null,
 })
 
 const filteredProducts = computed(() => {
@@ -643,20 +624,20 @@ const filteredProducts = computed(() => {
   if (q) {
     result = result.filter((product) => {
       return (
-        product.name.toLowerCase().includes(q) ||
-        product.code.toLowerCase().includes(q) ||
-        product.sku.toLowerCase().includes(q) ||
-        product.supplier.toLowerCase().includes(q)
+        (product.name || '').toLowerCase().includes(q) ||
+        (product.code || '').toLowerCase().includes(q) ||
+        (product.sku || '').toLowerCase().includes(q) ||
+        (product.supplier_name || '').toLowerCase().includes(q)
       )
     })
   }
 
   if (categoryFilter.value) {
-    result = result.filter((product) => product.category === categoryFilter.value)
+    result = result.filter((product) => String(product.category_id || '') === categoryFilter.value)
   }
 
   if (supplierFilter.value) {
-    result = result.filter((product) => product.supplier === supplierFilter.value)
+    result = result.filter((product) => String(product.supplier_id || '') === supplierFilter.value)
   }
 
   if (itemTypeFilter.value) {
@@ -667,32 +648,172 @@ const filteredProducts = computed(() => {
 })
 
 const lowStockCount = computed(() => {
-  return filteredProducts.value.filter((product) => product.stock < 20).length
+  return filteredProducts.value.filter((product) => Number(product.stock) < 20).length
 })
 
 const totalStockUnits = computed(() => {
   return filteredProducts.value.reduce((sum, product) => sum + Number(product.stock || 0), 0)
 })
 
+const currentPreviewImage = computed(() => {
+  return form.image || ''
+})
+
+function getAuthHeaders() {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('access_token')
+
+  return token
+    ? {
+        Authorization: `Token ${token}`,
+      }
+    : {}
+}
+
+function normalizeLookupRows(payload: any): LookupOption[] {
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.results)
+      ? payload.results
+      : []
+
+  return rows.map((item: any) => ({
+    id: Number(item?.id ?? 0),
+    name: item?.name ?? '-',
+  }))
+}
+
+function normalizeProduct(raw: any): Product {
+  const category = raw?.category ?? null
+  const supplier = raw?.supplier ?? null
+  const unit = raw?.unit ?? null
+
+  return {
+    id: Number(raw?.id ?? 0),
+    name: raw?.name ?? '',
+    sku: raw?.sku ?? '',
+    code: raw?.code ?? '',
+    item_type: raw?.item_type ?? 'product',
+    track_stock: Boolean(raw?.track_stock),
+    description: raw?.description ?? '',
+    stock: Number(raw?.stock ?? 0),
+    buy_price: String(raw?.buy_price ?? '0.00'),
+    sell_price: String(raw?.sell_price ?? '0.00'),
+    weight: String(raw?.weight ?? '0.00'),
+    is_active: Boolean(raw?.is_active),
+    image: raw?.image ?? '',
+    image_url: raw?.image_url ?? raw?.image ?? '',
+    shop_id: raw?.shop_id ?? null,
+    category,
+    supplier,
+    unit,
+    category_id: category?.id ?? null,
+    supplier_id: supplier?.id ?? null,
+    unit_id: unit?.id ?? null,
+    category_name: category?.name ?? '',
+    supplier_name: supplier?.name ?? '',
+    unit_name: unit?.name ?? '',
+  }
+}
+
+async function fetchProducts() {
+  const response = await axios.get(`${API_BASE_URL}/api/products/`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  })
+
+  const rows = Array.isArray(response.data)
+    ? response.data
+    : Array.isArray(response.data?.results)
+      ? response.data.results
+      : []
+
+  products.value = rows.map(normalizeProduct)
+}
+
+async function fetchCategories() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/categories/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+    categoryOptions.value = normalizeLookupRows(response.data)
+  } catch (err) {
+    console.error('Failed to fetch categories:', err)
+    categoryOptions.value = []
+  }
+}
+
+async function fetchSuppliers() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/suppliers/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+    supplierOptions.value = normalizeLookupRows(response.data)
+  } catch (err) {
+    console.error('Failed to fetch suppliers:', err)
+    supplierOptions.value = []
+  }
+}
+
+async function fetchUnits() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/units/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+    unitOptions.value = normalizeLookupRows(response.data)
+  } catch (err) {
+    console.error('Failed to fetch units:', err)
+    unitOptions.value = []
+  }
+}
+
+async function fetchAllData() {
+  loading.value = true
+  error.value = ''
+
+  try {
+    await Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchSuppliers(),
+      fetchUnits(),
+    ])
+  } catch (err: any) {
+    console.error('Failed to load products data:', err)
+    error.value =
+      err?.response?.data?.detail ||
+      'Failed to load products data. Please check API and token.'
+  } finally {
+    loading.value = false
+  }
+}
+
 function resetForm() {
   form.id = 0
   form.name = ''
   form.code = ''
   form.sku = ''
-  form.item_type = 'Product'
-  form.category = ''
+  form.item_type = 'product'
   form.description = ''
   form.stock = 0
   form.track_stock = true
-  form.buy_price = 0
-  form.sell_price = 0
-  form.weight = 0
-  form.unit = ''
-  form.supplier = ''
-  form.product_image = ''
+  form.buy_price = '0.00'
+  form.sell_price = '0.00'
+  form.weight = '0.00'
+  form.image = ''
   form.is_active = true
-
-  if (fileInputRef.value) fileInputRef.value.value = ''
+  form.category_id = null
+  form.supplier_id = null
+  form.unit_id = null
 }
 
 function fillForm(product: Product) {
@@ -700,20 +821,18 @@ function fillForm(product: Product) {
   form.name = product.name
   form.code = product.code
   form.sku = product.sku
-  form.item_type = product.item_type
-  form.category = product.category
+  form.item_type = product.item_type || 'product'
   form.description = product.description
-  form.stock = product.stock
+  form.stock = Number(product.stock || 0)
   form.track_stock = product.track_stock
-  form.buy_price = product.buy_price
-  form.sell_price = product.sell_price
-  form.weight = product.weight
-  form.unit = product.unit
-  form.supplier = product.supplier
-  form.product_image = product.product_image
+  form.buy_price = String(product.buy_price ?? '0.00')
+  form.sell_price = String(product.sell_price ?? '0.00')
+  form.weight = String(product.weight ?? '0.00')
+  form.image = product.image || product.image_url || ''
   form.is_active = product.is_active
-
-  if (fileInputRef.value) fileInputRef.value.value = ''
+  form.category_id = product.category_id
+  form.supplier_id = product.supplier_id
+  form.unit_id = product.unit_id
 }
 
 function openCreateModal() {
@@ -723,18 +842,40 @@ function openCreateModal() {
   showModal.value = true
 }
 
-function openEditModal(product: Product) {
+async function openEditModal(product: Product) {
   modalMode.value = 'edit'
   editingId.value = product.id
   fillForm(product)
   showModal.value = true
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/products/${product.id}/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+    fillForm(normalizeProduct(response.data))
+  } catch (err) {
+    console.error('Failed to retrieve product detail:', err)
+  }
 }
 
-function openViewModal(product: Product) {
+async function openViewModal(product: Product) {
   modalMode.value = 'view'
   editingId.value = product.id
   fillForm(product)
   showModal.value = true
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/products/${product.id}/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+    fillForm(normalizeProduct(response.data))
+  } catch (err) {
+    console.error('Failed to retrieve product detail:', err)
+  }
 }
 
 function closeModal() {
@@ -743,68 +884,107 @@ function closeModal() {
   resetForm()
 }
 
-function saveProduct() {
+function validateForm() {
   if (!form.name.trim()) {
     alert('Product name is required.')
-    return
+    return false
   }
 
   if (!form.code.trim()) {
     alert('Product code is required.')
-    return
+    return false
   }
 
-  if (form.buy_price < 0 || form.sell_price < 0 || form.stock < 0 || form.weight < 0) {
+  if (Number(form.stock) < 0) {
+    alert('Stock cannot be negative.')
+    return false
+  }
+
+  if (Number(form.buy_price) < 0 || Number(form.sell_price) < 0 || Number(form.weight) < 0) {
     alert('Numeric values cannot be negative.')
-    return
+    return false
   }
 
-  const payload: Product = {
-    id: editingId.value ?? 0,
-    name: form.name.trim(),
-    code: form.code.trim(),
-    sku: form.sku.trim(),
-    item_type: form.item_type,
-    category: form.category.trim(),
-    description: form.description.trim(),
-    stock: Number(form.stock) || 0,
-    track_stock: form.track_stock,
-    buy_price: Number(form.buy_price) || 0,
-    sell_price: Number(form.sell_price) || 0,
-    weight: Number(form.weight) || 0,
-    unit: form.unit.trim(),
-    supplier: form.supplier.trim(),
-    product_image: form.product_image,
-    is_active: form.is_active,
-  }
-
-  if (modalMode.value === 'create') {
-    const nextId =
-      products.value.length > 0
-        ? Math.max(...products.value.map((product) => product.id)) + 1
-        : 1
-
-    products.value.unshift({
-      ...payload,
-      id: nextId,
-    })
-  } else if (modalMode.value === 'edit' && editingId.value !== null) {
-    const index = products.value.findIndex((product) => product.id === editingId.value)
-    if (index !== -1) {
-      products.value[index] = {
-        ...payload,
-        id: editingId.value,
-      }
-    }
-  }
-
-  closeModal()
+  return true
 }
 
-function removeProduct(id: number) {
+function buildPayload() {
+  return {
+    name: form.name.trim(),
+    sku: form.sku.trim() || null,
+    code: form.code.trim(),
+    item_type: form.item_type,
+    track_stock: form.track_stock,
+    description: form.description.trim(),
+    stock: Number(form.stock) || 0,
+    buy_price: String(form.buy_price || '0.00'),
+    sell_price: String(form.sell_price || '0.00'),
+    weight: String(form.weight || '0.00'),
+    is_active: form.is_active,
+    image: form.image.trim() || null,
+    category_id: form.category_id,
+    supplier_id: form.supplier_id,
+    unit_id: form.unit_id,
+  }
+}
+
+async function saveProduct() {
+  if (!validateForm()) return
+
+  saving.value = true
+
+  try {
+    const payload = buildPayload()
+
+    if (modalMode.value === 'create') {
+      await axios.post(`${API_BASE_URL}/api/products/`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      })
+    } else if (modalMode.value === 'edit' && editingId.value !== null) {
+      await axios.put(`${API_BASE_URL}/api/products/${editingId.value}/`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      })
+    }
+
+    closeModal()
+    await fetchAllData()
+  } catch (err: any) {
+    console.error('Failed to save product:', err)
+    alert(
+      err?.response?.data?.detail ||
+      JSON.stringify(err?.response?.data || {}) ||
+      'Failed to save product.'
+    )
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeProduct(id: number) {
   const ok = window.confirm('Delete this product?')
   if (!ok) return
-  products.value = products.value.filter((product) => product.id !== id)
+
+  try {
+    await axios.delete(`${API_BASE_URL}/api/products/${id}/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+
+    await fetchAllData()
+  } catch (err: any) {
+    console.error('Failed to delete product:', err)
+    alert(
+      err?.response?.data?.detail ||
+      'Failed to delete product.'
+    )
+  }
 }
 
 function resetFilters() {
@@ -814,30 +994,33 @@ function resetFilters() {
   itemTypeFilter.value = ''
 }
 
-function onImageChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  const reader = new FileReader()
-  reader.onload = () => {
-    form.product_image = String(reader.result || '')
-  }
-  reader.readAsDataURL(file)
-}
-
-function removeImage() {
-  form.product_image = ''
-  if (fileInputRef.value) fileInputRef.value.value = ''
-}
-
-function formatMoney(value: number) {
+function formatMoney(value: string | number) {
   return Number(value || 0).toFixed(2)
+}
+
+function displayNumber(value: number | null | undefined) {
+  if (value === null || value === undefined) return '-'
+  return value
+}
+
+function formatItemType(value: string) {
+  switch (value) {
+    case 'product':
+      return 'Product'
+    case 'menu':
+      return 'Menu'
+    case 'service':
+      return 'Service'
+    case 'sparepart':
+      return 'Sparepart'
+    default:
+      return value || '-'
+  }
 }
 
 function getInitials(name: string) {
   return (
-    name
+    String(name || 'NA')
       .split(' ')
       .filter(Boolean)
       .map((part) => part[0])
@@ -846,20 +1029,30 @@ function getInitials(name: string) {
       .toUpperCase() || 'NA'
   )
 }
+
+onMounted(() => {
+  fetchAllData()
+})
 </script>
 
 <style scoped>
 .products-page {
   padding: 24px;
-  background: #f5f7fb;
+  background: #f6f8fb;
   min-height: 100vh;
 }
+
+/* HEADER */
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 22px;
+  border: 1px solid #e5e7eb;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
@@ -874,15 +1067,15 @@ function getInitials(name: string) {
 
 .page-title {
   margin: 0;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
-  color: #162033;
+  color: #111827;
   line-height: 1.1;
 }
 
 .page-subtitle {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: #64748b;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -892,22 +1085,84 @@ function getInitials(name: string) {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  color: #7b8496;
-  font-size: 14px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #94a3b8;
 }
 
 .breadcrumb .current {
-  color: #1f6feb;
-  font-weight: 600;
+  color: #22c55e;
+  font-weight: 700;
 }
 
 .sep {
   opacity: 0.6;
 }
 
-.add-btn {
-  flex-shrink: 0;
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
+
+/* BUTTONS */
+
+.btn {
+  border-radius: 10px;
+  padding: 10px 16px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: #16a34a;
+}
+
+.btn-light {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: #1d4ed8;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-sm {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+.btn-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* STATS */
 
 .stats-grid {
   display: grid;
@@ -916,42 +1171,52 @@ function getInitials(name: string) {
   margin-bottom: 20px;
 }
 
-.stat-card,
-.toolbar-card,
-.table-card {
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  border: 1px solid #eef1f6;
-}
-
 .stat-card {
-  padding: 20px;
-  min-width: 0;
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
 }
 
 .stat-label {
+  color: #64748b;
   font-size: 13px;
-  color: #6b7280;
   margin-bottom: 8px;
 }
 
 .stat-value {
-  font-size: clamp(24px, 3vw, 28px);
+  font-size: 26px;
   font-weight: 800;
-  color: #172033;
+  color: #111827;
+  margin-top: 6px;
   line-height: 1.1;
-  word-break: break-word;
 }
 
 .stat-note {
-  margin-top: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: #94a3b8;
+  margin-top: 8px;
   line-height: 1.5;
 }
 
+/* ALERT */
+
+.alert-error {
+  margin-bottom: 20px;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+  border: 1px solid #fecaca;
+}
+
+/* TOOLBAR */
+
 .toolbar-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
   padding: 18px;
   margin-bottom: 20px;
 }
@@ -992,6 +1257,7 @@ function getInitials(name: string) {
   background: #f9fbff;
   padding: 0 16px 0 44px;
   font-size: 14px;
+  color: #111827;
   outline: none;
   transition: 0.2s ease;
 }
@@ -1002,7 +1268,7 @@ function getInitials(name: string) {
 .form-group textarea:focus,
 .form-group select:focus {
   border-color: #3b82f6;
-  background: #fff;
+  background: #ffffff;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
 }
 
@@ -1020,7 +1286,7 @@ function getInitials(name: string) {
   height: 48px;
   border-radius: 14px;
   border: 1px solid #dbe3ef;
-  background: #f9fbff;
+  background: #ffffff;
   padding: 0 14px;
   font-size: 14px;
   color: #162033;
@@ -1028,28 +1294,30 @@ function getInitials(name: string) {
   transition: 0.2s ease;
 }
 
+/* TABLE */
+
 .table-card {
-  padding: 18px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
 }
 
 .table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  padding: 18px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .table-header h2 {
   margin: 0;
   font-size: 20px;
-  color: #162033;
+  font-weight: 800;
+  color: #111827;
 }
 
 .table-header p {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: #64748b;
   font-size: 14px;
 }
 
@@ -1057,42 +1325,59 @@ function getInitials(name: string) {
   overflow-x: auto;
 }
 
+.desktop-table {
+  display: block;
+}
+
 .product-table {
   width: 100%;
-  border-collapse: collapse;
   min-width: 1260px;
+  border-collapse: collapse;
 }
 
 .product-table th,
 .product-table td {
   padding: 16px;
   text-align: left;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid #e5e7eb;
   vertical-align: middle;
 }
 
 .product-table th {
   font-size: 13px;
-  color: #64748b;
-  font-weight: 700;
-  background: #fbfcfe;
+  color: #334155;
+  font-weight: 800;
+  background: #f8fafc;
   white-space: nowrap;
 }
 
-.product-table tbody tr:hover {
-  background: #fafcff;
+.product-table td {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 500;
+  background: #ffffff;
 }
 
-.id-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #eef4ff;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 700;
+.product-table tbody tr:hover {
+  background: #f8fbff;
 }
+
+.product-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+/* FIX FADED TEXT */
+
+.product-table td:nth-child(3),
+.product-table td:nth-child(4),
+.product-table td:nth-child(5),
+.product-table td:nth-child(6),
+.product-table td:nth-child(8) {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* PRODUCT CELL */
 
 .product-main {
   display: flex;
@@ -1110,49 +1395,56 @@ function getInitials(name: string) {
 }
 
 .product-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   object-fit: cover;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  background: #e2e8f0;
+  border: 1px solid #dbe3ef;
 }
 
 .product-thumb-placeholder {
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #2563eb, #60a5fa);
-  color: white;
+  background: #22c55e;
+  color: #ffffff;
+  font-weight: 700;
   font-size: 13px;
-  font-weight: 800;
 }
 
 .product-name {
   font-weight: 700;
-  color: #162033;
+  color: #111827;
   line-height: 1.4;
-  word-break: break-word;
 }
 
 .product-sub {
-  margin-top: 3px;
   font-size: 12px;
-  color: #7c8798;
-  max-width: 260px;
+  color: #64748b;
+  margin-top: 3px;
   line-height: 1.45;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .price-cell {
-  font-weight: 800;
-  color: #162033;
+  font-weight: 700;
+  color: #111827;
   white-space: nowrap;
 }
 
 .supplier-cell {
-  word-break: break-word;
+  font-weight: 600;
+  color: #334155;
+}
+
+.id-badge {
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .stock-badge,
@@ -1160,27 +1452,27 @@ function getInitials(name: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 70px;
-  padding: 7px 12px;
-  border-radius: 999px;
+  min-width: 60px;
+  padding: 5px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .stock-ok {
-  background: #ecfdf3;
-  color: #16a34a;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .stock-low {
-  background: #fff7ed;
-  color: #c2410c;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .status-active {
-  background: #eff6ff;
-  color: #2563eb;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .status-inactive {
@@ -1190,8 +1482,8 @@ function getInitials(name: string) {
 
 .row-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
+  justify-content: flex-end;
   flex-wrap: wrap;
 }
 
@@ -1201,25 +1493,31 @@ function getInitials(name: string) {
 
 .empty-cell {
   text-align: center !important;
-  color: #94a3b8;
-  padding: 32px !important;
+  padding: 30px !important;
+  color: #64748b;
+  font-weight: 600;
 }
+
+.loading-box {
+  text-align: center;
+  padding: 18px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* MOBILE LIST */
 
 .mobile-list {
   display: none;
 }
 
 .mobile-card {
-  border: 1px solid #edf2f7;
-  border-radius: 18px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
   padding: 16px;
-  background: #fff;
-  margin-bottom: 14px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-}
-
-.mobile-card:last-child {
-  margin-bottom: 0;
+  margin: 14px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
 .mobile-card-top {
@@ -1255,11 +1553,12 @@ function getInitials(name: string) {
 .info-item .value {
   word-break: break-word;
   line-height: 1.5;
+  color: #111827;
 }
 
 .info-item .value.strong {
   font-weight: 800;
-  color: #162033;
+  color: #111827;
 }
 
 .info-item.full {
@@ -1283,67 +1582,7 @@ function getInitials(name: string) {
   padding: 24px 0;
 }
 
-.btn {
-  border: none;
-  outline: none;
-  cursor: pointer;
-  transition: 0.2s ease;
-  border-radius: 14px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  color: #fff;
-  height: 48px;
-  padding: 0 18px;
-  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.18);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-}
-
-.btn-light {
-  background: #eef2f7;
-  color: #334155;
-  height: 48px;
-  padding: 0 16px;
-}
-
-.btn-outline {
-  background: #fff;
-  color: #2563eb;
-  border: 1px solid #cfe0ff;
-}
-
-.btn-warning {
-  background: #fff7ed;
-  color: #c2410c;
-  border: 1px solid #fed7aa;
-}
-
-.btn-danger {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.btn-sm {
-  height: 38px;
-  padding: 0 12px;
-  font-size: 13px;
-  border-radius: 12px;
-}
-
-.btn-icon {
-  font-size: 18px;
-  line-height: 1;
-}
+/* MODAL */
 
 .modal-overlay {
   position: fixed;
@@ -1359,7 +1598,7 @@ function getInitials(name: string) {
 .modal-card {
   width: 100%;
   max-width: 760px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 24px;
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.24);
   overflow: hidden;
@@ -1475,12 +1714,6 @@ function getInitials(name: string) {
   flex-wrap: wrap;
 }
 
-.image-upload-box {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 .image-preview-wrap {
   display: flex;
   flex-direction: column;
@@ -1498,14 +1731,16 @@ function getInitials(name: string) {
 }
 
 .modal-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 16px;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .modal-btn {
-  min-width: 150px;
+  min-width: 110px;
 }
 
 .fade-enter-active,
@@ -1517,6 +1752,8 @@ function getInitials(name: string) {
 .fade-leave-to {
   opacity: 0;
 }
+
+/* RESPONSIVE */
 
 @media (max-width: 1300px) {
   .toolbar-grid {
@@ -1553,6 +1790,7 @@ function getInitials(name: string) {
 
   .page-header {
     align-items: stretch;
+    padding: 18px;
   }
 
   .page-title-wrap {
@@ -1560,15 +1798,17 @@ function getInitials(name: string) {
   }
 
   .page-title {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .page-subtitle {
     font-size: 13px;
   }
 
-  .add-btn {
+  .header-actions {
     width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .desktop-table {
@@ -1577,6 +1817,7 @@ function getInitials(name: string) {
 
   .mobile-list {
     display: block;
+    padding: 0 0 14px;
   }
 
   .toolbar-grid,
@@ -1594,10 +1835,6 @@ function getInitials(name: string) {
   .toolbar-card,
   .stat-card {
     border-radius: 18px;
-  }
-
-  .table-card {
-    padding: 14px;
   }
 
   .modal-card,
@@ -1663,6 +1900,7 @@ function getInitials(name: string) {
   .mobile-card {
     padding: 14px;
     border-radius: 16px;
+    margin: 12px;
   }
 
   .product-thumb {

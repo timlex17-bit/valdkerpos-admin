@@ -27,15 +27,15 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Active Units</div>
-        <div class="stat-value">{{ activeCount }}</div>
-        <div class="stat-note">Units currently active</div>
+        <div class="stat-label">Total Units</div>
+        <div class="stat-value">{{ units.length }}</div>
+        <div class="stat-note">All units from API</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Inactive Units</div>
-        <div class="stat-value">{{ inactiveCount }}</div>
-        <div class="stat-note">Units currently inactive</div>
+        <div class="stat-label">Search Result</div>
+        <div class="stat-value">{{ filteredUnits.length }}</div>
+        <div class="stat-note">Filtered by current keyword</div>
       </div>
     </section>
 
@@ -46,15 +46,9 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search unit name or description..."
+            placeholder="Search unit..."
           />
         </div>
-
-        <select v-model="statusFilter" class="filter-select">
-          <option value="">All status</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
 
         <button class="reset-btn" @click="resetFilters">Reset</button>
       </div>
@@ -68,14 +62,23 @@
         </div>
       </div>
 
-      <div class="table-wrap" v-if="filteredUnits.length">
+      <div v-if="loading" class="empty-state">
+        <h3>Loading units...</h3>
+        <p>Please wait a moment.</p>
+      </div>
+
+      <div v-else-if="errorMessage" class="empty-state">
+        <h3>Failed to load units</h3>
+        <p>{{ errorMessage }}</p>
+      </div>
+
+      <div class="table-wrap" v-else-if="filteredUnits.length">
         <table class="data-table">
           <thead>
             <tr>
               <th>ID</th>
               <th>Unit</th>
-              <th>Description</th>
-              <th>Created At</th>
+              <th>Display</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
@@ -94,23 +97,27 @@
                 <div class="title-main">{{ unit.name }}</div>
               </td>
 
-              <td>{{ unit.description || '-' }}</td>
-              <td>{{ formatDate(unit.createdAt) }}</td>
+              <td>
+                <div class="unit-avatar">
+                  {{ getInitial(unit.name) }}
+                </div>
+              </td>
 
               <td>
-                <span
-                  class="status-badge"
-                  :class="unit.status === 'Active' ? 'paid' : 'cancelled'"
-                >
-                  {{ unit.status }}
-                </span>
+                <span class="status-badge paid">Ready</span>
               </td>
 
               <td>
                 <div class="action-buttons">
                   <button class="btn-view" @click="openEditModal(unit)">View</button>
                   <button class="btn-edit" @click="openEditModal(unit)">Edit</button>
-                  <button class="btn-delete" @click="deleteUnit(unit.id)">Delete</button>
+                  <button
+                    class="btn-delete"
+                    :disabled="deletingId === unit.id"
+                    @click="deleteUnit(unit.id)"
+                  >
+                    {{ deletingId === unit.id ? 'Deleting...' : 'Delete' }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -136,33 +143,31 @@
 
         <div class="modal-body">
           <div class="form-grid">
-            <div class="form-group">
-              <label>Unit Name</label>
-              <input v-model="form.name" type="text" class="form-input" placeholder="Enter unit name" />
-            </div>
-
-            <div class="form-group">
-              <label>Status</label>
-              <select v-model="form.status" class="form-input">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-
             <div class="form-group form-group-full">
-              <label>Description</label>
-              <textarea
-                v-model="form.description"
-                class="form-input textarea"
-                rows="4"
-                placeholder="Write description here..."
-              ></textarea>
+              <label>Unit Name</label>
+              <input
+                v-model="form.name"
+                type="text"
+                class="form-input"
+                placeholder="Enter unit name"
+              />
+              <small v-if="formError" class="error-text">{{ formError }}</small>
             </div>
+          </div>
+
+          <div class="preview-box">
+            <div class="preview-label">Preview</div>
+            <div class="preview-avatar">
+              {{ getInitial(form.name || 'U') }}
+            </div>
+            <div class="preview-name">{{ form.name || 'Unit Name' }}</div>
           </div>
 
           <div class="modal-actions">
             <button class="secondary-btn" @click="closeModal">Cancel</button>
-            <button class="save-btn" @click="saveUnit">Save</button>
+            <button class="save-btn" :disabled="saving" @click="saveUnit">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
           </div>
         </div>
       </div>
@@ -171,83 +176,67 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 type Unit = {
   id: number
   name: string
-  description: string
-  createdAt: string
-  status: 'Active' | 'Inactive'
 }
 
-const units = ref<Unit[]>([
-  {
-    id: 3,
-    name: 'PCS',
-    description: 'Piece unit for general product items.',
-    createdAt: '2026-03-20T10:00:00',
-    status: 'Active',
-  },
-  {
-    id: 2,
-    name: 'BOX',
-    description: 'Box packaging unit.',
-    createdAt: '2026-03-18T09:20:00',
-    status: 'Active',
-  },
-  {
-    id: 1,
-    name: 'KG',
-    description: 'Weight unit in kilogram.',
-    createdAt: '2026-03-15T08:10:00',
-    status: 'Inactive',
-  },
-])
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
 
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
+
+const units = ref<Unit[]>([])
 const search = ref('')
-const statusFilter = ref('')
-
 const showModal = ref(false)
 const isEditMode = ref(false)
 const editingId = ref<number | null>(null)
+const loading = ref(false)
+const saving = ref(false)
+const deletingId = ref<number | null>(null)
+const errorMessage = ref('')
+const formError = ref('')
 
 const form = reactive({
   name: '',
-  description: '',
-  status: 'Active' as 'Active' | 'Inactive',
 })
 
 const filteredUnits = computed(() => {
+  const keyword = search.value.trim().toLowerCase()
   let results = [...units.value]
 
-  const keyword = search.value.trim().toLowerCase()
   if (keyword) {
     results = results.filter((item) =>
-      item.name.toLowerCase().includes(keyword) ||
-      item.description.toLowerCase().includes(keyword)
+      item.name.toLowerCase().includes(keyword)
     )
-  }
-
-  if (statusFilter.value) {
-    results = results.filter((item) => item.status === statusFilter.value)
   }
 
   return results.sort((a, b) => b.id - a.id)
 })
 
-const activeCount = computed(() => filteredUnits.value.filter((i) => i.status === 'Active').length)
-const inactiveCount = computed(() => filteredUnits.value.filter((i) => i.status === 'Inactive').length)
-
 function resetFilters() {
   search.value = ''
-  statusFilter.value = ''
 }
 
 function resetForm() {
   form.name = ''
-  form.description = ''
-  form.status = 'Active'
+  formError.value = ''
 }
 
 function openAddModal() {
@@ -258,9 +247,8 @@ function openAddModal() {
 }
 
 function openEditModal(unit: Unit) {
+  resetForm()
   form.name = unit.name
-  form.description = unit.description
-  form.status = unit.status
   isEditMode.value = true
   editingId.value = unit.id
   showModal.value = true
@@ -268,61 +256,109 @@ function openEditModal(unit: Unit) {
 
 function closeModal() {
   showModal.value = false
+  formError.value = ''
 }
 
 function validateForm() {
+  formError.value = ''
+
   if (!form.name.trim()) {
-    alert('Unit name is required.')
+    formError.value = 'Unit name is required.'
     return false
   }
+
   return true
 }
 
-function getNextId() {
-  return units.value.length > 0 ? Math.max(...units.value.map((item) => item.id)) + 1 : 1
+async function fetchUnits() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await api.get('/api/units/')
+    units.value = Array.isArray(response.data) ? response.data : []
+  } catch (error: any) {
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Unable to fetch units.'
+  } finally {
+    loading.value = false
+  }
 }
 
-function saveUnit() {
+async function saveUnit() {
   if (!validateForm()) return
 
-  if (isEditMode.value && editingId.value !== null) {
-    const index = units.value.findIndex((item) => item.id === editingId.value)
-    if (index !== -1) {
-      units.value[index] = {
-        ...units.value[index],
-        name: form.name.trim().toUpperCase(),
-        description: form.description.trim(),
-        status: form.status,
-      }
-    }
-  } else {
-    units.value.unshift({
-      id: getNextId(),
+  saving.value = true
+  formError.value = ''
+
+  try {
+    const payload = {
       name: form.name.trim().toUpperCase(),
-      description: form.description.trim(),
-      createdAt: new Date().toISOString(),
-      status: form.status,
-    })
+    }
+
+    if (isEditMode.value && editingId.value !== null) {
+      await api.patch(`/api/units/${editingId.value}/`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+    } else {
+      await api.post('/api/units/', payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+    }
+
+    await fetchUnits()
+    closeModal()
+    resetForm()
+  } catch (error: any) {
+    const data = error?.response?.data
+    if (data && typeof data === 'object') {
+      const firstKey = Object.keys(data)[0]
+      if (firstKey) {
+        const firstValue = data[firstKey]
+        formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
+      } else {
+        formError.value = 'Failed to save unit.'
+      }
+    } else {
+      formError.value = error?.message || 'Failed to save unit.'
+    }
+  } finally {
+    saving.value = false
   }
-
-  closeModal()
-  resetForm()
 }
 
-function deleteUnit(id: number) {
+async function deleteUnit(id: number) {
   if (!window.confirm('Delete this unit?')) return
-  units.value = units.value.filter((item) => item.id !== id)
+
+  deletingId.value = id
+
+  try {
+    await api.delete(`/api/units/${id}/`)
+    units.value = units.value.filter((item) => item.id !== id)
+  } catch (error: any) {
+    alert(
+      error?.response?.data?.detail ||
+        error?.message ||
+        'Failed to delete unit.'
+    )
+  } finally {
+    deletingId.value = null
+  }
 }
 
-function formatDate(value: string) {
-  if (!value) return '-'
-  const date = new Date(value)
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(date)
+function getInitial(value: string) {
+  return value?.trim()?.charAt(0)?.toUpperCase() || 'U'
 }
+
+onMounted(() => {
+  fetchUnits()
+})
 </script>
 
 <style scoped>
@@ -351,7 +387,6 @@ function formatDate(value: string) {
   font-size: 14px;
   line-height: 1.6;
 }
-
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -418,7 +453,7 @@ function formatDate(value: string) {
 }
 .toolbar-grid {
   display: grid;
-  grid-template-columns: 1.8fr 0.9fr auto;
+  grid-template-columns: 1.8fr auto;
   gap: 14px;
   align-items: center;
 }
@@ -443,16 +478,6 @@ function formatDate(value: string) {
   width: 100%;
   font-size: 0.96rem;
   color: #334155;
-}
-.filter-select {
-  height: 48px;
-  border: 1px solid #dbe2ea;
-  border-radius: 14px;
-  background: #f8fafc;
-  padding: 0 14px;
-  font-size: 0.96rem;
-  color: #334155;
-  outline: none;
 }
 .reset-btn {
   height: 48px;
@@ -489,7 +514,7 @@ function formatDate(value: string) {
 }
 .data-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 900px;
   border-collapse: collapse;
 }
 .data-table th {
@@ -520,6 +545,19 @@ function formatDate(value: string) {
   font-weight: 700;
   color: #1f2937;
 }
+.unit-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  border: 1px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-weight: 800;
+  font-size: 1rem;
+}
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -533,10 +571,6 @@ function formatDate(value: string) {
 .status-badge.paid {
   background: #dcfce7;
   color: #16a34a;
-}
-.status-badge.cancelled {
-  background: #fee2e2;
-  color: #dc2626;
 }
 .action-buttons {
   display: flex;
@@ -566,6 +600,10 @@ function formatDate(value: string) {
   border: 1px solid #fca5a5;
   color: #dc2626;
 }
+.btn-delete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 .empty-state {
   padding: 48px 20px;
   text-align: center;
@@ -589,7 +627,7 @@ function formatDate(value: string) {
   z-index: 1000;
 }
 .modal-card {
-  width: min(760px, 100%);
+  width: min(620px, 100%);
   background: white;
   border-radius: 22px;
   overflow: hidden;
@@ -623,7 +661,7 @@ function formatDate(value: string) {
 }
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 .form-group {
@@ -650,11 +688,38 @@ function formatDate(value: string) {
   color: #334155;
   box-sizing: border-box;
 }
-.textarea {
-  height: auto;
-  min-height: 110px;
-  padding: 12px 14px;
-  resize: vertical;
+.preview-box {
+  margin-top: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  padding: 20px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.preview-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 700;
+}
+.preview-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  color: #2563eb;
+  font-size: 1.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
 }
 .modal-actions {
   display: flex;
@@ -679,6 +744,14 @@ function formatDate(value: string) {
   background: #22c55e;
   color: white;
 }
+.save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.error-text {
+  color: #dc2626;
+  font-size: 0.88rem;
+}
 @media (max-width: 1100px) {
   .toolbar-grid,
   .stats-grid {
@@ -699,9 +772,6 @@ function formatDate(value: string) {
   .add-btn {
     width: 100%;
     justify-content: center;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
   }
   .modal-actions {
     flex-direction: column;

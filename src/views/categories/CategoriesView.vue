@@ -62,7 +62,17 @@
         </div>
       </div>
 
-      <div class="table-wrap" v-if="filteredCategories.length">
+      <div v-if="loading" class="empty-state">
+        <h3>Loading categories...</h3>
+        <p>Please wait a moment.</p>
+      </div>
+
+      <div v-else-if="errorMessage" class="empty-state">
+        <h3>Failed to load categories</h3>
+        <p>{{ errorMessage }}</p>
+      </div>
+
+      <div class="table-wrap" v-else-if="filteredCategories.length">
         <table class="data-table">
           <thead>
             <tr>
@@ -87,9 +97,9 @@
                 <div class="category-cell">
                   <div
                     class="category-avatar"
-                    :class="{ 'category-avatar--empty': !item.icon }"
+                    :class="{ 'category-avatar--empty': !item.icon_url }"
                   >
-                    <img v-if="item.icon" :src="item.icon" :alt="item.name" />
+                    <img v-if="item.icon_url" :src="item.icon_url" :alt="item.name" />
                     <span v-else>{{ getInitial(item.name) }}</span>
                   </div>
 
@@ -101,15 +111,15 @@
               </td>
 
               <td>
-                <div v-if="item.icon" class="icon-preview">
-                  <img :src="item.icon" :alt="item.name" />
+                <div v-if="item.icon_url" class="icon-preview">
+                  <img :src="item.icon_url" :alt="item.name" />
                 </div>
                 <span v-else class="muted-text">No icon</span>
               </td>
 
               <td>
-                <span class="status-badge" :class="item.icon ? 'paid' : 'unpaid'">
-                  {{ item.icon ? 'Ready' : 'No icon' }}
+                <span class="status-badge" :class="item.icon_url ? 'paid' : 'unpaid'">
+                  {{ item.icon_url ? 'Ready' : 'No icon' }}
                 </span>
               </td>
 
@@ -117,7 +127,13 @@
                 <div class="action-buttons">
                   <button class="btn-view" @click="openEditModal(item)">View</button>
                   <button class="btn-edit" @click="openEditModal(item)">Edit</button>
-                  <button class="btn-delete" @click="deleteCategory(item.id)">Delete</button>
+                  <button
+                    class="btn-delete"
+                    :disabled="deletingId === item.id"
+                    @click="deleteCategory(item.id)"
+                  >
+                    {{ deletingId === item.id ? 'Deleting...' : 'Delete' }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -151,11 +167,13 @@
                 class="form-input"
                 placeholder="Enter category name"
               />
+              <small v-if="formError" class="error-text">{{ formError }}</small>
             </div>
 
             <div class="form-group form-group-full">
               <label>Category Icon</label>
               <input
+                ref="fileInputRef"
                 type="file"
                 class="form-input file-input"
                 accept="image/*"
@@ -176,7 +194,9 @@
 
           <div class="modal-actions">
             <button class="secondary-btn" @click="closeModal">Cancel</button>
-            <button class="save-btn" @click="saveCategory">Save</button>
+            <button class="save-btn" :disabled="saving" @click="saveCategory">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
           </div>
         </div>
       </div>
@@ -185,30 +205,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 type Category = {
   id: number
   name: string
-  icon: string
+  icon: string | null
+  icon_url: string | null
 }
 
-const categories = ref<Category[]>([
-  { id: 11, name: 'Tissue', icon: '' },
-  { id: 10, name: 'General', icon: '' },
-  { id: 5, name: 'Local Drink', icon: '' },
-  { id: 4, name: 'Fastfood', icon: '' },
-])
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
 
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
+
+const categories = ref<Category[]>([])
 const search = ref('')
 const showModal = ref(false)
 const isEditMode = ref(false)
 const editingId = ref<number | null>(null)
+const loading = ref(false)
+const saving = ref(false)
+const deletingId = ref<number | null>(null)
+const errorMessage = ref('')
+const formError = ref('')
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const form = reactive({
   name: '',
   iconFile: null as File | null,
   iconPreview: '',
+  existingIconUrl: '',
 })
 
 const filteredCategories = computed(() => {
@@ -217,8 +258,13 @@ const filteredCategories = computed(() => {
   return categories.value.filter((item) => item.name.toLowerCase().includes(keyword))
 })
 
-const categoriesWithIcon = computed(() => categories.value.filter((item) => !!item.icon).length)
-const categoriesWithoutIcon = computed(() => categories.value.filter((item) => !item.icon).length)
+const categoriesWithIcon = computed(() =>
+  categories.value.filter((item) => !!item.icon_url).length
+)
+
+const categoriesWithoutIcon = computed(() =>
+  categories.value.filter((item) => !item.icon_url).length
+)
 
 function resetFilters() {
   search.value = ''
@@ -228,6 +274,11 @@ function resetForm() {
   form.name = ''
   form.iconFile = null
   form.iconPreview = ''
+  form.existingIconUrl = ''
+  formError.value = ''
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
 }
 
 function openAddModal() {
@@ -238,8 +289,10 @@ function openAddModal() {
 }
 
 function openEditModal(item: Category) {
+  resetForm()
   form.name = item.name
-  form.iconPreview = item.icon
+  form.iconPreview = item.icon_url || ''
+  form.existingIconUrl = item.icon_url || ''
   form.iconFile = null
   isEditMode.value = true
   editingId.value = item.id
@@ -248,6 +301,7 @@ function openEditModal(item: Category) {
 
 function closeModal() {
   showModal.value = false
+  formError.value = ''
 }
 
 function handleFileChange(event: Event) {
@@ -258,54 +312,117 @@ function handleFileChange(event: Event) {
   if (file) {
     form.iconPreview = URL.createObjectURL(file)
   } else {
-    form.iconPreview = ''
+    form.iconPreview = form.existingIconUrl || ''
   }
 }
 
 function validateForm() {
+  formError.value = ''
   if (!form.name.trim()) {
-    alert('Name is required.')
+    formError.value = 'Name is required.'
     return false
   }
   return true
 }
 
-function nextId() {
-  return categories.value.length > 0 ? Math.max(...categories.value.map((item) => item.id)) + 1 : 1
+async function fetchCategories() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await api.get('/api/categories/')
+    categories.value = Array.isArray(response.data) ? response.data : []
+  } catch (error: any) {
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Unable to fetch categories.'
+  } finally {
+    loading.value = false
+  }
 }
 
-function saveCategory() {
-  if (!validateForm()) return
+function buildFormData() {
+  const fd = new FormData()
+  fd.append('name', form.name.trim())
 
-  if (isEditMode.value && editingId.value !== null) {
-    const index = categories.value.findIndex((item) => item.id === editingId.value)
-    if (index !== -1) {
-      categories.value[index] = {
-        ...categories.value[index],
-        name: form.name.trim(),
-        icon: form.iconPreview,
-      }
-    }
-  } else {
-    categories.value.unshift({
-      id: nextId(),
-      name: form.name.trim(),
-      icon: form.iconPreview,
-    })
+  if (form.iconFile) {
+    fd.append('icon', form.iconFile)
   }
 
-  closeModal()
-  resetForm()
+  return fd
 }
 
-function deleteCategory(id: number) {
+async function saveCategory() {
+  if (!validateForm()) return
+
+  saving.value = true
+  formError.value = ''
+
+  try {
+    const fd = buildFormData()
+
+    if (isEditMode.value && editingId.value !== null) {
+      await api.patch(`/api/categories/${editingId.value}/`, fd, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    } else {
+      await api.post('/api/categories/', fd, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    }
+
+    await fetchCategories()
+    closeModal()
+    resetForm()
+  } catch (error: any) {
+    const data = error?.response?.data
+    if (data && typeof data === 'object') {
+      const firstKey = Object.keys(data)[0]
+      if (firstKey) {
+        const firstValue = data[firstKey]
+        formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
+      } else {
+        formError.value = 'Failed to save category.'
+      }
+    } else {
+      formError.value = error?.message || 'Failed to save category.'
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deleteCategory(id: number) {
   if (!window.confirm('Delete this category?')) return
-  categories.value = categories.value.filter((item) => item.id !== id)
+
+  deletingId.value = id
+
+  try {
+    await api.delete(`/api/categories/${id}/`)
+    categories.value = categories.value.filter((item) => item.id !== id)
+  } catch (error: any) {
+    alert(
+      error?.response?.data?.detail ||
+        error?.message ||
+        'Failed to delete category.'
+    )
+  } finally {
+    deletingId.value = null
+  }
 }
 
 function getInitial(value: string) {
   return value?.trim()?.charAt(0)?.toUpperCase() || 'C'
 }
+
+onMounted(() => {
+  fetchCategories()
+})
 </script>
 
 <style scoped>
@@ -334,7 +451,6 @@ function getInitial(value: string) {
   font-size: 14px;
   line-height: 1.6;
 }
-
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -585,6 +701,10 @@ function getInitial(value: string) {
   border: 1px solid #fca5a5;
   color: #dc2626;
 }
+.btn-delete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 .empty-state {
   padding: 48px 20px;
   text-align: center;
@@ -726,6 +846,14 @@ function getInitial(value: string) {
 .save-btn {
   background: #22c55e;
   color: white;
+}
+.save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.error-text {
+  color: #dc2626;
+  font-size: 0.88rem;
 }
 @media (max-width: 1100px) {
   .toolbar-grid,

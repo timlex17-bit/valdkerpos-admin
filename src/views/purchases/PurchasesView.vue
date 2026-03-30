@@ -51,7 +51,7 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by invoice, supplier, note, created by..."
+            placeholder="Search by invoice, supplier, note..."
           />
         </div>
 
@@ -67,11 +67,11 @@
           <select v-model="supplierFilter" class="filter-select">
             <option value="">All suppliers</option>
             <option
-              v-for="supplier in uniqueSuppliers"
-              :key="supplier"
-              :value="supplier"
+              v-for="supplier in supplierOptions"
+              :key="supplier.id"
+              :value="String(supplier.id)"
             >
-              {{ supplier }}
+              {{ supplier.name }}
             </option>
           </select>
         </div>
@@ -92,7 +92,15 @@
         </div>
       </div>
 
-      <div class="table-wrapper desktop-table">
+      <div v-if="loading" class="loading-state">
+        Loading purchases...
+      </div>
+
+      <div v-else-if="errorMessage" class="error-state">
+        {{ errorMessage }}
+      </div>
+
+      <div v-else class="table-wrapper desktop-table">
         <table class="purchase-table">
           <thead>
             <tr>
@@ -117,7 +125,7 @@
             <tr v-for="purchase in filteredPurchases" :key="purchase.id">
               <td>
                 <div class="invoice-block">
-                  <span class="invoice-code">{{ purchase.invoice_id }}</span>
+                  <span class="invoice-code">{{ purchase.invoice_id || '-' }}</span>
                   <span class="invoice-type">{{ purchase.items.length }} item(s)</span>
                 </div>
               </td>
@@ -125,20 +133,40 @@
               <td>
                 <div class="supplier-block">
                   <div class="supplier-avatar">
-                    {{ getInitials(purchase.supplier) }}
+                    {{ getInitials(purchase.supplier_name || 'SP') }}
                   </div>
                   <div>
-                    <div class="supplier-name">{{ purchase.supplier }}</div>
+                    <div class="supplier-name">{{ purchase.supplier_name || 'No Supplier' }}</div>
                     <div class="supplier-sub">Purchase supplier</div>
                   </div>
                 </div>
               </td>
 
-              <td>{{ formatDateDisplay(purchase.purchase_date) }}</td>
-              <td>{{ purchase.created_at }}</td>
-              <td>{{ purchase.created_by || '-' }}</td>
-              <td>{{ purchase.items.length }}</td>
-              <td class="amount-cell">${{ formatMoney(purchase.grand_total) }}</td>
+              <td>
+                <span class="purchase-date-text">
+                  {{ formatDateDisplay(purchase.purchase_date) }}
+                </span>
+              </td>
+
+              <td>
+                <span class="created-at-text">
+                  {{ formatDateTime(purchase.created_at) }}
+                </span>
+              </td>
+
+              <td>
+                <span class="created-by-badge">
+                  {{ purchase.created_by || '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="items-badge">
+                  {{ Number(purchase.items_count || purchase.items.length || 0) }}
+                </span>
+              </td>
+
+              <td class="amount-cell">${{ formatMoney(purchase.total_cost) }}</td>
 
               <td class="text-right">
                 <div class="row-actions">
@@ -148,8 +176,12 @@
                   <button class="btn btn-sm btn-warning" @click="openEditModal(purchase)">
                     Edit
                   </button>
-                  <button class="btn btn-sm btn-danger" @click="removePurchase(purchase.id)">
-                    Delete
+                  <button
+                    class="btn btn-sm btn-danger"
+                    :disabled="deletingId === purchase.id"
+                    @click="removePurchase(purchase.id)"
+                  >
+                    {{ deletingId === purchase.id ? 'Deleting...' : 'Delete' }}
                   </button>
                 </div>
               </td>
@@ -158,7 +190,7 @@
         </table>
       </div>
 
-      <div class="mobile-list">
+      <div v-if="!loading && !errorMessage" class="mobile-list">
         <div v-if="filteredPurchases.length === 0" class="mobile-empty">
           No purchases found.
         </div>
@@ -170,21 +202,21 @@
         >
           <div class="mobile-card-top">
             <div class="mobile-card-head-left">
-              <div class="invoice-code">{{ purchase.invoice_id }}</div>
-              <div class="supplier-sub">{{ purchase.supplier }}</div>
+              <div class="invoice-code">{{ purchase.invoice_id || '-' }}</div>
+              <div class="supplier-sub">{{ purchase.supplier_name || 'No Supplier' }}</div>
             </div>
 
             <div class="mobile-total">
-              ${{ formatMoney(purchase.grand_total) }}
+              ${{ formatMoney(purchase.total_cost) }}
             </div>
           </div>
 
           <div class="mobile-supplier-row">
             <div class="supplier-avatar">
-              {{ getInitials(purchase.supplier) }}
+              {{ getInitials(purchase.supplier_name || 'SP') }}
             </div>
             <div>
-              <div class="supplier-name">{{ purchase.supplier }}</div>
+              <div class="supplier-name">{{ purchase.supplier_name || 'No Supplier' }}</div>
               <div class="supplier-sub">Purchase supplier</div>
             </div>
           </div>
@@ -192,20 +224,40 @@
           <div class="mobile-info-grid">
             <div class="info-item">
               <span class="label">Purchase Date</span>
-              <span class="value">{{ formatDateDisplay(purchase.purchase_date) }}</span>
+              <span class="value">
+                <span class="purchase-date-text">
+                  {{ formatDateDisplay(purchase.purchase_date) }}
+                </span>
+              </span>
             </div>
+
             <div class="info-item">
               <span class="label">Created By</span>
-              <span class="value">{{ purchase.created_by || '-' }}</span>
+              <span class="value">
+                <span class="created-by-badge">
+                  {{ purchase.created_by || '-' }}
+                </span>
+              </span>
             </div>
+
             <div class="info-item">
               <span class="label">Items</span>
-              <span class="value">{{ purchase.items.length }}</span>
+              <span class="value">
+                <span class="items-badge">
+                  {{ Number(purchase.items_count || purchase.items.length || 0) }}
+                </span>
+              </span>
             </div>
+
             <div class="info-item">
               <span class="label">Created At</span>
-              <span class="value">{{ purchase.created_at }}</span>
+              <span class="value">
+                <span class="created-at-text">
+                  {{ formatDateTime(purchase.created_at) }}
+                </span>
+              </span>
             </div>
+
             <div class="info-item full">
               <span class="label">Note</span>
               <span class="value">{{ purchase.note || '-' }}</span>
@@ -219,8 +271,12 @@
             <button class="btn btn-sm btn-warning" @click="openEditModal(purchase)">
               Edit
             </button>
-            <button class="btn btn-sm btn-danger" @click="removePurchase(purchase.id)">
-              Delete
+            <button
+              class="btn btn-sm btn-danger"
+              :disabled="deletingId === purchase.id"
+              @click="removePurchase(purchase.id)"
+            >
+              {{ deletingId === purchase.id ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -275,41 +331,47 @@
               <div v-show="activeTab === 'general'" class="form-section">
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Supplier <span>*</span></label>
-                    <input
+                    <label>Supplier</label>
+                    <select
                       v-model="form.supplier"
-                      type="text"
-                      placeholder="Enter supplier name"
-                      :disabled="modalMode === 'view'"
-                    />
+                      :disabled="modalMode === 'view' || saving"
+                    >
+                      <option value="">Select supplier</option>
+                      <option
+                        v-for="supplier in supplierOptions"
+                        :key="supplier.id"
+                        :value="String(supplier.id)"
+                      >
+                        {{ supplier.name }}
+                      </option>
+                    </select>
                   </div>
 
                   <div class="form-group">
-                    <label>Invoice ID <span>*</span></label>
+                    <label>Invoice ID</label>
                     <input
                       v-model="form.invoice_id"
                       type="text"
                       placeholder="Enter invoice id"
-                      :disabled="modalMode === 'view'"
+                      :disabled="modalMode === 'view' || saving"
                     />
                   </div>
 
                   <div class="form-group">
-                    <label>Purchase Date <span>*</span></label>
+                    <label>Purchase Date</label>
                     <input
                       v-model="form.purchase_date"
                       type="date"
-                      :disabled="modalMode === 'view'"
+                      :disabled="modalMode === 'view' || saving"
                     />
                   </div>
 
                   <div class="form-group">
                     <label>Created By</label>
                     <input
-                      v-model="form.created_by"
+                      :value="selectedPurchase?.created_by || '-'"
                       type="text"
-                      placeholder="Enter creator name"
-                      :disabled="modalMode === 'view'"
+                      disabled
                     />
                   </div>
 
@@ -319,7 +381,7 @@
                       v-model="form.note"
                       rows="5"
                       placeholder="Enter purchase note"
-                      :disabled="modalMode === 'view'"
+                      :disabled="modalMode === 'view' || saving"
                     />
                   </div>
                 </div>
@@ -346,7 +408,7 @@
                   <table class="items-table">
                     <thead>
                       <tr>
-                        <th>Product</th>
+                        <th>Product ID</th>
                         <th>Quantity</th>
                         <th>Cost Price</th>
                         <th>Expired Date</th>
@@ -366,28 +428,29 @@
                         <td>
                           <input
                             v-model="item.product"
-                            type="text"
-                            placeholder="Product name"
-                            :disabled="modalMode === 'view'"
+                            type="number"
+                            min="1"
+                            placeholder="Product ID"
+                            :disabled="modalMode === 'view' || saving"
                           />
                         </td>
                         <td>
                           <input
-                            v-model.number="item.quantity"
+                            v-model="item.quantity"
                             type="number"
                             min="1"
                             step="1"
-                            :disabled="modalMode === 'view'"
+                            :disabled="modalMode === 'view' || saving"
                             @input="recalculateGrandTotal"
                           />
                         </td>
                         <td>
                           <input
-                            v-model.number="item.cost_price"
+                            v-model="item.cost_price"
                             type="number"
                             min="0"
                             step="0.01"
-                            :disabled="modalMode === 'view'"
+                            :disabled="modalMode === 'view' || saving"
                             @input="recalculateGrandTotal"
                           />
                         </td>
@@ -395,7 +458,7 @@
                           <input
                             v-model="item.expired_date"
                             type="date"
-                            :disabled="modalMode === 'view'"
+                            :disabled="modalMode === 'view' || saving"
                           />
                         </td>
                         <td>
@@ -403,7 +466,7 @@
                             v-model="item.batch_code"
                             type="text"
                             placeholder="Batch code"
-                            :disabled="modalMode === 'view'"
+                            :disabled="modalMode === 'view' || saving"
                           />
                         </td>
                         <td class="item-total">
@@ -435,23 +498,24 @@
                   >
                     <div class="mobile-item-grid">
                       <div class="form-group full">
-                        <label>Product</label>
+                        <label>Product ID</label>
                         <input
                           v-model="item.product"
-                          type="text"
-                          placeholder="Product name"
-                          :disabled="modalMode === 'view'"
+                          type="number"
+                          min="1"
+                          placeholder="Product ID"
+                          :disabled="modalMode === 'view' || saving"
                         />
                       </div>
 
                       <div class="form-group">
                         <label>Quantity</label>
                         <input
-                          v-model.number="item.quantity"
+                          v-model="item.quantity"
                           type="number"
                           min="1"
                           step="1"
-                          :disabled="modalMode === 'view'"
+                          :disabled="modalMode === 'view' || saving"
                           @input="recalculateGrandTotal"
                         />
                       </div>
@@ -459,11 +523,11 @@
                       <div class="form-group">
                         <label>Cost Price</label>
                         <input
-                          v-model.number="item.cost_price"
+                          v-model="item.cost_price"
                           type="number"
                           min="0"
                           step="0.01"
-                          :disabled="modalMode === 'view'"
+                          :disabled="modalMode === 'view' || saving"
                           @input="recalculateGrandTotal"
                         />
                       </div>
@@ -473,7 +537,7 @@
                         <input
                           v-model="item.expired_date"
                           type="date"
-                          :disabled="modalMode === 'view'"
+                          :disabled="modalMode === 'view' || saving"
                         />
                       </div>
 
@@ -483,7 +547,7 @@
                           v-model="item.batch_code"
                           type="text"
                           placeholder="Batch code"
-                          :disabled="modalMode === 'view'"
+                          :disabled="modalMode === 'view' || saving"
                         />
                       </div>
 
@@ -510,12 +574,20 @@
                 </div>
               </div>
 
+              <div v-if="formError" class="form-error">
+                {{ formError }}
+              </div>
+
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary modal-btn">
-                  {{ modalMode === 'create' ? 'Save Purchase' : 'Update Purchase' }}
+                <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
+                  {{
+                    saving
+                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
+                      : (modalMode === 'create' ? 'Save Purchase' : 'Update Purchase')
+                  }}
                 </button>
               </div>
 
@@ -533,31 +605,66 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
+
+type SupplierOption = {
+  id: number
+  name: string
+}
+
+type PurchaseApiItem = {
+  product?: number | string
+  product_id?: number | string
+  quantity?: number | string
+  cost_price?: number | string
+  expired_date?: string
+  batch_code?: string
+}
 
 type PurchaseItem = {
   uid: string
   product: string
-  quantity: number
-  cost_price: number
+  quantity: string
+  cost_price: string
   expired_date: string
   batch_code: string
 }
 
 type Purchase = {
   id: number
-  supplier: string
   invoice_id: string
+  supplier_id: number | null
+  supplier_name: string
   purchase_date: string
-  note: string
-  created_by: string
   created_at: string
-  grand_total: number
-  items: PurchaseItem[]
+  items_count: string
+  total_cost: string
+  note: string
+  created_by: number | string | null
+  items: PurchaseApiItem[]
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
 type TabKey = 'general' | 'items'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
 
 const search = ref('')
 const dateFilter = ref('')
@@ -566,72 +673,23 @@ const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
 const editingId = ref<number | null>(null)
 const activeTab = ref<TabKey>('general')
+const loading = ref(false)
+const saving = ref(false)
+const deletingId = ref<number | null>(null)
+const errorMessage = ref('')
+const formError = ref('')
+const selectedPurchase = ref<Purchase | null>(null)
 
-const purchases = ref<Purchase[]>([
-  {
-    id: 1,
-    supplier: 'Leader Unipessoal',
-    invoice_id: '0000626384849',
-    purchase_date: '2026-03-09',
-    note: 'Initial stock purchase for shop',
-    created_by: 'Rivaldo',
-    created_at: 'March 9, 2026, 7:37 a.m.',
-    grand_total: 78,
-    items: [
-      {
-        uid: createUid(),
-        product: 'Engine Oil',
-        quantity: 6,
-        cost_price: 8,
-        expired_date: '2027-03-09',
-        batch_code: 'BATCH-001',
-      },
-      {
-        uid: createUid(),
-        product: 'Brake Cleaner',
-        quantity: 10,
-        cost_price: 3,
-        expired_date: '2027-06-01',
-        batch_code: 'BATCH-002',
-      },
-    ],
-  },
-  {
-    id: 2,
-    supplier: 'Wellys Unipessoal',
-    invoice_id: 'PUR-2026-002',
-    purchase_date: '2026-03-20',
-    note: 'Additional workshop materials',
-    created_by: 'Admin',
-    created_at: 'March 20, 2026, 10:15 a.m.',
-    grand_total: 45,
-    items: [
-      {
-        uid: createUid(),
-        product: 'Spark Plug',
-        quantity: 9,
-        cost_price: 5,
-        expired_date: '',
-        batch_code: 'SP-2026-01',
-      },
-    ],
-  },
-])
+const purchases = ref<Purchase[]>([])
+const supplierOptions = ref<SupplierOption[]>([])
 
-const form = reactive<Purchase>({
-  id: 0,
+const form = reactive({
   supplier: '',
   invoice_id: '',
   purchase_date: '',
   note: '',
-  created_by: '',
-  created_at: '',
+  items: [] as PurchaseItem[],
   grand_total: 0,
-  items: [],
-})
-
-const uniqueSuppliers = computed(() => {
-  return [...new Set(purchases.value.map((purchase) => purchase.supplier))].filter(Boolean)
 })
 
 const filteredPurchases = computed(() => {
@@ -641,10 +699,10 @@ const filteredPurchases = computed(() => {
   if (q) {
     result = result.filter((purchase) => {
       return (
-        purchase.invoice_id.toLowerCase().includes(q) ||
-        purchase.supplier.toLowerCase().includes(q) ||
-        purchase.note.toLowerCase().includes(q) ||
-        purchase.created_by.toLowerCase().includes(q)
+        (purchase.invoice_id || '').toLowerCase().includes(q) ||
+        (purchase.supplier_name || '').toLowerCase().includes(q) ||
+        (purchase.note || '').toLowerCase().includes(q) ||
+        String(purchase.created_by || '').toLowerCase().includes(q)
       )
     })
   }
@@ -654,7 +712,7 @@ const filteredPurchases = computed(() => {
   }
 
   if (supplierFilter.value) {
-    result = result.filter((purchase) => purchase.supplier === supplierFilter.value)
+    result = result.filter((purchase) => String(purchase.supplier_id || '') === supplierFilter.value)
   }
 
   return result
@@ -662,56 +720,53 @@ const filteredPurchases = computed(() => {
 
 const filteredGrandTotal = computed(() => {
   const total = filteredPurchases.value.reduce(
-    (sum, purchase) => sum + Number(purchase.grand_total || 0),
+    (sum, purchase) => sum + Number(purchase.total_cost || 0),
     0
   )
   return formatMoney(total)
 })
 
 const filteredItemsCount = computed(() => {
-  return filteredPurchases.value.reduce((sum, purchase) => sum + purchase.items.length, 0)
+  return filteredPurchases.value.reduce(
+    (sum, purchase) => sum + Number(purchase.items_count || purchase.items.length || 0),
+    0
+  )
 })
 
 function resetForm() {
-  form.id = 0
   form.supplier = ''
   form.invoice_id = ''
   form.purchase_date = ''
   form.note = ''
-  form.created_by = ''
-  form.created_at = ''
-  form.grand_total = 0
   form.items = []
+  form.grand_total = 0
+  formError.value = ''
 }
 
 function fillForm(purchase: Purchase) {
-  form.id = purchase.id
-  form.supplier = purchase.supplier
-  form.invoice_id = purchase.invoice_id
-  form.purchase_date = purchase.purchase_date
-  form.note = purchase.note
-  form.created_by = purchase.created_by
-  form.created_at = purchase.created_at
-  form.grand_total = purchase.grand_total
-  form.items = purchase.items.map((item) => ({
-    uid: item.uid || createUid(),
-    product: item.product,
-    quantity: item.quantity,
-    cost_price: item.cost_price,
-    expired_date: item.expired_date,
-    batch_code: item.batch_code,
+  form.supplier = purchase.supplier_id ? String(purchase.supplier_id) : ''
+  form.invoice_id = purchase.invoice_id || ''
+  form.purchase_date = purchase.purchase_date || ''
+  form.note = purchase.note || ''
+  form.items = (purchase.items || []).map((item) => ({
+    uid: createUid(),
+    product: String(item.product_id ?? item.product ?? ''),
+    quantity: String(item.quantity ?? '1'),
+    cost_price: String(item.cost_price ?? '0.00'),
+    expired_date: item.expired_date || '',
+    batch_code: item.batch_code || '',
   }))
+  recalculateGrandTotal()
 }
 
 function openCreateModal() {
   modalMode.value = 'create'
   editingId.value = null
+  selectedPurchase.value = null
   activeTab.value = 'general'
   resetForm()
   form.invoice_id = generatePurchaseInvoice()
   form.purchase_date = todayDate()
-  form.created_at = formatCurrentDateTime()
-  form.created_by = 'Owner'
   form.items = [newPurchaseItem()]
   recalculateGrandTotal()
   showModal.value = true
@@ -720,102 +775,29 @@ function openCreateModal() {
 function openEditModal(purchase: Purchase) {
   modalMode.value = 'edit'
   editingId.value = purchase.id
+  selectedPurchase.value = purchase
   activeTab.value = 'general'
+  resetForm()
   fillForm(purchase)
-  recalculateGrandTotal()
   showModal.value = true
 }
 
 function openViewModal(purchase: Purchase) {
   modalMode.value = 'view'
   editingId.value = purchase.id
+  selectedPurchase.value = purchase
   activeTab.value = 'general'
+  resetForm()
   fillForm(purchase)
-  recalculateGrandTotal()
   showModal.value = true
 }
 
 function closeModal() {
   showModal.value = false
   editingId.value = null
+  selectedPurchase.value = null
   activeTab.value = 'general'
   resetForm()
-}
-
-function savePurchase() {
-  if (!form.supplier.trim()) {
-    alert('Supplier is required.')
-    activeTab.value = 'general'
-    return
-  }
-
-  if (!form.invoice_id.trim()) {
-    alert('Invoice ID is required.')
-    activeTab.value = 'general'
-    return
-  }
-
-  if (!form.purchase_date) {
-    alert('Purchase date is required.')
-    activeTab.value = 'general'
-    return
-  }
-
-  const validItems = form.items.filter((item) => item.product.trim())
-  if (validItems.length === 0) {
-    alert('At least one purchase item is required.')
-    activeTab.value = 'items'
-    return
-  }
-
-  recalculateGrandTotal()
-
-  const payload: Purchase = {
-    id: editingId.value ?? 0,
-    supplier: form.supplier.trim(),
-    invoice_id: form.invoice_id.trim(),
-    purchase_date: form.purchase_date,
-    note: form.note.trim(),
-    created_by: form.created_by.trim(),
-    created_at: form.created_at.trim() || formatCurrentDateTime(),
-    grand_total: Number(form.grand_total) || 0,
-    items: validItems.map((item) => ({
-      uid: item.uid || createUid(),
-      product: item.product.trim(),
-      quantity: Number(item.quantity) || 1,
-      cost_price: Number(item.cost_price) || 0,
-      expired_date: item.expired_date,
-      batch_code: item.batch_code.trim(),
-    })),
-  }
-
-  if (modalMode.value === 'create') {
-    const nextId =
-      purchases.value.length > 0
-        ? Math.max(...purchases.value.map((purchase) => purchase.id)) + 1
-        : 1
-
-    purchases.value.unshift({
-      ...payload,
-      id: nextId,
-    })
-  } else if (modalMode.value === 'edit' && editingId.value !== null) {
-    const index = purchases.value.findIndex((purchase) => purchase.id === editingId.value)
-    if (index !== -1) {
-      purchases.value[index] = {
-        ...payload,
-        id: editingId.value,
-      }
-    }
-  }
-
-  closeModal()
-}
-
-function removePurchase(id: number) {
-  const ok = window.confirm('Delete this purchase?')
-  if (!ok) return
-  purchases.value = purchases.value.filter((purchase) => purchase.id !== id)
 }
 
 function resetFilters() {
@@ -828,8 +810,8 @@ function newPurchaseItem(): PurchaseItem {
   return {
     uid: createUid(),
     product: '',
-    quantity: 1,
-    cost_price: 0,
+    quantity: '1',
+    cost_price: '0.00',
     expired_date: '',
     batch_code: '',
   }
@@ -853,13 +835,170 @@ function recalculateGrandTotal() {
   form.grand_total = form.items.reduce((sum, item) => sum + itemTotal(item), 0)
 }
 
-function formatMoney(value: number) {
+function validateForm() {
+  formError.value = ''
+
+  const validItems = form.items.filter((item) => String(item.product).trim())
+
+  if (!form.purchase_date) {
+    formError.value = 'Purchase date is required.'
+    activeTab.value = 'general'
+    return false
+  }
+
+  if (validItems.length === 0) {
+    formError.value = 'At least one purchase item is required.'
+    activeTab.value = 'items'
+    return false
+  }
+
+  for (const item of validItems) {
+    if (!String(item.product).trim()) {
+      formError.value = 'Product ID is required for each item.'
+      activeTab.value = 'items'
+      return false
+    }
+    if (Number(item.quantity) <= 0) {
+      formError.value = 'Quantity must be greater than 0.'
+      activeTab.value = 'items'
+      return false
+    }
+    if (Number(item.cost_price) < 0) {
+      formError.value = 'Cost price cannot be negative.'
+      activeTab.value = 'items'
+      return false
+    }
+  }
+
+  return true
+}
+
+function buildCreatePayload() {
+  const validItems = form.items
+    .filter((item) => String(item.product).trim())
+    .map((item) => ({
+      product: Number(item.product),
+      quantity: String(item.quantity || '1'),
+      cost_price: String(item.cost_price || '0.00'),
+      expired_date: item.expired_date || null,
+      batch_code: item.batch_code.trim(),
+    }))
+
+  return {
+    supplier: form.supplier ? Number(form.supplier) : null,
+    invoice_id: form.invoice_id.trim(),
+    purchase_date: form.purchase_date || null,
+    note: form.note.trim(),
+    items: validItems,
+  }
+}
+
+function buildUpdatePayload() {
+  return {
+    invoice_id: form.invoice_id.trim(),
+    purchase_date: form.purchase_date,
+    note: form.note.trim(),
+  }
+}
+
+async function fetchSuppliers() {
+  try {
+    const response = await api.get('/api/suppliers/')
+    const rows = Array.isArray(response.data) ? response.data : []
+    supplierOptions.value = rows.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+    }))
+  } catch {
+    supplierOptions.value = []
+  }
+}
+
+async function fetchPurchases() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await api.get('/api/purchases/')
+    purchases.value = Array.isArray(response.data) ? response.data : []
+  } catch (error: any) {
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Failed to load purchases.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function savePurchase() {
+  if (!validateForm()) return
+
+  saving.value = true
+  formError.value = ''
+
+  try {
+    if (modalMode.value === 'create') {
+      const payload = buildCreatePayload()
+      await api.post('/api/purchases/', payload, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    } else if (modalMode.value === 'edit' && editingId.value !== null) {
+      const payload = buildUpdatePayload()
+      await api.patch(`/api/purchases/${editingId.value}/`, payload, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    await fetchPurchases()
+    closeModal()
+  } catch (error: any) {
+    const data = error?.response?.data
+
+    if (data && typeof data === 'object') {
+      const firstKey = Object.keys(data)[0]
+      if (firstKey) {
+        const firstValue = data[firstKey]
+        formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
+      } else {
+        formError.value = 'Failed to save purchase.'
+      }
+    } else {
+      formError.value = error?.message || 'Failed to save purchase.'
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removePurchase(id: number) {
+  const ok = window.confirm('Delete this purchase?')
+  if (!ok) return
+
+  deletingId.value = id
+
+  try {
+    await api.delete(`/api/purchases/${id}/`)
+    purchases.value = purchases.value.filter((purchase) => purchase.id !== id)
+  } catch (error: any) {
+    alert(
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Failed to delete purchase.'
+    )
+  } finally {
+    deletingId.value = null
+  }
+}
+
+function formatMoney(value: unknown) {
   return Number(value || 0).toFixed(2)
 }
 
 function getInitials(name: string) {
-  return name
+  return (name || 'SP')
     .split(' ')
+    .filter(Boolean)
     .map((part) => part[0])
     .join('')
     .slice(0, 2)
@@ -874,16 +1013,6 @@ function todayDate() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function formatCurrentDateTime() {
-  return new Date().toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
 function formatDateDisplay(date: string) {
   if (!date) return '-'
   const d = new Date(date)
@@ -896,6 +1025,20 @@ function formatDateDisplay(date: string) {
   })
 }
 
+function formatDateTime(value: string) {
+  if (!value) return '-'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value
+
+  return d.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 function generatePurchaseInvoice() {
   const maxId =
     purchases.value.length > 0
@@ -903,6 +1046,10 @@ function generatePurchaseInvoice() {
       : 0
   return `PUR-${new Date().getFullYear()}-${String(maxId + 1).padStart(3, '0')}`
 }
+
+onMounted(async () => {
+  await Promise.all([fetchPurchases(), fetchSuppliers()])
+})
 </script>
 
 <style scoped>
@@ -1053,6 +1200,7 @@ function generatePurchaseInvoice() {
 .filter-input:focus,
 .form-group input:focus,
 .form-group textarea:focus,
+.form-group select:focus,
 .items-table td input:focus {
   border-color: #3b82f6;
   background: #fff;
@@ -1133,6 +1281,10 @@ function generatePurchaseInvoice() {
   white-space: nowrap;
 }
 
+.purchase-table td {
+  color: #334155;
+}
+
 .purchase-table tbody tr:hover {
   background: #fafcff;
 }
@@ -1189,6 +1341,36 @@ function generatePurchaseInvoice() {
   font-size: 12px;
   color: #7c8798;
   line-height: 1.4;
+}
+
+.purchase-date-text,
+.created-at-text {
+  color: #162033;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.created-by-badge,
+.items-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.created-by-badge {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+.items-badge {
+  background: #ecfdf3;
+  color: #16a34a;
 }
 
 .amount-cell,
@@ -1299,6 +1481,33 @@ function generatePurchaseInvoice() {
   padding: 24px 0;
 }
 
+.loading-state,
+.error-state {
+  padding: 24px;
+  border-radius: 16px;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.loading-state {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.error-state {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.form-error {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .btn {
   border: none;
   outline: none;
@@ -1310,6 +1519,11 @@ function generatePurchaseInvoice() {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -1493,7 +1707,8 @@ function generatePurchaseInvoice() {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   border: 1px solid #dbe3ef;
   border-radius: 14px;
@@ -1567,6 +1782,7 @@ function generatePurchaseInvoice() {
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
+  color: #162033;
 }
 
 .item-total {
@@ -1828,6 +2044,12 @@ function generatePurchaseInvoice() {
     width: 36px;
     height: 36px;
     font-size: 11px;
+  }
+
+  .created-by-badge,
+  .items-badge {
+    font-size: 11px;
+    padding: 6px 9px;
   }
 
   .modal-overlay {

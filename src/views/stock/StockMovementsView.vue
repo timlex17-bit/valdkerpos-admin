@@ -3,7 +3,10 @@
     <section class="page-header">
       <div>
         <h1 class="page-title">Stock Movements</h1>
-        <p class="page-subtitle">Manage stock movement history for your current shop.</p>
+        <p class="page-subtitle">
+          Monitor stock movement history for your current shop.
+        </p>
+
         <div class="breadcrumb">
           <span>Home</span>
           <span>/</span>
@@ -13,10 +16,11 @@
         </div>
       </div>
 
-      <button class="add-btn" @click="openAddModal">
-        <span>+</span>
-        Add Stock Movement
-      </button>
+      <div class="header-actions">
+        <button class="refresh-btn" @click="fetchStockMovements" :disabled="loading">
+          {{ loading ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
     </section>
 
     <section class="stats-grid stats-grid-4">
@@ -28,19 +32,19 @@
 
       <div class="stat-card">
         <div class="stat-label">Sales</div>
-        <div class="stat-value">{{ totalByType('Sale') }}</div>
+        <div class="stat-value">{{ totalByType('SALE') }}</div>
         <div class="stat-note">Outgoing sales movements</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-label">Purchases</div>
-        <div class="stat-value">{{ totalByType('Purchase') }}</div>
+        <div class="stat-value">{{ totalByType('PURCHASE') }}</div>
         <div class="stat-note">Incoming purchase movements</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-label">Adjustments</div>
-        <div class="stat-value">{{ totalByType('Adjustment') }}</div>
+        <div class="stat-value">{{ totalByType('ADJUSTMENT') }}</div>
         <div class="stat-note">Manual stock corrections</div>
       </div>
     </section>
@@ -52,16 +56,19 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by product, ref model, created by..."
+            placeholder="Search by product, code, sku, note, ref model..."
           />
         </div>
 
         <select v-model="movementTypeFilter" class="filter-select">
           <option value="">All movement types</option>
-          <option value="Sale">Sale</option>
-          <option value="Purchase">Purchase</option>
-          <option value="Adjustment">Adjustment</option>
-          <option value="Sale Return">Sale Return</option>
+          <option
+            v-for="type in movementTypeOptions"
+            :key="type"
+            :value="type"
+          >
+            {{ formatMovementType(type) }}
+          </option>
         </select>
 
         <input v-model="dateFilter" type="date" class="filter-select" />
@@ -78,6 +85,10 @@
         </div>
       </div>
 
+      <div v-if="error" class="alert-error">
+        {{ error }}
+      </div>
+
       <div class="table-wrap" v-if="filteredItems.length">
         <table class="data-table">
           <thead>
@@ -90,7 +101,6 @@
               <th>After</th>
               <th>Reference Model</th>
               <th>Created At</th>
-              <th>Created By</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -105,39 +115,43 @@
               </td>
 
               <td>
-                <div class="title-main">{{ item.product }}</div>
-              </td>
-
-              <td>
-                <span class="status-badge" :class="movementTypeClass(item.movementType)">
-                  {{ item.movementType }}
-                </span>
-              </td>
-
-              <td>
-                <span class="delta-text" :class="deltaClass(item.quantityDelta)">
-                  {{ formatDelta(item.quantityDelta) }}
-                </span>
-              </td>
-
-              <td>{{ item.beforeStock }}</td>
-              <td>{{ item.afterStock }}</td>
-
-              <td>
-                <div class="ref-model">
-                  <div>{{ item.refModel || '-' }}</div>
-                  <div class="ref-sub" v-if="item.refId">#{{ item.refId }}</div>
+                <div class="product-cell">
+                  <div class="title-main">{{ item.product_name || '-' }}</div>
+                  <div class="ref-sub">
+                    {{ item.product_code || item.product_sku || '-' }}
+                  </div>
                 </div>
               </td>
 
-              <td>{{ formatDateTime(item.createdAt) }}</td>
-              <td>{{ item.createdBy || '-' }}</td>
+              <td>
+                <span class="status-badge" :class="movementTypeClass(item.movement_type)">
+                  {{ formatMovementType(item.movement_type) }}
+                </span>
+              </td>
+
+              <td>
+                <span class="delta-text" :class="deltaClass(item.quantity_delta)">
+                  {{ formatDelta(item.quantity_delta) }}
+                </span>
+              </td>
+
+              <td>{{ displayNumber(item.before_stock) }}</td>
+              <td>{{ displayNumber(item.after_stock) }}</td>
+
+              <td>
+                <div class="ref-model">
+                  <div>{{ item.ref_model || '-' }}</div>
+                  <div class="ref-sub" v-if="item.ref_id !== null && item.ref_id !== undefined">
+                    #{{ item.ref_id }}
+                  </div>
+                </div>
+              </td>
+
+              <td>{{ formatDateTime(item.created_at) }}</td>
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openEditModal(item)">View</button>
-                  <button class="btn-edit" @click="openEditModal(item)">Edit</button>
-                  <button class="btn-delete" @click="deleteItem(item.id)">Delete</button>
+                  <button class="btn-view" @click="openViewModalWithRetrieve(item)">View</button>
                 </div>
               </td>
             </tr>
@@ -145,99 +159,105 @@
         </table>
       </div>
 
-      <div v-else class="empty-state">
+      <div v-else-if="!loading" class="empty-state">
         <h3>No stock movements found</h3>
-        <p>Try another keyword or create a new stock movement.</p>
+        <p>Try another keyword or refresh the stock movement history.</p>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        Loading stock movements...
       </div>
     </section>
 
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+    <div v-if="showViewModal" class="modal-overlay" @click.self="closeViewModal">
       <div class="modal-card modal-card-wide">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditMode ? 'Edit Stock Movement' : 'Add Stock Movement' }}</h2>
-            <p>Fill in the form below to save stock movement data.</p>
+            <h2>Stock Movement Detail</h2>
+            <p>Review stock movement information.</p>
           </div>
-          <button class="close-btn" @click="closeModal">×</button>
+          <button class="close-btn" @click="closeViewModal">×</button>
         </div>
 
-        <div class="modal-body">
-          <div class="form-grid two-col">
-            <div class="form-group">
-              <label>Product</label>
-              <select v-model="form.product" class="form-input">
-                <option value="">Select product</option>
-                <option v-for="product in productOptions" :key="product" :value="product">
-                  {{ product }}
-                </option>
-              </select>
+        <div class="modal-body" v-if="viewItem">
+          <div class="detail-grid">
+            <div class="detail-box">
+              <div class="detail-label">Reference</div>
+              <div class="detail-value">
+                SM{{ String(viewItem.id).padStart(10, '0') }}
+              </div>
             </div>
 
-            <div class="form-group">
-              <label>Movement Type</label>
-              <select v-model="form.movementType" class="form-input">
-                <option value="">Select movement type</option>
-                <option value="Sale">Sale</option>
-                <option value="Purchase">Purchase</option>
-                <option value="Adjustment">Adjustment</option>
-                <option value="Sale Return">Sale Return</option>
-              </select>
+            <div class="detail-box">
+              <div class="detail-label">Movement Type</div>
+              <div class="detail-value">
+                <span class="status-badge" :class="movementTypeClass(viewItem.movement_type)">
+                  {{ formatMovementType(viewItem.movement_type) }}
+                </span>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label>Quantity Delta</label>
-              <input v-model.number="form.quantityDelta" type="number" class="form-input" placeholder="-1 / +10" />
+            <div class="detail-box">
+              <div class="detail-label">Product</div>
+              <div class="detail-value">{{ viewItem.product_name || '-' }}</div>
             </div>
 
-            <div class="form-group">
-              <label>Before Stock</label>
-              <input v-model.number="form.beforeStock" type="number" min="0" class="form-input" placeholder="0" />
+            <div class="detail-box">
+              <div class="detail-label">Product ID</div>
+              <div class="detail-value">{{ viewItem.product ?? '-' }}</div>
             </div>
 
-            <div class="form-group">
-              <label>After Stock</label>
-              <input v-model.number="form.afterStock" type="number" min="0" class="form-input" placeholder="0" />
+            <div class="detail-box">
+              <div class="detail-label">Product Code</div>
+              <div class="detail-value">{{ viewItem.product_code || '-' }}</div>
             </div>
 
-            <div class="form-group">
-              <label>Created By</label>
-              <input v-model="form.createdBy" type="text" class="form-input" placeholder="Admin / Owner" />
+            <div class="detail-box">
+              <div class="detail-label">Product SKU</div>
+              <div class="detail-value">{{ viewItem.product_sku || '-' }}</div>
             </div>
 
-            <div class="form-group">
-              <label>Reference Model</label>
-              <input v-model="form.refModel" type="text" class="form-input" placeholder="Order, Purchase, Adjustment..." />
+            <div class="detail-box">
+              <div class="detail-label">Quantity Delta</div>
+              <div class="detail-value" :class="deltaClass(viewItem.quantity_delta)">
+                {{ formatDelta(viewItem.quantity_delta) }}
+              </div>
             </div>
 
-            <div class="form-group">
-              <label>Reference ID</label>
-              <input v-model="form.refId" type="text" class="form-input" placeholder="Reference id" />
+            <div class="detail-box">
+              <div class="detail-label">Before Stock</div>
+              <div class="detail-value">{{ displayNumber(viewItem.before_stock) }}</div>
             </div>
 
-            <div class="form-group">
-              <label>Date</label>
-              <input v-model="form.date" type="date" class="form-input" />
+            <div class="detail-box">
+              <div class="detail-label">After Stock</div>
+              <div class="detail-value">{{ displayNumber(viewItem.after_stock) }}</div>
             </div>
 
-            <div class="form-group">
-              <label>Time</label>
-              <input v-model="form.time" type="time" class="form-input" />
+            <div class="detail-box">
+              <div class="detail-label">Created By</div>
+              <div class="detail-value">{{ viewItem.created_by ?? '-' }}</div>
             </div>
 
-            <div class="form-group form-group-full">
-              <label>Note</label>
-              <textarea
-                v-model="form.note"
-                class="form-input textarea"
-                rows="4"
-                placeholder="Write note here..."
-              ></textarea>
+            <div class="detail-box">
+              <div class="detail-label">Reference Model</div>
+              <div class="detail-value">{{ viewItem.ref_model || '-' }}</div>
             </div>
-          </div>
 
-          <div class="modal-actions">
-            <button class="secondary-btn" @click="closeModal">Cancel</button>
-            <button class="save-btn" @click="saveItem">Save</button>
+            <div class="detail-box">
+              <div class="detail-label">Reference ID</div>
+              <div class="detail-value">{{ viewItem.ref_id ?? '-' }}</div>
+            </div>
+
+            <div class="detail-box detail-box-full">
+              <div class="detail-label">Created At</div>
+              <div class="detail-value">{{ formatDateTime(viewItem.created_at) }}</div>
+            </div>
+
+            <div class="detail-box detail-box-full">
+              <div class="detail-label">Note</div>
+              <div class="detail-value">{{ viewItem.note || '-' }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -246,107 +266,45 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-
-type MovementType = 'Sale' | 'Purchase' | 'Adjustment' | 'Sale Return'
+import axios from 'axios'
+import { computed, onMounted, ref } from 'vue'
 
 type StockMovement = {
   id: number
-  product: string
-  movementType: MovementType
-  quantityDelta: number
-  beforeStock: number
-  afterStock: number
+  created_at: string
+  movement_type: string
+  quantity_delta: number
+  before_stock: number
+  after_stock: number
   note: string
-  refModel: string
-  refId: string
-  createdAt: string
-  createdBy: string
+  ref_model: string
+  ref_id: number | null
+  product: number | null
+  product_name: string
+  product_code: string
+  product_sku: string
+  created_by: number | null
 }
 
-const productOptions = ref<string[]>([
-  'Oli Yamaha Lube (6937467600037)',
-  'Pizza Sosis (74384393934393)',
-  'Redbull (07B432024111604446)',
-  'Ice Cemilds (2672838383)',
-  'Donats (8363737373783)',
-])
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
-const stockMovements = ref<StockMovement[]>([
-  {
-    id: 43,
-    product: 'Oli Yamaha Lube (6937467600037)',
-    movementType: 'Adjustment',
-    quantityDelta: 50,
-    beforeStock: 450,
-    afterStock: 500,
-    note: 'Stock corrected after review.',
-    refModel: 'StockAdjustment',
-    refId: '3',
-    createdAt: '2026-03-18T22:38',
-    createdBy: 'admin',
-  },
-  {
-    id: 42,
-    product: 'Oli Yamaha Lube (6937467600037)',
-    movementType: 'Sale',
-    quantityDelta: -50,
-    beforeStock: 500,
-    afterStock: 450,
-    note: 'Sales transaction.',
-    refModel: 'Order',
-    refId: '42',
-    createdAt: '2026-03-18T22:34',
-    createdBy: 'admin',
-  },
-  {
-    id: 39,
-    product: 'Ice Cemilds (2672838383)',
-    movementType: 'Purchase',
-    quantityDelta: 20,
-    beforeStock: 35,
-    afterStock: 55,
-    note: 'Stock from supplier.',
-    refModel: 'Purchase',
-    refId: '19',
-    createdAt: '2026-03-18T08:12',
-    createdBy: 'admin',
-  },
-  {
-    id: 38,
-    product: 'Redbull (07B432024111604446)',
-    movementType: 'Sale Return',
-    quantityDelta: 2,
-    beforeStock: 58,
-    afterStock: 60,
-    note: 'Returned item.',
-    refModel: 'ProductReturn',
-    refId: '7',
-    createdAt: '2026-03-18T08:12',
-    createdBy: 'admin',
-  },
-])
+const stockMovements = ref<StockMovement[]>([])
+const loading = ref(false)
+const error = ref('')
 
 const search = ref('')
 const movementTypeFilter = ref('')
 const dateFilter = ref('')
 
-const showModal = ref(false)
-const isEditMode = ref(false)
-const editingId = ref<number | null>(null)
+const showViewModal = ref(false)
+const viewItem = ref<StockMovement | null>(null)
 
-const form = reactive({
-  product: '',
-  movementType: '' as '' | MovementType,
-  quantityDelta: 0,
-  beforeStock: 0,
-  afterStock: 0,
-  note: '',
-  refModel: '',
-  refId: '',
-  createdBy: 'admin',
-  date: '',
-  time: '',
+const movementTypeOptions = computed(() => {
+  const types = stockMovements.value
+    .map((item) => item.movement_type)
+    .filter((value) => !!value)
+
+  return [...new Set(types)]
 })
 
 const filteredItems = computed(() => {
@@ -355,35 +313,86 @@ const filteredItems = computed(() => {
 
   if (keyword) {
     results = results.filter((item) =>
-      item.product.toLowerCase().includes(keyword) ||
-      item.refModel.toLowerCase().includes(keyword) ||
-      item.createdBy.toLowerCase().includes(keyword)
+      (item.product_name || '').toLowerCase().includes(keyword) ||
+      (item.product_code || '').toLowerCase().includes(keyword) ||
+      (item.product_sku || '').toLowerCase().includes(keyword) ||
+      (item.ref_model || '').toLowerCase().includes(keyword) ||
+      (item.note || '').toLowerCase().includes(keyword) ||
+      String(item.created_by ?? '').toLowerCase().includes(keyword)
     )
   }
 
   if (movementTypeFilter.value) {
-    results = results.filter((item) => item.movementType === movementTypeFilter.value)
+    results = results.filter((item) => item.movement_type === movementTypeFilter.value)
   }
 
   if (dateFilter.value) {
-    results = results.filter((item) => item.createdAt.startsWith(dateFilter.value))
+    results = results.filter((item) =>
+      (item.created_at || '').startsWith(dateFilter.value)
+    )
   }
 
   return results
 })
 
-function totalByType(type: MovementType) {
-  return stockMovements.value.filter((item) => item.movementType === type).length
+function getAuthHeaders() {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('access_token')
+
+  return token
+    ? {
+        Authorization: `Token ${token}`,
+      }
+    : {}
 }
 
-function getNowDate() {
-  const now = new Date()
-  return now.toISOString().slice(0, 10)
+function normalizeStockMovement(raw: any): StockMovement {
+  return {
+    id: Number(raw?.id ?? 0),
+    created_at: raw?.created_at ?? '',
+    movement_type: raw?.movement_type ?? '',
+    quantity_delta: Number(raw?.quantity_delta ?? 0),
+    before_stock: Number(raw?.before_stock ?? 0),
+    after_stock: Number(raw?.after_stock ?? 0),
+    note: raw?.note ?? '',
+    ref_model: raw?.ref_model ?? '',
+    ref_id: raw?.ref_id ?? null,
+    product: raw?.product ?? null,
+    product_name: raw?.product_name ?? '',
+    product_code: raw?.product_code ?? '',
+    product_sku: raw?.product_sku ?? '',
+    created_by: raw?.created_by ?? null,
+  }
 }
 
-function getNowTime() {
-  const now = new Date()
-  return now.toTimeString().slice(0, 5)
+async function fetchStockMovements() {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/stockmovements/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
+
+    const rows = Array.isArray(response.data) ? response.data : []
+    stockMovements.value = rows.map(normalizeStockMovement)
+  } catch (err: any) {
+    console.error('Failed to fetch stock movements:', err)
+    error.value =
+      err?.response?.data?.detail ||
+      'Failed to load stock movements. Please check API and token.'
+    stockMovements.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function totalByType(type: string) {
+  return filteredItems.value.filter((item) => item.movement_type === type).length
 }
 
 function resetFilters() {
@@ -392,112 +401,44 @@ function resetFilters() {
   dateFilter.value = ''
 }
 
-function resetForm() {
-  form.product = ''
-  form.movementType = ''
-  form.quantityDelta = 0
-  form.beforeStock = 0
-  form.afterStock = 0
-  form.note = ''
-  form.refModel = ''
-  form.refId = ''
-  form.createdBy = 'admin'
-  form.date = getNowDate()
-  form.time = getNowTime()
+function openViewModal(item: StockMovement) {
+  viewItem.value = item
+  showViewModal.value = true
 }
 
-function openAddModal() {
-  resetForm()
-  isEditMode.value = false
-  editingId.value = null
-  showModal.value = true
-}
+async function fetchMovementDetail(id: number) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/stockmovements/${id}/`, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    })
 
-function openEditModal(item: StockMovement) {
-  const [datePart, timePartRaw] = item.createdAt.split('T')
-  const timePart = timePartRaw ? timePartRaw.slice(0, 5) : '00:00'
-
-  form.product = item.product
-  form.movementType = item.movementType
-  form.quantityDelta = item.quantityDelta
-  form.beforeStock = item.beforeStock
-  form.afterStock = item.afterStock
-  form.note = item.note
-  form.refModel = item.refModel
-  form.refId = item.refId
-  form.createdBy = item.createdBy
-  form.date = datePart || getNowDate()
-  form.time = timePart
-
-  editingId.value = item.id
-  isEditMode.value = true
-  showModal.value = true
-}
-
-function closeModal() {
-  showModal.value = false
-}
-
-function validateForm() {
-  if (!form.product.trim()) {
-    alert('Product is required.')
-    return false
+    viewItem.value = normalizeStockMovement(response.data)
+  } catch (err) {
+    console.error('Failed to fetch stock movement detail:', err)
   }
-  if (!form.movementType) {
-    alert('Movement type is required.')
-    return false
-  }
-  if (!form.date || !form.time) {
-    alert('Date and time are required.')
-    return false
-  }
-  return true
 }
 
-function buildCreatedAt() {
-  return `${form.date}T${form.time}`
+async function openViewModalWithRetrieve(item: StockMovement) {
+  openViewModal(item)
+  await fetchMovementDetail(item.id)
 }
 
-function getNextId() {
-  return stockMovements.value.length > 0 ? Math.max(...stockMovements.value.map((item) => item.id)) + 1 : 1
+function closeViewModal() {
+  showViewModal.value = false
+  viewItem.value = null
 }
 
-function saveItem() {
-  if (!validateForm()) return
-
-  const payload: StockMovement = {
-    id: editingId.value ?? getNextId(),
-    product: form.product,
-    movementType: form.movementType as MovementType,
-    quantityDelta: Number(form.quantityDelta),
-    beforeStock: Number(form.beforeStock),
-    afterStock: Number(form.afterStock),
-    note: form.note.trim(),
-    refModel: form.refModel.trim(),
-    refId: form.refId.trim(),
-    createdAt: buildCreatedAt(),
-    createdBy: form.createdBy.trim() || 'admin',
-  }
-
-  if (isEditMode.value && editingId.value !== null) {
-    const index = stockMovements.value.findIndex((item) => item.id === editingId.value)
-    if (index !== -1) stockMovements.value[index] = payload
-  } else {
-    stockMovements.value.unshift(payload)
-  }
-
-  closeModal()
-  resetForm()
-}
-
-function deleteItem(id: number) {
-  if (!window.confirm('Delete this stock movement?')) return
-  stockMovements.value = stockMovements.value.filter((item) => item.id !== id)
+function displayNumber(value: number | null | undefined) {
+  if (value === null || value === undefined) return '-'
+  return value
 }
 
 function formatDateTime(value: string) {
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  if (Number.isNaN(date.getTime())) return value || '-'
+
   return new Intl.DateTimeFormat('en-US', {
     month: 'long',
     day: 'numeric',
@@ -519,14 +460,27 @@ function deltaClass(value: number) {
   }
 }
 
-function movementTypeClass(type: MovementType) {
+function movementTypeClass(type: string) {
   return {
-    paid: type === 'Purchase',
-    unpaid: type === 'Sale Return',
-    cancelled: type === 'Sale',
-    info: type === 'Adjustment',
+    paid: type === 'PURCHASE',
+    unpaid: type === 'SALE_RETURN',
+    cancelled: type === 'SALE',
+    info: type === 'ADJUSTMENT',
   }
 }
+
+function formatMovementType(type: string) {
+  if (!type) return '-'
+
+  return type
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+onMounted(() => {
+  fetchStockMovements()
+})
 </script>
 
 <style scoped>
@@ -535,6 +489,7 @@ function movementTypeClass(type: MovementType) {
   background: #f3f4f6;
   min-height: 100vh;
 }
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -542,6 +497,7 @@ function movementTypeClass(type: MovementType) {
   gap: 20px;
   margin-bottom: 22px;
 }
+
 .page-title {
   margin: 0;
   font-size: 32px;
@@ -549,6 +505,7 @@ function movementTypeClass(type: MovementType) {
   font-weight: 800;
   color: #1f2a44;
 }
+
 .page-subtitle {
   margin: 6px 0 0;
   color: #6b7280;
@@ -563,14 +520,23 @@ function movementTypeClass(type: MovementType) {
   gap: 8px;
   color: #7b8496;
   font-size: 14px;
+  margin-top: 12px;
 }
+
 .breadcrumb .active {
   color: #2563eb;
   font-weight: 700;
 }
-.add-btn {
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.refresh-btn {
   border: none;
-  background: #22c55e;
+  background: #2563eb;
   color: white;
   padding: 14px 22px;
   border-radius: 16px;
@@ -580,41 +546,48 @@ function movementTypeClass(type: MovementType) {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.18);
 }
-.add-btn span {
-  font-size: 1.3rem;
-  line-height: 1;
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
+
 .stats-grid {
   display: grid;
   gap: 18px;
   margin-bottom: 22px;
 }
+
 .stats-grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+
 .stat-card {
   background: #fff;
   border-radius: 22px;
   padding: 20px 22px;
   border: 1px solid #edf0f5;
 }
+
 .stat-label {
   font-size: 0.98rem;
   color: #6b7280;
   margin-bottom: 8px;
 }
+
 .stat-value {
   font-size: 2rem;
   font-weight: 800;
   color: #1f2a44;
   margin-bottom: 6px;
 }
+
 .stat-note {
   color: #94a3b8;
   font-size: 0.95rem;
 }
+
 .toolbar-card {
   background: #fff;
   border-radius: 22px;
@@ -622,14 +595,17 @@ function movementTypeClass(type: MovementType) {
   margin-bottom: 22px;
   border: 1px solid #edf0f5;
 }
+
 .toolbar-grid {
   display: grid;
   gap: 14px;
   align-items: center;
 }
+
 .toolbar-grid-4 {
   grid-template-columns: 1.8fr 1fr 0.9fr auto;
 }
+
 .search-box {
   display: flex;
   align-items: center;
@@ -640,10 +616,12 @@ function movementTypeClass(type: MovementType) {
   background: #f8fafc;
   padding: 0 14px;
 }
+
 .search-icon {
   color: #94a3b8;
   font-size: 14px;
 }
+
 .search-box input {
   border: none;
   outline: none;
@@ -652,6 +630,7 @@ function movementTypeClass(type: MovementType) {
   font-size: 0.96rem;
   color: #334155;
 }
+
 .filter-select {
   height: 48px;
   border: 1px solid #dbe2ea;
@@ -662,6 +641,7 @@ function movementTypeClass(type: MovementType) {
   color: #334155;
   outline: none;
 }
+
 .reset-btn {
   height: 48px;
   padding: 0 18px;
@@ -672,34 +652,41 @@ function movementTypeClass(type: MovementType) {
   font-weight: 700;
   cursor: pointer;
 }
+
 .table-card {
   background: #fff;
   border-radius: 22px;
   border: 1px solid #edf0f5;
   overflow: hidden;
 }
+
 .table-header {
   padding: 20px 20px 8px;
 }
+
 .table-header h2 {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
   color: #1f2a44;
 }
+
 .table-header p {
   margin: 6px 0 0;
   color: #6b7280;
 }
+
 .table-wrap {
   overflow-x: auto;
   padding: 8px 18px 18px;
 }
+
 .data-table {
   width: 100%;
   min-width: 1280px;
   border-collapse: collapse;
 }
+
 .data-table th {
   text-align: left;
   padding: 14px 16px;
@@ -708,6 +695,7 @@ function movementTypeClass(type: MovementType) {
   font-weight: 700;
   border-bottom: 1px solid #e5e7eb;
 }
+
 .data-table td {
   padding: 16px;
   vertical-align: middle;
@@ -715,31 +703,42 @@ function movementTypeClass(type: MovementType) {
   color: #1f2937;
   font-size: 0.96rem;
 }
+
 .ref-main {
   color: #2563eb;
   font-weight: 800;
 }
+
 .ref-sub {
   color: #64748b;
   font-size: 0.9rem;
   margin-top: 4px;
 }
+
 .title-main {
   font-weight: 700;
   color: #1f2937;
 }
+
 .delta-text {
   font-weight: 800;
 }
-.delta-text.positive {
+
+.delta-text.positive,
+.detail-value.positive {
   color: #16a34a;
 }
-.delta-text.negative {
+
+.delta-text.negative,
+.detail-value.negative {
   color: #dc2626;
 }
-.delta-text.neutral {
+
+.delta-text.neutral,
+.detail-value.neutral {
   color: #64748b;
 }
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -750,30 +749,34 @@ function movementTypeClass(type: MovementType) {
   font-size: 0.88rem;
   font-weight: 700;
 }
+
 .status-badge.paid {
   background: #dcfce7;
   color: #16a34a;
 }
+
 .status-badge.unpaid {
   background: #fef3c7;
   color: #d97706;
 }
+
 .status-badge.cancelled {
   background: #fee2e2;
   color: #dc2626;
 }
+
 .status-badge.info {
   background: #dbeafe;
   color: #2563eb;
 }
+
 .action-buttons {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
-.btn-view,
-.btn-edit,
-.btn-delete {
+
+.btn-view {
   height: 38px;
   padding: 0 14px;
   border-radius: 14px;
@@ -781,31 +784,40 @@ function movementTypeClass(type: MovementType) {
   font-weight: 700;
   cursor: pointer;
   font-size: 0.92rem;
-}
-.btn-view {
   border: 1px solid #bfdbfe;
   color: #2563eb;
 }
-.btn-edit {
-  border: 1px solid #fdba74;
-  color: #ea580c;
-}
-.btn-delete {
-  border: 1px solid #fca5a5;
-  color: #dc2626;
-}
-.empty-state {
+
+.empty-state,
+.loading-state {
   padding: 48px 20px;
   text-align: center;
 }
+
 .empty-state h3 {
   margin: 0 0 8px;
   color: #1f2937;
 }
+
 .empty-state p {
   margin: 0;
   color: #6b7280;
 }
+
+.loading-state {
+  color: #475569;
+  font-weight: 600;
+}
+
+.alert-error {
+  margin: 0 20px 16px;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -816,15 +828,18 @@ function movementTypeClass(type: MovementType) {
   padding: 20px;
   z-index: 1000;
 }
+
 .modal-card {
   width: min(760px, 100%);
   background: white;
   border-radius: 22px;
   overflow: hidden;
 }
+
 .modal-card-wide {
   width: min(980px, 100%);
 }
+
 .modal-header {
   padding: 20px 22px;
   display: flex;
@@ -832,14 +847,17 @@ function movementTypeClass(type: MovementType) {
   gap: 16px;
   border-bottom: 1px solid #edf2f7;
 }
+
 .modal-header h2 {
   margin: 0;
   color: #1f2937;
 }
+
 .modal-header p {
   margin: 6px 0 0;
   color: #6b7280;
 }
+
 .close-btn {
   border: none;
   background: #f1f5f9;
@@ -849,95 +867,75 @@ function movementTypeClass(type: MovementType) {
   cursor: pointer;
   font-size: 1.4rem;
 }
+
 .modal-body {
   padding: 22px;
 }
-.form-grid {
+
+.detail-grid {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-.two-col {
-  grid-template-columns: 1fr 1fr;
+
+.detail-box {
+  background: #f8fafc;
+  border: 1px solid #e5edf5;
+  border-radius: 16px;
+  padding: 16px;
 }
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.form-group-full {
+
+.detail-box-full {
   grid-column: 1 / -1;
 }
-.form-group label {
+
+.detail-label {
+  color: #64748b;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: #334155;
-  font-size: 0.95rem;
+  margin-bottom: 8px;
 }
-.form-input {
-  min-height: 46px;
-  border: 1px solid #dbe2ea;
-  border-radius: 14px;
-  background: #f8fafc;
-  padding: 10px 14px;
-  outline: none;
-  font-size: 0.96rem;
-  color: #334155;
-  box-sizing: border-box;
-}
-.textarea {
-  min-height: 110px;
-  resize: vertical;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 22px;
-}
-.secondary-btn,
-.save-btn {
-  height: 46px;
-  padding: 0 18px;
-  border-radius: 14px;
+
+.detail-value {
+  color: #1f2937;
+  font-size: 1rem;
   font-weight: 700;
-  cursor: pointer;
-  border: none;
 }
-.secondary-btn {
-  background: #eef2f7;
-  color: #334155;
-}
-.save-btn {
-  background: #22c55e;
-  color: white;
-}
+
 @media (max-width: 1100px) {
   .toolbar-grid-4,
   .stats-grid-4,
-  .two-col {
+  .detail-grid {
     grid-template-columns: 1fr;
   }
+
+  .detail-box-full {
+    grid-column: auto;
+  }
 }
+
 @media (max-width: 768px) {
   .dashboard-page {
     padding: 16px;
   }
+
   .page-title {
     font-size: 2.2rem;
   }
+
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
-  .add-btn {
+
+  .header-actions {
     width: 100%;
-    justify-content: center;
-  }
-  .modal-actions {
     flex-direction: column;
   }
-  .secondary-btn,
-  .save-btn {
+
+  .refresh-btn {
     width: 100%;
+    justify-content: center;
   }
 }
 </style>

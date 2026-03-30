@@ -51,7 +51,7 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by order, customer, returned by, or note..."
+            placeholder="Search by invoice, order, customer, returned by, or note..."
           />
         </div>
 
@@ -68,10 +68,10 @@
             <option value="">All customers</option>
             <option
               v-for="customer in uniqueCustomers"
-              :key="customer"
-              :value="customer"
+              :key="customer.id"
+              :value="customer.name"
             >
-              {{ customer }}
+              {{ customer.name }}
             </option>
           </select>
         </div>
@@ -87,9 +87,15 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Return List</h2>
+          <h2>Return List FINAL-777</h2>
           <p>{{ filteredReturns.length }} return(s) found</p>
         </div>
+
+        <div v-if="loading" class="table-meta">Loading...</div>
+      </div>
+
+      <div v-if="errorMessage" class="alert-error">
+        {{ errorMessage }}
       </div>
 
       <div class="table-wrapper desktop-table">
@@ -97,8 +103,10 @@
           <thead>
             <tr>
               <th>ID</th>
+              <th>Invoice</th>
               <th>Order</th>
               <th>Customer</th>
+              <th>Items</th>
               <th>Returned At</th>
               <th>Returned By</th>
               <th>Note</th>
@@ -107,8 +115,8 @@
           </thead>
 
           <tbody>
-            <tr v-if="filteredReturns.length === 0">
-              <td colspan="7" class="empty-cell">
+            <tr v-if="!loading && filteredReturns.length === 0">
+              <td colspan="9" class="empty-cell">
                 No product returns found.
               </td>
             </tr>
@@ -120,7 +128,14 @@
 
               <td>
                 <div class="order-block">
-                  <div class="order-code">{{ item.order || '-' }}</div>
+                  <div class="order-code">{{ item.invoice_number || '-' }}</div>
+                  <div class="order-sub">Return invoice</div>
+                </div>
+              </td>
+
+              <td>
+                <div class="order-block">
+                  <div class="order-code">{{ item.order ?? '-' }}</div>
                   <div class="order-sub">Order reference</div>
                 </div>
               </td>
@@ -128,17 +143,31 @@
               <td>
                 <div class="customer-block">
                   <div class="customer-avatar">
-                    {{ getInitials(item.customer || 'NA') }}
+                    {{ getInitials(item.customer_name || 'NA') }}
                   </div>
                   <div>
-                    <div class="customer-name">{{ item.customer || '-' }}</div>
+                    <div class="customer-name">{{ item.customer_name || '-' }}</div>
                     <div class="customer-sub">Customer</div>
                   </div>
                 </div>
               </td>
 
-              <td>{{ formatDateTimeDisplay(item.returned_at) }}</td>
-              <td>{{ item.returned_by || '-' }}</td>
+              <td>
+                <span class="item-count-badge">
+                  {{ item.items.length }} item(s)
+                </span>
+              </td>
+             <td>
+                <div class="cell-primary">
+                  {{ formatDateTimeDisplay(item.returned_at) }}
+                </div>
+              </td>
+
+              <td>
+                <div class="cell-primary">
+                  {{ resolveReturnedByName(item.returned_by) }}
+                </div>
+              </td>
               <td class="note-cell">{{ item.note || '-' }}</td>
 
               <td class="text-right">
@@ -149,7 +178,11 @@
                   <button class="btn btn-sm btn-warning" @click="openEditModal(item)">
                     Edit
                   </button>
-                  <button class="btn btn-sm btn-danger" @click="removeReturn(item.id)">
+                  <button
+                    class="btn btn-sm btn-danger"
+                    :disabled="submitting"
+                    @click="removeReturn(item.id)"
+                  >
                     Delete
                   </button>
                 </div>
@@ -160,7 +193,7 @@
       </div>
 
       <div class="mobile-list">
-        <div v-if="filteredReturns.length === 0" class="mobile-empty">
+        <div v-if="!loading && filteredReturns.length === 0" class="mobile-empty">
           No product returns found.
         </div>
 
@@ -171,7 +204,7 @@
         >
           <div class="mobile-card-top">
             <div class="mobile-card-head-left">
-              <div class="order-code">{{ item.order || '-' }}</div>
+              <div class="order-code">{{ item.invoice_number || '-' }}</div>
               <div class="customer-sub">Return #{{ item.id }}</div>
             </div>
 
@@ -182,26 +215,31 @@
 
           <div class="mobile-customer-row">
             <div class="customer-avatar">
-              {{ getInitials(item.customer || 'NA') }}
+              {{ getInitials(item.customer_name || 'NA') }}
             </div>
             <div>
-              <div class="customer-name">{{ item.customer || '-' }}</div>
+              <div class="customer-name">{{ item.customer_name || '-' }}</div>
               <div class="customer-sub">Customer</div>
             </div>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Returned By</span>
-              <span class="value">{{ item.returned_by || '-' }}</span>
+              <span class="label">Order</span>
+              <span class="value">{{ item.order ?? '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Date</span>
-              <span class="value">{{ formatDateShort(item.returned_at) }}</span>
+              <span class="label">Items</span>
+              <span class="value">{{ item.items.length }}</span>
             </div>
+           <div class="info-item">
+              <span class="label">Returned By</span>
+              <span class="value value-strong">{{ resolveReturnedByName(item.returned_by) }}</span>
+            </div>
+
             <div class="info-item full">
               <span class="label">Returned At</span>
-              <span class="value">{{ formatDateTimeDisplay(item.returned_at) }}</span>
+              <span class="value value-strong">{{ formatDateTimeDisplay(item.returned_at) }}</span>
             </div>
             <div class="info-item full">
               <span class="label">Note</span>
@@ -256,21 +294,28 @@
                 <div class="form-group">
                   <label>Order</label>
                   <input
-                    v-model="form.order"
-                    type="text"
-                    placeholder="Enter order invoice"
+                    v-model.number="form.order"
+                    type="number"
+                    placeholder="Enter order id"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
                   <label>Customer</label>
-                  <input
-                    v-model="form.customer"
-                    type="text"
-                    placeholder="Enter customer name"
+                  <select
+                    v-model="form.customer_id"
                     :disabled="modalMode === 'view'"
-                  />
+                  >
+                    <option :value="null">Select customer</option>
+                    <option
+                      v-for="customer in customers"
+                      :key="customer.id"
+                      :value="customer.id"
+                    >
+                      {{ customer.name }}
+                    </option>
+                  </select>
                 </div>
 
                 <div class="form-group full">
@@ -321,16 +366,6 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Returned By</label>
-                  <input
-                    v-model="form.returned_by"
-                    type="text"
-                    placeholder="Enter staff name"
-                    :disabled="modalMode === 'view'"
-                  />
-                </div>
-
-                <div class="form-group">
                   <label>Combined Returned At</label>
                   <input
                     :value="form.returned_at"
@@ -340,12 +375,97 @@
                 </div>
               </div>
 
+              <div class="items-section">
+                <div class="items-header">
+                  <div>
+                    <h4>Return Items</h4>
+                    <p>Add one or more items for this return.</p>
+                  </div>
+
+                  <button
+                    v-if="modalMode !== 'view'"
+                    type="button"
+                    class="btn btn-light btn-sm"
+                    @click="addItemRow"
+                  >
+                    Add Item
+                  </button>
+                </div>
+
+                <div v-if="form.items.length === 0" class="empty-items">
+                  No return items added yet.
+                </div>
+
+                <div
+                  v-for="(item, index) in form.items"
+                  :key="item.uid"
+                  class="item-row"
+                >
+                  <div class="item-grid">
+                    <div class="form-group">
+                      <label>Product <span>*</span></label>
+                      <select
+                        v-model="item.product_id"
+                        :disabled="modalMode === 'view'"
+                      >
+                        <option :value="null">Select product</option>
+                        <option
+                          v-for="product in products"
+                          :key="product.id"
+                          :value="product.id"
+                        >
+                          {{ product.name }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Quantity <span>*</span></label>
+                      <input
+                        v-model.number="item.quantity"
+                        type="number"
+                        min="1"
+                        step="1"
+                        :disabled="modalMode === 'view'"
+                        placeholder="1"
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label>Unit Price</label>
+                      <input
+                        v-model.number="item.unit_price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        :disabled="modalMode === 'view'"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div
+                      v-if="modalMode !== 'view'"
+                      class="form-group item-remove-wrap"
+                    >
+                      <label>&nbsp;</label>
+                      <button
+                        type="button"
+                        class="btn btn-danger btn-sm"
+                        @click="removeItemRow(index)"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary modal-btn">
-                  {{ modalMode === 'create' ? 'Save Product Return' : 'Update Product Return' }}
+                <button type="submit" class="btn btn-primary modal-btn" :disabled="submitting">
+                  {{ submitting ? 'Saving...' : modalMode === 'create' ? 'Save Product Return' : 'Update Product Return' }}
                 </button>
               </div>
 
@@ -363,18 +483,78 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-
-type ProductReturn = {
-  id: number
-  order: string
-  customer: string
-  note: string
-  returned_at: string
-  returned_by: string
-}
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 type ModalMode = 'create' | 'edit' | 'view'
+
+type ApiCustomer = {
+  id: number
+  name?: string
+  display_name?: string
+  full_name?: string
+}
+
+type ApiReturnedBy = {
+  id?: number
+  username?: string
+  display_name?: string
+  name?: string
+  full_name?: string
+  first_name?: string
+  last_name?: string
+}
+
+type ApiReturnItem = {
+  id?: number
+  product_id?: number | null
+  product?: number | null
+  product_name?: string
+  quantity?: number | string
+  unit_price?: number | string
+}
+
+type ApiProductReturn = {
+  id: number
+  order: number | null
+  invoice_number: string
+  customer: ApiCustomer | null
+  note: string
+  returned_at: string
+  returned_by: ApiReturnedBy | string | null
+  items: ApiReturnItem[]
+}
+
+type ProductReturnRow = {
+  id: number
+  order: number | null
+  invoice_number: string
+  customer: ApiCustomer | null
+  customer_name: string
+  note: string
+  returned_at: string
+  returned_by: ApiReturnedBy | string | null
+  returned_by_name: string
+  items: ApiReturnItem[]
+}
+
+type CustomerOption = {
+  id: number
+  name: string
+}
+
+type ProductOption = {
+  id: number
+  name: string
+}
+
+type FormItem = {
+  uid: string
+  id?: number
+  product_id: number | null
+  quantity: number
+  unit_price: number | null
+}
 
 const search = ref('')
 const dateFilter = ref('')
@@ -382,40 +562,98 @@ const customerFilter = ref('')
 const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
 const editingId = ref<number | null>(null)
+const loading = ref(false)
+const submitting = ref(false)
+const errorMessage = ref('')
 
 const returnedDate = ref('')
 const returnedTime = ref('')
 
-const productReturns = ref<ProductReturn[]>([
-  {
-    id: 1,
-    order: 'INV000000000001',
-    customer: '',
-    note: 'Customer returned one damaged item.',
-    returned_at: '2026-03-08T02:01:00',
-    returned_by: 'Rivaldo',
-  },
-  {
-    id: 2,
-    order: 'INV000000000027',
-    customer: 'Doviana',
-    note: 'Wrong item selected during checkout.',
-    returned_at: '2026-03-21T10:15:00',
-    returned_by: 'Jefri',
-  },
-])
+const productReturns = ref<ProductReturnRow[]>([])
+const customers = ref<CustomerOption[]>([])
+const products = ref<ProductOption[]>([])
 
-const form = reactive<ProductReturn>({
-  id: 0,
-  order: '',
-  customer: '',
+const form = reactive({
+  order: null as number | null,
+  customer_id: null as number | null,
   note: '',
   returned_at: '',
-  returned_by: '',
+  items: [] as FormItem[],
 })
 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('access_token')
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  config.headers['Content-Type'] = 'application/json'
+  return config
+})
+
+function resolveCustomerName(customer: any) {
+  if (!customer) return ''
+  if (typeof customer === 'string') return customer
+  return customer.name || customer.display_name || customer.full_name || ''
+}
+
+function resolveReturnedByName(returnedBy: any) {
+  if (!returnedBy) return '-'
+
+  if (typeof returnedBy === 'string') {
+    return returnedBy || '-'
+  }
+
+  if (typeof returnedBy === 'object') {
+    return (
+      returnedBy.display_name ||
+      returnedBy.username ||
+      returnedBy.name ||
+      returnedBy.full_name ||
+      [returnedBy.first_name, returnedBy.last_name].filter(Boolean).join(' ') ||
+      '-'
+    )
+  }
+
+  return '-'
+}
+
+function normalizeReturn(item: any): ProductReturnRow {
+  return {
+    id: Number(item?.id || 0),
+    order: item?.order ?? null,
+    invoice_number: item?.invoice_number || '',
+    customer: item?.customer || null,
+    customer_name: resolveCustomerName(item?.customer),
+    note: item?.note || '',
+    returned_at: item?.returned_at || '',
+    returned_by: item?.returned_by || null,
+    returned_by_name: resolveReturnedByName(item?.returned_by),
+    items: Array.isArray(item?.items) ? item.items : [],
+  }
+}
+
 const uniqueCustomers = computed(() => {
-  return [...new Set(productReturns.value.map((item) => item.customer).filter(Boolean))]
+  const map = new Map<number, CustomerOption>()
+
+  productReturns.value.forEach((item) => {
+    if (item.customer?.id) {
+      map.set(item.customer.id, {
+        id: item.customer.id,
+        name: item.customer_name || `Customer #${item.customer.id}`,
+      })
+    }
+  })
+
+  return Array.from(map.values())
 })
 
 const filteredReturns = computed(() => {
@@ -425,57 +663,94 @@ const filteredReturns = computed(() => {
   if (q) {
     result = result.filter((item) => {
       return (
-        item.order.toLowerCase().includes(q) ||
-        item.customer.toLowerCase().includes(q) ||
-        item.returned_by.toLowerCase().includes(q) ||
-        item.note.toLowerCase().includes(q)
+        String(item.id).toLowerCase().includes(q) ||
+        String(item.order ?? '').toLowerCase().includes(q) ||
+        String(item.invoice_number ?? '').toLowerCase().includes(q) ||
+        String(item.customer_name ?? '').toLowerCase().includes(q) ||
+        String(resolveReturnedByName(item.returned_by)).toLowerCase().includes(q) ||
+        String(item.note ?? '').toLowerCase().includes(q) ||
+        String(item.returned_at ?? '').toLowerCase().includes(q)
       )
     })
   }
 
   if (dateFilter.value) {
-    result = result.filter((item) => item.returned_at.slice(0, 10) === dateFilter.value)
+    result = result.filter((item) => String(item.returned_at || '').slice(0, 10) === dateFilter.value)
   }
 
   if (customerFilter.value) {
-    result = result.filter((item) => item.customer === customerFilter.value)
+    result = result.filter((item) => item.customer_name === customerFilter.value)
   }
 
   return result
 })
 
 const returnsWithCustomer = computed(() => {
-  return productReturns.value.filter((item) => item.customer.trim().length > 0).length
+  return productReturns.value.filter((item) => String(item.customer_name || '').trim().length > 0).length
 })
 
 const latestReturnLabel = computed(() => {
   if (!filteredReturns.value.length) return '-'
-  const sorted = [...filteredReturns.value].sort((a, b) => (a.returned_at < b.returned_at ? 1 : -1))
-  return sorted[0]?.order || '-'
+
+  const sorted = [...filteredReturns.value].sort((a, b) => {
+    const aTime = new Date(a.returned_at || '').getTime()
+    const bTime = new Date(b.returned_at || '').getTime()
+    return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime)
+  })
+
+  return sorted[0]?.invoice_number || '-'
 })
 
+function emptyItemRow(): FormItem {
+  return {
+    uid: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    product_id: null,
+    quantity: 1,
+    unit_price: 0,
+  }
+}
+
 function resetForm() {
-  form.id = 0
-  form.order = ''
-  form.customer = ''
+  form.order = null
+  form.customer_id = null
   form.note = ''
   form.returned_at = ''
-  form.returned_by = ''
+  form.items = [emptyItemRow()]
   returnedDate.value = ''
   returnedTime.value = ''
 }
 
-function fillForm(item: ProductReturn) {
-  form.id = item.id
+function fillForm(item: ProductReturnRow) {
   form.order = item.order
-  form.customer = item.customer
-  form.note = item.note
-  form.returned_at = item.returned_at
-  form.returned_by = item.returned_by
+  form.customer_id = item.customer?.id ?? null
+  form.note = item.note || ''
+  form.returned_at = item.returned_at || ''
+
+  form.items = (item.items || []).map((row, index) => ({
+    uid: `${item.id}-${index}-${Math.random().toString(36).slice(2, 6)}`,
+    id: row.id,
+    product_id: row.product_id ?? row.product ?? null,
+    quantity: Number(row.quantity || 1),
+    unit_price:
+      row.unit_price !== undefined && row.unit_price !== null
+        ? Number(row.unit_price)
+        : 0,
+  }))
+
+  if (form.items.length === 0) {
+    form.items = [emptyItemRow()]
+  }
 
   if (item.returned_at) {
-    returnedDate.value = item.returned_at.slice(0, 10)
-    returnedTime.value = item.returned_at.slice(11, 19) || '00:00:00'
+    const dt = new Date(item.returned_at)
+    if (!Number.isNaN(dt.getTime())) {
+      returnedDate.value = toDateInputValue(dt)
+      returnedTime.value = toTimeInputValue(dt, true)
+      syncReturnedAt()
+    } else {
+      returnedDate.value = String(item.returned_at).slice(0, 10)
+      returnedTime.value = String(item.returned_at).slice(11, 19) || '00:00:00'
+    }
   } else {
     returnedDate.value = ''
     returnedTime.value = ''
@@ -488,18 +763,17 @@ function openCreateModal() {
   resetForm()
   setTodayDate()
   setNowTime()
-  form.returned_by = 'Owner'
   showModal.value = true
 }
 
-function openEditModal(item: ProductReturn) {
+function openEditModal(item: ProductReturnRow) {
   modalMode.value = 'edit'
   editingId.value = item.id
   fillForm(item)
   showModal.value = true
 }
 
-function openViewModal(item: ProductReturn) {
+function openViewModal(item: ProductReturnRow) {
   modalMode.value = 'view'
   editingId.value = item.id
   fillForm(item)
@@ -512,55 +786,22 @@ function closeModal() {
   resetForm()
 }
 
-function saveReturn() {
-  syncReturnedAt()
-
-  if (!form.returned_at.trim()) {
-    alert('Returned date and time are required.')
-    return
-  }
-
-  if (modalMode.value === 'create') {
-    const nextId =
-      productReturns.value.length > 0
-        ? Math.max(...productReturns.value.map((item) => item.id)) + 1
-        : 1
-
-    productReturns.value.unshift({
-      id: nextId,
-      order: form.order.trim(),
-      customer: form.customer.trim(),
-      note: form.note.trim(),
-      returned_at: form.returned_at.trim(),
-      returned_by: form.returned_by.trim(),
-    })
-  } else if (modalMode.value === 'edit' && editingId.value !== null) {
-    const index = productReturns.value.findIndex((item) => item.id === editingId.value)
-    if (index !== -1) {
-      productReturns.value[index] = {
-        id: editingId.value,
-        order: form.order.trim(),
-        customer: form.customer.trim(),
-        note: form.note.trim(),
-        returned_at: form.returned_at.trim(),
-        returned_by: form.returned_by.trim(),
-      }
-    }
-  }
-
-  closeModal()
-}
-
-function removeReturn(id: number) {
-  const ok = window.confirm('Delete this product return?')
-  if (!ok) return
-  productReturns.value = productReturns.value.filter((item) => item.id !== id)
-}
-
 function resetFilters() {
   search.value = ''
   dateFilter.value = ''
   customerFilter.value = ''
+}
+
+function addItemRow() {
+  form.items.push(emptyItemRow())
+}
+
+function removeItemRow(index: number) {
+  if (form.items.length === 1) {
+    form.items = [emptyItemRow()]
+    return
+  }
+  form.items.splice(index, 1)
 }
 
 function syncReturnedAt() {
@@ -575,23 +816,41 @@ function syncReturnedAt() {
 }
 
 function setTodayDate() {
-  returnedDate.value = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  returnedDate.value = toDateInputValue(now)
   syncReturnedAt()
 }
 
 function setNowTime() {
   const now = new Date()
-  const hh = String(now.getHours()).padStart(2, '0')
-  const mm = String(now.getMinutes()).padStart(2, '0')
-  const ss = String(now.getSeconds()).padStart(2, '0')
-  returnedTime.value = `${hh}:${mm}:${ss}`
+  returnedTime.value = toTimeInputValue(now, true)
   syncReturnedAt()
 }
 
-function formatDateTimeDisplay(value: string) {
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function toTimeInputValue(date: Date, withSeconds = false) {
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`
+}
+
+function formatDateTimeDisplay(value: any) {
   if (!value) return '-'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
+
+  const raw = String(value).trim()
+  if (!raw) return '-'
+
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) {
+    return raw
+  }
 
   return d.toLocaleString('en-US', {
     year: 'numeric',
@@ -599,13 +858,18 @@ function formatDateTimeDisplay(value: string) {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    second: '2-digit',
   })
 }
 
-function formatDateShort(value: string) {
+function formatDateShort(value: any) {
   if (!value) return '-'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
+
+  const raw = String(value).trim()
+  if (!raw) return '-'
+
+  const d = new Date(raw)
+  if (Number.isNaN(d.getTime())) return raw
 
   return d.toLocaleDateString('en-US', {
     month: 'short',
@@ -613,9 +877,10 @@ function formatDateShort(value: string) {
   })
 }
 
-function getInitials(name: string) {
+function getInitials(name: unknown) {
+  const safe = String(name || 'NA')
   return (
-    name
+    safe
       .split(' ')
       .filter(Boolean)
       .map((part) => part[0])
@@ -624,6 +889,157 @@ function getInitials(name: string) {
       .toUpperCase() || 'NA'
   )
 }
+
+function validateForm() {
+  syncReturnedAt()
+
+  if (!form.returned_at.trim()) {
+    alert('Returned date and time are required.')
+    return false
+  }
+
+  if (!Array.isArray(form.items) || form.items.length === 0) {
+    alert('At least one return item is required.')
+    return false
+  }
+
+  for (const item of form.items) {
+    if (!item.product_id) {
+      alert('Each item must have a product.')
+      return false
+    }
+    if (!item.quantity || Number(item.quantity) <= 0) {
+      alert('Each item quantity must be greater than 0.')
+      return false
+    }
+  }
+
+  return true
+}
+
+function buildPayload() {
+  return {
+    order: form.order || null,
+    customer_id: form.customer_id || null,
+    note: form.note.trim(),
+    items: form.items.map((item) => ({
+      product_id: item.product_id,
+      quantity: Number(item.quantity),
+      unit_price: item.unit_price !== null ? Number(item.unit_price) : 0,
+    })),
+  }
+}
+
+async function fetchReturns() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const { data } = await api.get('/api/productreturns/')
+
+    console.log('PRODUCT RETURNS RAW:', data)
+    console.log('RAW FIRST ITEM:', Array.isArray(data) ? data[0] : data)
+
+    productReturns.value = Array.isArray(data)
+      ? data.map(normalizeReturn)
+      : []
+
+    console.log('PRODUCT RETURNS NORMALIZED:', productReturns.value)
+    console.log('NORMALIZED FIRST ITEM:', productReturns.value[0])
+
+    if (productReturns.value[0]) {
+      console.log('FIRST returned_at:', productReturns.value[0].returned_at)
+      console.log('FIRST returned_by:', productReturns.value[0].returned_by)
+      console.log('FIRST returned_by_name:', productReturns.value[0].returned_by_name)
+    }
+  } catch (error: any) {
+    console.error('Failed to fetch product returns:', error)
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Failed to load product returns.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchCustomers() {
+  try {
+    const { data } = await api.get('/api/customers/')
+    const raw = Array.isArray(data) ? data : data?.results || []
+    customers.value = raw.map((item: any) => ({
+      id: item.id,
+      name: item.name || item.display_name || item.full_name || `Customer #${item.id}`,
+    }))
+  } catch (error) {
+    console.warn('Failed to load customers:', error)
+  }
+}
+
+async function fetchProducts() {
+  try {
+    const { data } = await api.get('/api/products/')
+    const raw = Array.isArray(data) ? data : data?.results || []
+    products.value = raw.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+    }))
+  } catch (error) {
+    console.warn('Failed to load products:', error)
+  }
+}
+
+async function saveReturn() {
+  if (!validateForm()) return
+
+  submitting.value = true
+  errorMessage.value = ''
+
+  try {
+    const payload = buildPayload()
+
+    if (modalMode.value === 'create') {
+      await api.post('/api/productreturns/', payload)
+    } else if (modalMode.value === 'edit' && editingId.value !== null) {
+      await api.put(`/api/productreturns/${editingId.value}/`, payload)
+    }
+
+    await fetchReturns()
+    closeModal()
+  } catch (error: any) {
+    console.error('Failed to save product return:', error)
+    const serverMessage =
+      error?.response?.data?.detail ||
+      JSON.stringify(error?.response?.data || {}) ||
+      'Failed to save product return.'
+    alert(serverMessage)
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function removeReturn(id: number) {
+  const ok = window.confirm('Delete this product return?')
+  if (!ok) return
+
+  submitting.value = true
+  try {
+    await api.delete(`/api/productreturns/${id}/`)
+    productReturns.value = productReturns.value.filter((item) => item.id !== id)
+  } catch (error: any) {
+    console.error('Failed to delete product return:', error)
+    alert(
+      error?.response?.data?.detail ||
+      'Failed to delete product return.'
+    )
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(async () => {
+  resetForm()
+  await Promise.all([fetchReturns(), fetchCustomers(), fetchProducts()])
+})
 </script>
 
 <style scoped>
@@ -779,7 +1195,8 @@ function getInitials(name: string) {
 .filter-input:focus,
 .filter-select:focus,
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   border-color: #3b82f6;
   background: #fff;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
@@ -833,6 +1250,22 @@ function getInitials(name: string) {
   font-size: 14px;
 }
 
+.table-meta {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.alert-error {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
 .table-wrapper {
   overflow-x: auto;
 }
@@ -840,7 +1273,7 @@ function getInitials(name: string) {
 .return-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1020px;
+  min-width: 1180px;
 }
 
 .return-table th,
@@ -870,6 +1303,17 @@ function getInitials(name: string) {
   border-radius: 999px;
   background: #eef4ff;
   color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.item-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #15803d;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1061,6 +1505,11 @@ function getInitials(name: string) {
   gap: 8px;
 }
 
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, #16a34a, #22c55e);
   color: #fff;
@@ -1134,7 +1583,7 @@ function getInitials(name: string) {
 }
 
 .modal-lg {
-  max-width: 900px;
+  max-width: 980px;
 }
 
 .modal-header {
@@ -1185,7 +1634,7 @@ function getInitials(name: string) {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -1211,7 +1660,8 @@ function getInitials(name: string) {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   border: 1px solid #dbe3ef;
   border-radius: 14px;
@@ -1233,6 +1683,67 @@ function getInitials(name: string) {
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
+}
+
+.items-section {
+  margin-top: 6px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid #e8edf5;
+  background: #fafcff;
+}
+
+.items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.items-header h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #162033;
+}
+
+.items-header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.empty-items {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  border: 1px dashed #d6deea;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.item-row {
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e8edf5;
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.item-row:last-child {
+  margin-bottom: 0;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 120px;
+  gap: 14px;
+  align-items: end;
+}
+
+.item-remove-wrap {
+  justify-content: flex-end;
 }
 
 .modal-footer {
@@ -1263,6 +1774,14 @@ function getInitials(name: string) {
 
   .toolbar-reset .btn {
     width: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1354,7 +1873,8 @@ function getInitials(name: string) {
     min-width: 0;
   }
 
-  .mobile-info-grid {
+  .mobile-info-grid,
+  .item-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1425,5 +1945,19 @@ function getInitials(name: string) {
     height: 36px;
     font-size: 22px;
   }
+}
+.cell-primary {
+  color: #162033 !important;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.value-strong {
+  color: #162033 !important;
+  font-weight: 600;
 }
 </style>

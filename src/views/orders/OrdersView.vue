@@ -51,7 +51,7 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by invoice, customer, served by, notes..."
+            placeholder="Search by invoice, customer id, payment, notes..."
           />
         </div>
 
@@ -62,6 +62,8 @@
             <option value="CARD">Card</option>
             <option value="TRANSFER">Transfer</option>
             <option value="QRIS">QRIS</option>
+            <option value="BANK">Bank</option>
+            <option value="SPLIT">Split</option>
           </select>
         </div>
 
@@ -89,7 +91,15 @@
         </div>
       </div>
 
-      <div class="table-wrapper desktop-table">
+      <div v-if="loading" class="loading-state">
+        Loading orders...
+      </div>
+
+      <div v-else-if="errorMessage" class="error-state">
+        {{ errorMessage }}
+      </div>
+
+      <div v-else class="table-wrapper desktop-table">
         <table class="order-table">
           <thead>
             <tr>
@@ -99,7 +109,7 @@
               <th>Total</th>
               <th>Status</th>
               <th>Created At</th>
-              <th>Served By</th>
+              <th>Order Type</th>
               <th class="text-right">Action</th>
             </tr>
           </thead>
@@ -115,29 +125,54 @@
               <td>
                 <div class="invoice-block">
                   <span class="invoice-code">{{ order.invoice_number }}</span>
-                  <span class="invoice-type">{{ order.default_order_type }}</span>
+                  <span class="invoice-type">{{ order.default_order_type || '-' }}</span>
                 </div>
               </td>
+
               <td>
                 <div class="customer-block">
                   <div class="customer-avatar">
-                    {{ getInitials(order.customer_name || 'Walk In') }}
+                    {{ getInitials(getCustomerLabel(order.customer)) }}
                   </div>
                   <div>
-                    <div class="customer-name">{{ order.customer_name || 'Walk In' }}</div>
-                    <div class="customer-sub">{{ order.payment_method }}</div>
+                    <div class="customer-name">{{ getCustomerLabel(order.customer) }}</div>
+                    <div class="customer-sub">Order #{{ order.id }}</div>
                   </div>
                 </div>
               </td>
-              <td>{{ order.payment_method }}</td>
+
+              <td>
+                <span
+                  class="payment-badge"
+                  :class="paymentBadgeClass(order.payment_method)"
+                >
+                  {{ displayPaymentMethod(order.payment_method) }}
+                </span>
+              </td>
+
               <td class="amount-cell">${{ formatMoney(order.total) }}</td>
+
               <td>
                 <span :class="['status-badge', order.is_paid ? 'status-paid' : 'status-unpaid']">
                   {{ order.is_paid ? 'Paid' : 'Unpaid' }}
                 </span>
               </td>
-              <td>{{ order.created_at }}</td>
-              <td>{{ order.served_by || '-' }}</td>
+
+              <td>
+                <span class="date-text">
+                  {{ order.created_at ? formatDateTime(order.created_at) : '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span
+                  class="order-type-badge"
+                  :class="orderTypeBadgeClass(order.default_order_type)"
+                >
+                  {{ order.default_order_type || '-' }}
+                </span>
+              </td>
+
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(order)">
@@ -146,8 +181,12 @@
                   <button class="btn btn-sm btn-warning" @click="openEditModal(order)">
                     Edit
                   </button>
-                  <button class="btn btn-sm btn-danger" @click="removeOrder(order.id)">
-                    Delete
+                  <button
+                    class="btn btn-sm btn-danger"
+                    :disabled="deletingId === order.id"
+                    @click="removeOrder(order.id)"
+                  >
+                    {{ deletingId === order.id ? 'Deleting...' : 'Delete' }}
                   </button>
                 </div>
               </td>
@@ -156,7 +195,7 @@
         </table>
       </div>
 
-      <div class="mobile-list">
+      <div v-if="!loading && !errorMessage" class="mobile-list">
         <div v-if="filteredOrders.length === 0" class="mobile-empty">
           No orders found.
         </div>
@@ -169,7 +208,7 @@
           <div class="mobile-card-top">
             <div class="mobile-card-head-left">
               <div class="invoice-code">{{ order.invoice_number }}</div>
-              <div class="customer-sub">{{ order.default_order_type }}</div>
+              <div class="customer-sub">Order #{{ order.id }}</div>
             </div>
 
             <span :class="['status-badge', order.is_paid ? 'status-paid' : 'status-unpaid']">
@@ -179,30 +218,59 @@
 
           <div class="mobile-customer-row">
             <div class="customer-avatar">
-              {{ getInitials(order.customer_name || 'Walk In') }}
+              {{ getInitials(getCustomerLabel(order.customer)) }}
             </div>
             <div>
-              <div class="customer-name">{{ order.customer_name || 'Walk In' }}</div>
-              <div class="customer-sub">{{ order.payment_method }}</div>
+              <div class="customer-name">{{ getCustomerLabel(order.customer) }}</div>
+              <div class="customer-sub">{{ order.notes || 'No notes' }}</div>
             </div>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
+              <span class="label">Payment</span>
+              <span class="value">
+                <span
+                  class="payment-badge"
+                  :class="paymentBadgeClass(order.payment_method)"
+                >
+                  {{ displayPaymentMethod(order.payment_method) }}
+                </span>
+              </span>
+            </div>
+
+            <div class="info-item">
+              <span class="label">Order Type</span>
+              <span class="value">
+                <span
+                  class="order-type-badge"
+                  :class="orderTypeBadgeClass(order.default_order_type)"
+                >
+                  {{ order.default_order_type || '-' }}
+                </span>
+              </span>
+            </div>
+
+            <div class="info-item">
               <span class="label">Total</span>
               <span class="value strong">${{ formatMoney(order.total) }}</span>
             </div>
+
             <div class="info-item">
-              <span class="label">Served By</span>
-              <span class="value">{{ order.served_by || '-' }}</span>
+              <span class="label">Discount</span>
+              <span class="value">${{ formatMoney(order.discount) }}</span>
             </div>
+
             <div class="info-item full">
               <span class="label">Created At</span>
-              <span class="value">{{ order.created_at }}</span>
+              <span class="value">{{ order.created_at ? formatDateTime(order.created_at) : '-' }}</span>
             </div>
+
             <div class="info-item full">
-              <span class="label">Notes</span>
-              <span class="value">{{ order.notes || '-' }}</span>
+              <span class="label">Delivery / Table</span>
+              <span class="value">
+                Table: {{ order.table_number || '-' }} · Address: {{ order.delivery_address || '-' }}
+              </span>
             </div>
           </div>
 
@@ -213,8 +281,12 @@
             <button class="btn btn-sm btn-warning" @click="openEditModal(order)">
               Edit
             </button>
-            <button class="btn btn-sm btn-danger" @click="removeOrder(order.id)">
-              Delete
+            <button
+              class="btn btn-sm btn-danger"
+              :disabled="deletingId === order.id"
+              @click="removeOrder(order.id)"
+            >
+              {{ deletingId === order.id ? 'Deleting...' : 'Delete' }}
             </button>
           </div>
         </div>
@@ -251,141 +323,95 @@
             <form class="order-form" @submit.prevent="saveOrder">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Invoice Number <span>*</span></label>
+                  <label>Customer ID</label>
                   <input
-                    v-model="form.invoice_number"
-                    type="text"
-                    placeholder="Enter invoice number"
-                    :disabled="modalMode === 'view'"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Customer</label>
-                  <input
-                    v-model="form.customer_name"
-                    type="text"
-                    placeholder="Walk In / Customer name"
-                    :disabled="modalMode === 'view'"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Payment Method <span>*</span></label>
-                  <select v-model="form.payment_method" :disabled="modalMode === 'view'">
-                    <option value="CASH">Cash</option>
-                    <option value="CARD">Card</option>
-                    <option value="TRANSFER">Transfer</option>
-                    <option value="QRIS">QRIS</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label>Order Type <span>*</span></label>
-                  <select v-model="form.default_order_type" :disabled="modalMode === 'view'">
-                    <option value="General">General</option>
-                    <option value="Dine In">Dine In</option>
-                    <option value="Take Away">Take Away</option>
-                    <option value="Workshop">Workshop</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label>Subtotal <span>*</span></label>
-                  <input
-                    v-model.number="form.subtotal"
+                    v-model="form.customer"
                     type="number"
-                    min="0"
-                    step="0.01"
-                    :disabled="modalMode === 'view'"
-                    @input="recalculateTotal"
+                    min="1"
+                    placeholder="Leave empty for walk-in"
+                    :disabled="modalMode === 'view' || saving"
                   />
+                </div>
+
+                <div class="form-group">
+                  <label>Payment Method</label>
+                  <input
+                    v-model="form.payment_method"
+                    type="text"
+                    placeholder="CASH / CARD / TRANSFER / QRIS / BANK / SPLIT"
+                    :disabled="modalMode === 'view' || saving"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Order Type</label>
+                  <select v-model="form.order_type" :disabled="modalMode === 'view' || saving">
+                    <option value="GENERAL">GENERAL</option>
+                    <option value="DINE_IN">DINE_IN</option>
+                    <option value="TAKE_OUT">TAKE_OUT</option>
+                    <option value="DELIVERY">DELIVERY</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Default Order Type</label>
+                  <select v-model="form.default_order_type" :disabled="modalMode === 'view' || saving">
+                    <option value="GENERAL">GENERAL</option>
+                    <option value="DINE_IN">DINE_IN</option>
+                    <option value="TAKE_OUT">TAKE_OUT</option>
+                    <option value="DELIVERY">DELIVERY</option>
+                  </select>
                 </div>
 
                 <div class="form-group">
                   <label>Discount</label>
                   <input
-                    v-model.number="form.discount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    :disabled="modalMode === 'view'"
-                    @input="recalculateTotal"
+                    v-model="form.discount"
+                    type="text"
+                    placeholder="0.00"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
                   <label>Tax</label>
                   <input
-                    v-model.number="form.tax"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    :disabled="modalMode === 'view'"
-                    @input="recalculateTotal"
+                    v-model="form.tax"
+                    type="text"
+                    placeholder="0.00"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
                   <label>Delivery Fee</label>
                   <input
-                    v-model.number="form.delivery_fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    :disabled="modalMode === 'view'"
-                    @input="recalculateTotal"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Total <span>*</span></label>
-                  <input
-                    :value="formatMoney(form.total)"
+                    v-model="form.delivery_fee"
                     type="text"
-                    disabled
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Served By</label>
-                  <input
-                    v-model="form.served_by"
-                    type="text"
-                    placeholder="Cashier / Staff"
-                    :disabled="modalMode === 'view'"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Created At</label>
-                  <input
-                    v-model="form.created_at"
-                    type="text"
-                    placeholder="March 21, 2026, 4:49 p.m."
-                    :disabled="modalMode === 'view'"
+                    placeholder="0.00"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group checkbox-group">
-                  <label>Is Paid</label>
+                  <label>Paid Status</label>
                   <div class="checkbox-wrap">
                     <input
                       v-model="form.is_paid"
                       type="checkbox"
-                      :disabled="modalMode === 'view'"
+                      :disabled="modalMode === 'view' || saving"
                     />
                     <span>Mark this order as paid</span>
                   </div>
                 </div>
 
                 <div class="form-group full">
-                  <label>Notes</label>
-                  <textarea
-                    v-model="form.notes"
-                    rows="5"
-                    placeholder="Enter order notes"
-                    :disabled="modalMode === 'view'"
+                  <label>Table Number</label>
+                  <input
+                    v-model="form.table_number"
+                    type="text"
+                    placeholder="Table 01"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
@@ -393,19 +419,93 @@
                   <label>Delivery Address</label>
                   <textarea
                     v-model="form.delivery_address"
-                    rows="4"
+                    rows="3"
                     placeholder="Enter delivery address"
-                    :disabled="modalMode === 'view'"
+                    :disabled="modalMode === 'view' || saving"
                   />
                 </div>
+
+                <div class="form-group full">
+                  <label>Notes</label>
+                  <textarea
+                    v-model="form.notes"
+                    rows="4"
+                    placeholder="Enter order notes"
+                    :disabled="modalMode === 'view' || saving"
+                  />
+                </div>
+
+                <div class="form-group full">
+                  <label>Items JSON <span>*</span></label>
+                  <textarea
+                    v-model="itemsJson"
+                    rows="8"
+                    placeholder='Example: [{"product":1,"quantity":"2","unit_price":"5.00"}]'
+                    :disabled="modalMode === 'view' || saving"
+                  />
+                </div>
+
+                <div class="form-group full">
+                  <label>Payments JSON</label>
+                  <textarea
+                    v-model="paymentsJson"
+                    rows="6"
+                    placeholder='Example: [{"method":"CASH","amount":"10.00"}]'
+                    :disabled="modalMode === 'view' || saving"
+                  />
+                </div>
+              </div>
+
+              <div v-if="modalMode === 'view'" class="summary-grid">
+                <div class="summary-card">
+                  <div class="summary-label">Invoice</div>
+                  <div class="summary-value">{{ selectedOrder?.invoice_number || '-' }}</div>
+                </div>
+
+                <div class="summary-card">
+                  <div class="summary-label">Payment</div>
+                  <div class="summary-value">
+                    {{ displayPaymentMethod(selectedOrder?.payment_method) }}
+                  </div>
+                </div>
+
+                <div class="summary-card">
+                  <div class="summary-label">Created At</div>
+                  <div class="summary-value">
+                    {{ selectedOrder?.created_at ? formatDateTime(selectedOrder.created_at) : '-' }}
+                  </div>
+                </div>
+
+                <div class="summary-card">
+                  <div class="summary-label">Subtotal</div>
+                  <div class="summary-value">${{ formatMoney(selectedOrder?.subtotal) }}</div>
+                </div>
+
+                <div class="summary-card">
+                  <div class="summary-label">Total</div>
+                  <div class="summary-value">${{ formatMoney(selectedOrder?.total) }}</div>
+                </div>
+
+                <div class="summary-card">
+                  <div class="summary-label">Order Type</div>
+                  <div class="summary-value">{{ selectedOrder?.default_order_type || '-' }}</div>
+                </div>
+              </div>
+
+              <div v-if="formError" class="form-error">
+                {{ formError }}
               </div>
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary modal-btn">
-                  {{ modalMode === 'create' ? 'Save Order' : 'Update Order' }}
+                <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
+                  {{
+                    saving
+                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
+                      : (modalMode === 'create' ? 'Save Order' : 'Update Order')
+                  }}
                 </button>
               </div>
 
@@ -423,27 +523,52 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, reactive, ref } from 'vue'
+
+type OrderType = 'GENERAL' | 'DINE_IN' | 'TAKE_OUT' | 'DELIVERY'
 
 type Order = {
   id: number
   invoice_number: string
-  customer_name: string
-  payment_method: 'CASH' | 'CARD' | 'TRANSFER' | 'QRIS'
-  subtotal: number
-  discount: number
-  tax: number
-  delivery_fee: number
-  total: number
+  customer: number | null
+  created_at: string
+  payment_method: string
+  subtotal: string
+  discount: string
+  tax: string
+  total: string
   notes: string
   is_paid: boolean
-  default_order_type: 'General' | 'Dine In' | 'Take Away' | 'Workshop'
+  default_order_type: OrderType | string
+  table_number: string
   delivery_address: string
-  served_by: string
-  created_at: string
+  delivery_fee: string
+  items: any[]
+  payments: any[]
+  payment_records?: any[]
+  order_type?: OrderType | string
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+})
+
+api.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('auth_token') ||
+    sessionStorage.getItem('token') ||
+    ''
+
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+
+  return config
+})
 
 const search = ref('')
 const paymentFilter = ref('')
@@ -451,95 +576,31 @@ const paidFilter = ref('')
 const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
 const editingId = ref<number | null>(null)
+const loading = ref(false)
+const saving = ref(false)
+const deletingId = ref<number | null>(null)
+const errorMessage = ref('')
+const formError = ref('')
+const selectedOrder = ref<Order | null>(null)
 
-const orders = ref<Order[]>([
-  {
-    id: 1,
-    invoice_number: 'INV000000000030',
-    customer_name: 'Doviana',
-    payment_method: 'CASH',
-    subtotal: 34.5,
-    discount: 0,
-    tax: 0,
-    delivery_fee: 0,
-    total: 34.5,
-    notes: 'Workshop order | Customer: Doviana | Vehicle: Honda Scoopy | Plate: K 2353',
-    is_paid: true,
-    default_order_type: 'Workshop',
-    delivery_address: '',
-    served_by: 'Jefri',
-    created_at: 'March 21, 2026, 4:49 p.m.',
-  },
-  {
-    id: 2,
-    invoice_number: 'INV000000000029',
-    customer_name: 'Walk In',
-    payment_method: 'CASH',
-    subtotal: 3.5,
-    discount: 0,
-    tax: 0,
-    delivery_fee: 0,
-    total: 3.5,
-    notes: 'Quick order from counter',
-    is_paid: true,
-    default_order_type: 'General',
-    delivery_address: '',
-    served_by: 'Julio',
-    created_at: 'March 21, 2026, 3:33 p.m.',
-  },
-  {
-    id: 3,
-    invoice_number: 'INV000000000028',
-    customer_name: 'Alexander Guterres',
-    payment_method: 'TRANSFER',
-    subtotal: 17.25,
-    discount: 1.25,
-    tax: 0,
-    delivery_fee: 0,
-    total: 16,
-    notes: 'Transfer payment pending confirmation',
-    is_paid: false,
-    default_order_type: 'Take Away',
-    delivery_address: '',
-    served_by: 'Julio',
-    created_at: 'March 21, 2026, 1:48 p.m.',
-  },
-  {
-    id: 4,
-    invoice_number: 'INV000000000027',
-    customer_name: 'Doviana',
-    payment_method: 'CARD',
-    subtotal: 11.5,
-    discount: 0,
-    tax: 0,
-    delivery_fee: 0,
-    total: 11.5,
-    notes: 'Repeat customer',
-    is_paid: true,
-    default_order_type: 'General',
-    delivery_address: '',
-    served_by: 'Jefri',
-    created_at: 'March 21, 2026, 1:29 p.m.',
-  },
-])
+const orders = ref<Order[]>([])
 
-const form = reactive<Order>({
-  id: 0,
-  invoice_number: '',
-  customer_name: '',
+const form = reactive({
+  customer: '' as string | number,
   payment_method: 'CASH',
-  subtotal: 0,
-  discount: 0,
-  tax: 0,
-  delivery_fee: 0,
-  total: 0,
+  discount: '0.00',
+  tax: '0.00',
   notes: '',
   is_paid: true,
-  default_order_type: 'General',
+  order_type: 'GENERAL' as OrderType,
+  default_order_type: 'GENERAL' as OrderType,
+  table_number: '',
   delivery_address: '',
-  served_by: '',
-  created_at: '',
+  delivery_fee: '0.00',
 })
+
+const itemsJson = ref('[]')
+const paymentsJson = ref('[]')
 
 const filteredOrders = computed(() => {
   let result = [...orders.value]
@@ -548,17 +609,19 @@ const filteredOrders = computed(() => {
   if (q) {
     result = result.filter((order) => {
       return (
-        order.invoice_number.toLowerCase().includes(q) ||
-        order.customer_name.toLowerCase().includes(q) ||
-        order.payment_method.toLowerCase().includes(q) ||
-        order.served_by.toLowerCase().includes(q) ||
-        order.notes.toLowerCase().includes(q)
+        String(order.invoice_number || '').toLowerCase().includes(q) ||
+        getCustomerLabel(order.customer).toLowerCase().includes(q) ||
+        String(order.payment_method || '').toLowerCase().includes(q) ||
+        String(order.notes || '').toLowerCase().includes(q) ||
+        String(order.default_order_type || '').toLowerCase().includes(q)
       )
     })
   }
 
   if (paymentFilter.value) {
-    result = result.filter((order) => order.payment_method === paymentFilter.value)
+    result = result.filter(
+      (order) => String(order.payment_method || '').toUpperCase() === paymentFilter.value
+    )
   }
 
   if (paidFilter.value === 'paid') {
@@ -580,53 +643,51 @@ const filteredTotalAmount = computed(() => {
 })
 
 function resetForm() {
-  form.id = 0
-  form.invoice_number = ''
-  form.customer_name = ''
+  form.customer = ''
   form.payment_method = 'CASH'
-  form.subtotal = 0
-  form.discount = 0
-  form.tax = 0
-  form.delivery_fee = 0
-  form.total = 0
+  form.discount = '0.00'
+  form.tax = '0.00'
   form.notes = ''
   form.is_paid = true
-  form.default_order_type = 'General'
+  form.order_type = 'GENERAL'
+  form.default_order_type = 'GENERAL'
+  form.table_number = ''
   form.delivery_address = ''
-  form.served_by = ''
-  form.created_at = ''
+  form.delivery_fee = '0.00'
+  itemsJson.value = '[]'
+  paymentsJson.value = '[]'
+  formError.value = ''
 }
 
 function fillForm(order: Order) {
-  form.id = order.id
-  form.invoice_number = order.invoice_number
-  form.customer_name = order.customer_name
-  form.payment_method = order.payment_method
-  form.subtotal = order.subtotal
-  form.discount = order.discount
-  form.tax = order.tax
-  form.delivery_fee = order.delivery_fee
-  form.total = order.total
-  form.notes = order.notes
-  form.is_paid = order.is_paid
-  form.default_order_type = order.default_order_type
-  form.delivery_address = order.delivery_address
-  form.served_by = order.served_by
-  form.created_at = order.created_at
+  form.customer = order.customer ?? ''
+  form.payment_method = String(order.payment_method || 'CASH')
+  form.discount = normalizeDecimalInput(order.discount, '0.00')
+  form.tax = normalizeDecimalInput(order.tax, '0.00')
+  form.notes = order.notes || ''
+  form.is_paid = !!order.is_paid
+  form.order_type = (order.order_type || order.default_order_type || 'GENERAL') as OrderType
+  form.default_order_type = (order.default_order_type || 'GENERAL') as OrderType
+  form.table_number = order.table_number || ''
+  form.delivery_address = order.delivery_address || ''
+  form.delivery_fee = normalizeDecimalInput(order.delivery_fee, '0.00')
+  itemsJson.value = JSON.stringify(order.items || [], null, 2)
+  paymentsJson.value = JSON.stringify(order.payments || [], null, 2)
 }
 
 function openCreateModal() {
   modalMode.value = 'create'
   editingId.value = null
+  selectedOrder.value = null
   resetForm()
-  form.invoice_number = generateInvoiceNumber()
-  form.created_at = formatCurrentDateTime()
   showModal.value = true
 }
 
 function openEditModal(order: Order) {
   modalMode.value = 'edit'
   editingId.value = order.id
+  selectedOrder.value = order
+  resetForm()
   fillForm(order)
   showModal.value = true
 }
@@ -634,6 +695,8 @@ function openEditModal(order: Order) {
 function openViewModal(order: Order) {
   modalMode.value = 'view'
   editingId.value = order.id
+  selectedOrder.value = order
+  resetForm()
   fillForm(order)
   showModal.value = true
 }
@@ -641,75 +704,8 @@ function openViewModal(order: Order) {
 function closeModal() {
   showModal.value = false
   editingId.value = null
+  selectedOrder.value = null
   resetForm()
-}
-
-function saveOrder() {
-  if (!form.invoice_number.trim()) {
-    alert('Invoice number is required.')
-    return
-  }
-
-  if (!form.payment_method.trim()) {
-    alert('Payment method is required.')
-    return
-  }
-
-  recalculateTotal()
-
-  if (modalMode.value === 'create') {
-    const nextId =
-      orders.value.length > 0
-        ? Math.max(...orders.value.map((o) => o.id)) + 1
-        : 1
-
-    orders.value.unshift({
-      id: nextId,
-      invoice_number: form.invoice_number.trim(),
-      customer_name: form.customer_name.trim() || 'Walk In',
-      payment_method: form.payment_method,
-      subtotal: Number(form.subtotal) || 0,
-      discount: Number(form.discount) || 0,
-      tax: Number(form.tax) || 0,
-      delivery_fee: Number(form.delivery_fee) || 0,
-      total: Number(form.total) || 0,
-      notes: form.notes.trim(),
-      is_paid: form.is_paid,
-      default_order_type: form.default_order_type,
-      delivery_address: form.delivery_address.trim(),
-      served_by: form.served_by.trim(),
-      created_at: form.created_at.trim() || formatCurrentDateTime(),
-    })
-  } else if (modalMode.value === 'edit' && editingId.value !== null) {
-    const index = orders.value.findIndex((o) => o.id === editingId.value)
-    if (index !== -1) {
-      orders.value[index] = {
-        id: editingId.value,
-        invoice_number: form.invoice_number.trim(),
-        customer_name: form.customer_name.trim() || 'Walk In',
-        payment_method: form.payment_method,
-        subtotal: Number(form.subtotal) || 0,
-        discount: Number(form.discount) || 0,
-        tax: Number(form.tax) || 0,
-        delivery_fee: Number(form.delivery_fee) || 0,
-        total: Number(form.total) || 0,
-        notes: form.notes.trim(),
-        is_paid: form.is_paid,
-        default_order_type: form.default_order_type,
-        delivery_address: form.delivery_address.trim(),
-        served_by: form.served_by.trim(),
-        created_at: form.created_at.trim(),
-      }
-    }
-  }
-
-  closeModal()
-}
-
-function removeOrder(id: number) {
-  const ok = window.confirm('Delete this order?')
-  if (!ok) return
-  orders.value = orders.value.filter((o) => o.id !== id)
 }
 
 function resetFilters() {
@@ -718,42 +714,250 @@ function resetFilters() {
   paidFilter.value = ''
 }
 
-function recalculateTotal() {
-  const subtotal = Number(form.subtotal) || 0
-  const discount = Number(form.discount) || 0
-  const tax = Number(form.tax) || 0
-  const deliveryFee = Number(form.delivery_fee) || 0
-  form.total = Math.max(subtotal - discount + tax + deliveryFee, 0)
-}
-
-function formatMoney(value: number) {
+function formatMoney(value: unknown) {
   return Number(value || 0).toFixed(2)
 }
 
+function formatDateTime(value: string) {
+  if (!value) return '-'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+}
+
 function getInitials(name: string) {
-  return name
+  return String(name || 'WI')
     .split(' ')
+    .filter(Boolean)
     .map((part) => part[0])
     .join('')
     .slice(0, 2)
     .toUpperCase()
 }
 
-function generateInvoiceNumber() {
-  const maxId = orders.value.length > 0 ? Math.max(...orders.value.map((o) => o.id)) : 0
-  const next = maxId + 1
-  return `INV${String(next).padStart(12, '0')}`
+function getCustomerLabel(customer: number | null) {
+  return customer ? `Customer #${customer}` : 'Walk In'
 }
 
-function formatCurrentDateTime() {
-  return new Date().toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+function normalizeDecimalInput(value: unknown, fallback = '0.00') {
+  const text = String(value ?? '').trim()
+  return text === '' ? fallback : text
 }
+
+function safeParseJsonArray(raw: string, fieldName: string) {
+  try {
+    const parsed = JSON.parse(raw || '[]')
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${fieldName} must be a JSON array.`)
+    }
+    return parsed
+  } catch (error: any) {
+    throw new Error(error?.message || `Invalid JSON in ${fieldName}.`)
+  }
+}
+
+function validateForm() {
+  formError.value = ''
+
+  if (!String(form.payment_method).trim()) {
+    formError.value = 'Payment method is required.'
+    return false
+  }
+
+  try {
+    const parsedItems = safeParseJsonArray(itemsJson.value, 'Items')
+    if (parsedItems.length === 0) {
+      formError.value = 'Items JSON is required and cannot be empty.'
+      return false
+    }
+    safeParseJsonArray(paymentsJson.value || '[]', 'Payments')
+  } catch (error: any) {
+    formError.value = error.message
+    return false
+  }
+
+  return true
+}
+
+function buildPayload() {
+  const customerValue =
+    String(form.customer).trim() === '' ? null : Number(form.customer)
+
+  return {
+    customer: Number.isNaN(customerValue as number) ? null : customerValue,
+    payment_method: String(form.payment_method).trim(),
+    discount: normalizeDecimalInput(form.discount, '0.00'),
+    tax: normalizeDecimalInput(form.tax, '0.00'),
+    notes: String(form.notes).trim(),
+    is_paid: form.is_paid,
+    order_type: form.order_type,
+    default_order_type: form.default_order_type,
+    table_number: String(form.table_number).trim(),
+    delivery_address: String(form.delivery_address).trim(),
+    delivery_fee: normalizeDecimalInput(form.delivery_fee, '0.00'),
+    items: safeParseJsonArray(itemsJson.value, 'Items'),
+    payments: safeParseJsonArray(paymentsJson.value || '[]', 'Payments'),
+  }
+}
+
+function normalizeOrder(order: any): Order {
+  const paymentMethod = String(order?.payment_method ?? '-').trim() || '-'
+  const createdAt = String(order?.created_at ?? '').trim()
+  const defaultOrderType =
+    String(
+      order?.default_order_type ||
+      order?.order_type ||
+      order?.items?.[0]?.order_type ||
+      '-'
+    ).trim() || '-'
+
+  return {
+    id: Number(order?.id ?? 0),
+    invoice_number: String(order?.invoice_number ?? '-'),
+    customer: order?.customer ?? null,
+    created_at: createdAt,
+    payment_method: paymentMethod,
+    subtotal: normalizeDecimalInput(order?.subtotal, '0.00'),
+    discount: normalizeDecimalInput(order?.discount, '0.00'),
+    tax: normalizeDecimalInput(order?.tax, '0.00'),
+    total: normalizeDecimalInput(order?.total, '0.00'),
+    notes: String(order?.notes ?? ''),
+    is_paid: !!order?.is_paid,
+    default_order_type: defaultOrderType,
+    table_number: String(order?.table_number ?? ''),
+    delivery_address: String(order?.delivery_address ?? ''),
+    delivery_fee: normalizeDecimalInput(order?.delivery_fee, '0.00'),
+    items: Array.isArray(order?.items) ? order.items : [],
+    payments: Array.isArray(order?.payments) ? order.payments : [],
+    payment_records: Array.isArray(order?.payment_records) ? order.payment_records : [],
+    order_type: order?.order_type ?? undefined,
+  }
+}
+
+function displayPaymentMethod(value: unknown) {
+  const raw = String(value || '-').toUpperCase()
+
+  if (raw === 'CASH') return 'Cash'
+  if (raw === 'CARD') return 'Card'
+  if (raw === 'TRANSFER') return 'Transfer'
+  if (raw === 'QRIS') return 'QRIS'
+  if (raw === 'BANK') return 'Bank'
+  if (raw === 'SPLIT') return 'Split'
+  return raw || '-'
+}
+
+function paymentBadgeClass(value: unknown) {
+  const raw = String(value || '').toUpperCase()
+
+  return {
+    'payment-cash': raw === 'CASH',
+    'payment-card': raw === 'CARD',
+    'payment-transfer': raw === 'TRANSFER' || raw === 'BANK',
+    'payment-qris': raw === 'QRIS',
+    'payment-split': raw === 'SPLIT',
+  }
+}
+
+function orderTypeBadgeClass(value: unknown) {
+  const raw = String(value || '').toUpperCase()
+
+  return {
+    'type-general': raw === 'GENERAL',
+    'type-dinein': raw === 'DINE_IN',
+    'type-takeout': raw === 'TAKE_OUT',
+    'type-delivery': raw === 'DELIVERY',
+  }
+}
+
+async function fetchOrders() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await api.get('/api/orders/')
+    const rawOrders = Array.isArray(response.data) ? response.data : []
+    orders.value = rawOrders.map(normalizeOrder)
+  } catch (error: any) {
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Failed to load orders.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveOrder() {
+  if (!validateForm()) return
+
+  saving.value = true
+  formError.value = ''
+
+  try {
+    const payload = buildPayload()
+
+    if (modalMode.value === 'create') {
+      await api.post('/api/orders/', payload, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    } else if (modalMode.value === 'edit' && editingId.value !== null) {
+      await api.patch(`/api/orders/${editingId.value}/`, payload, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    await fetchOrders()
+    closeModal()
+  } catch (error: any) {
+    const data = error?.response?.data
+
+    if (data && typeof data === 'object') {
+      const firstKey = Object.keys(data)[0]
+      if (firstKey) {
+        const firstValue = data[firstKey as keyof typeof data]
+        formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
+      } else {
+        formError.value = 'Failed to save order.'
+      }
+    } else {
+      formError.value = error?.message || 'Failed to save order.'
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeOrder(id: number) {
+  const ok = window.confirm('Delete this order?')
+  if (!ok) return
+
+  deletingId.value = id
+
+  try {
+    await api.delete(`/api/orders/${id}/`)
+    orders.value = orders.value.filter((o) => o.id !== id)
+  } catch (error: any) {
+    alert(
+      error?.response?.data?.detail ||
+      error?.message ||
+      'Failed to delete order.'
+    )
+  } finally {
+    deletingId.value = null
+  }
+}
+
+onMounted(() => {
+  fetchOrders()
+})
 </script>
 
 <style scoped>
@@ -875,10 +1079,6 @@ function formatCurrentDateTime() {
   min-width: 0;
 }
 
-.toolbar-search {
-  min-width: 0;
-}
-
 .toolbar-reset {
   display: flex;
 }
@@ -963,7 +1163,7 @@ function formatCurrentDateTime() {
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1080px;
+  min-width: 1120px;
 }
 
 .order-table th,
@@ -1046,7 +1246,9 @@ function formatCurrentDateTime() {
   white-space: nowrap;
 }
 
-.status-badge {
+.status-badge,
+.payment-badge,
+.order-type-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1066,6 +1268,58 @@ function formatCurrentDateTime() {
 .status-unpaid {
   background: #fff7ed;
   color: #c2410c;
+}
+
+.payment-cash {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.payment-card {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.payment-transfer {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.payment-qris {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+.payment-split {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.type-general {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.type-dinein {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.type-takeout {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.type-delivery {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.date-text {
+  display: inline-block;
+  color: #162033;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .row-actions {
@@ -1174,6 +1428,59 @@ function formatCurrentDateTime() {
   padding: 24px 0;
 }
 
+.loading-state,
+.error-state {
+  padding: 24px;
+  border-radius: 16px;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.loading-state {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.error-state {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.summary-card {
+  border: 1px solid #edf2f7;
+  border-radius: 16px;
+  padding: 16px;
+  background: #fbfcfe;
+}
+
+.summary-label {
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.summary-value {
+  color: #162033;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.form-error {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .btn {
   border: none;
   outline: none;
@@ -1185,6 +1492,11 @@ function formatCurrentDateTime() {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -1402,7 +1714,8 @@ function formatCurrentDateTime() {
     padding: 20px;
   }
 
-  .stats-grid {
+  .stats-grid,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1489,10 +1802,7 @@ function formatCurrentDateTime() {
     min-width: 0;
   }
 
-  .mobile-info-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .mobile-info-grid,
   .mobile-actions {
     grid-template-columns: 1fr;
   }
@@ -1543,7 +1853,9 @@ function formatCurrentDateTime() {
     font-size: 11px;
   }
 
-  .status-badge {
+  .status-badge,
+  .payment-badge,
+  .order-type-badge {
     min-width: 70px;
     font-size: 11px;
     padding: 6px 10px;

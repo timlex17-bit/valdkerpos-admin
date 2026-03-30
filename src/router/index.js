@@ -30,67 +30,198 @@ const routes = [
     path: '/',
     redirect: '/login',
   },
+
   {
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { guestOnly: true },
+    meta: {
+      guestOnly: true,
+      title: 'Login',
+    },
   },
+
   {
     path: '/',
     component: AdminLayout,
-    meta: { requiresAuth: true },
+    meta: {
+      requiresAuth: true,
+    },
     children: [
-      { path: 'dashboard', name: 'dashboard', component: DashboardView },
-      { path: 'customers', name: 'customers', component: CustomersView },
-      { path: 'suppliers', name: 'suppliers', component: SuppliersView },
-      { path: 'products', name: 'products', component: ProductsView },
-      { path: 'orders', name: 'orders', component: OrdersView },
-      { path: 'expenses', name: 'expenses', component: ExpensesView },
-      { path: 'categories', name: 'categories', component: CategoriesView },
-      { path: 'units', name: 'units', component: UnitsView },
-      { path: 'users', name: 'users', component: UsersView },
-      { path: 'inventory-counts', name: 'inventory-counts', component: InventoryCountsView },
-      { path: 'product-returns', name: 'product-returns', component: ProductReturnsView },
-      { path: 'purchases', name: 'purchases', component: PurchasesView },
-      { path: 'shifts', name: 'shifts', component: ShiftsView },
-      { path: 'stock-adjustments', name: 'stock-adjustments', component: StockAdjustmentsView },
-      { path: 'stock-movements', name: 'stock-movements', component: StockMovementsView },
-      { path: 'sales-report', name: 'sales-report', component: SalesReportView },
-      { path: 'expense-report', name: 'expense-report', component: ExpenseReportView },
-      { path: 'sales-chart', name: 'sales-chart', component: SalesChartView },
-      { path: 'expense-chart', name: 'expense-chart', component: ExpenseChartView },
-      { path: 'settings', name: 'settings', component: SettingsView },
-
-      { 
-        path: 'backup-center', 
-        name: 'backup-center', 
-        component: () => import('@/views/backup/BackupCenterView.vue'),
+      {
+        path: '',
+        redirect: '/dashboard',
       },
-      { 
-        path: 'import-master-data', 
-        name: 'import-master-data', 
+
+      {
+        path: 'dashboard',
+        name: 'dashboard',
+        component: DashboardView,
+        meta: { title: 'Dashboard', section: 'main' },
+      },
+      {
+        path: 'customers',
+        name: 'customers',
+        component: CustomersView,
+        meta: { title: 'Customers', section: 'people' },
+      },
+      {
+        path: 'suppliers',
+        name: 'suppliers',
+        component: SuppliersView,
+        meta: { title: 'Suppliers', section: 'people' },
+      },
+      {
+        path: 'products',
+        name: 'products',
+        component: ProductsView,
+        meta: { title: 'Products', section: 'inventory' },
+      },
+      {
+        path: 'orders',
+        name: 'orders',
+        component: OrdersView,
+        meta: { title: 'Orders', section: 'sales' },
+      },
+      {
+        path: 'expenses',
+        name: 'expenses',
+        component: ExpensesView,
+        meta: { title: 'Expenses', section: 'finance' },
+      },
+      {
+        path: 'categories',
+        name: 'categories',
+        component: CategoriesView,
+        meta: { title: 'Categories', section: 'inventory' },
+      },
+      {
+        path: 'units',
+        name: 'units',
+        component: UnitsView,
+        meta: { title: 'Units', section: 'inventory' },
+      },
+      {
+        path: 'users',
+        name: 'users',
+        component: UsersView,
+        meta: { title: 'Users', section: 'people' },
+      },
+      {
+        path: 'inventory-counts',
+        name: 'inventory-counts',
+        component: InventoryCountsView,
+        meta: { title: 'Inventory Counts', section: 'inventory' },
+      },
+      {
+        path: 'product-returns',
+        name: 'product-returns',
+        component: ProductReturnsView,
+        meta: { title: 'Product Returns', section: 'sales' },
+      },
+      {
+        path: 'purchases',
+        name: 'purchases',
+        component: PurchasesView,
+        meta: { title: 'Purchases', section: 'sales' },
+      },
+      {
+        path: 'shifts',
+        name: 'shifts',
+        component: ShiftsView,
+        meta: { title: 'Shifts', section: 'sales' },
+      },
+      {
+        path: 'stock-adjustments',
+        name: 'stock-adjustments',
+        component: StockAdjustmentsView,
+        meta: { title: 'Stock Adjustments', section: 'inventory' },
+      },
+      {
+        path: 'stock-movements',
+        name: 'stock-movements',
+        component: StockMovementsView,
+        meta: { title: 'Stock Movements', section: 'inventory' },
+      },
+      {
+        path: 'sales-report',
+        name: 'sales-report',
+        component: SalesReportView,
+        meta: { title: 'Sales Report', section: 'reports' },
+      },
+      {
+        path: 'expense-report',
+        name: 'expense-report',
+        component: ExpenseReportView,
+        meta: { title: 'Expense Report', section: 'reports' },
+      },
+      {
+        path: 'sales-chart',
+        name: 'sales-chart',
+        component: SalesChartView,
+        meta: { title: 'Sales Chart', section: 'reports' },
+      },
+      {
+        path: 'expense-chart',
+        name: 'expense-chart',
+        component: ExpenseChartView,
+        meta: { title: 'Expense Chart', section: 'reports' },
+      },
+      {
+        path: 'settings',
+        name: 'settings',
+        component: SettingsView,
+        meta: { title: 'Settings', section: 'settings' },
+      },
+
+      {
+        path: 'backup-center',
+        name: 'backup-center',
+        component: () => import('@/views/backup/BackupCenterView.vue'),
+        meta: { title: 'Backup Center', section: 'system-tools' },
+      },
+      {
+        path: 'import-master-data',
+        name: 'import-master-data',
         component: () => import('@/views/import/ImportMasterDataView.vue'),
+        meta: { title: 'Import Master Data', section: 'system-tools' },
       },
     ],
+  },
+
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/dashboard',
   },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior() {
+    return { top: 0, left: 0 }
+  },
 })
 
 router.beforeEach((to) => {
   const token = localStorage.getItem('token')
 
   if (to.meta.requiresAuth && !token) {
-    return '/login'
+    return {
+      path: '/login',
+      query: to.fullPath !== '/login' ? { redirect: to.fullPath } : {},
+    }
   }
 
   if (to.meta.guestOnly && token) {
     return '/dashboard'
   }
+
+  const pageTitle = to.meta?.title
+    ? `${to.meta.title} | ValdKerPOS Admin`
+    : 'ValdKerPOS Admin'
+
+  document.title = pageTitle
 
   return true
 })
