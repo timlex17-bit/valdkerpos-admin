@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   isDark: Boolean,
@@ -22,9 +23,18 @@ const emit = defineEmits([
 ])
 
 const router = useRouter()
+const { locale, t } = useI18n()
 
 const userInitial = computed(() => {
   return (props.userName || 'U').trim().charAt(0).toUpperCase()
+})
+
+const currentLanguage = computed({
+  get: () => locale.value,
+  set: (value: string) => {
+    locale.value = value
+    localStorage.setItem('lang', value)
+  },
 })
 
 const logout = () => {
@@ -45,12 +55,20 @@ const logout = () => {
       </button>
 
       <div class="topbar-title-wrap">
-        <h1>Admin Panel</h1>
+        <h1>{{ t('adminPanel') }}</h1>
         <p>{{ currentShopName }}</p>
       </div>
     </div>
 
     <div class="topbar-right">
+      <div class="language-switcher">
+        <select v-model="currentLanguage" class="language-select">
+          <option value="en">English</option>
+          <option value="id">Indonesia</option>
+          <option value="tet">Tetun</option>
+        </select>
+      </div>
+
       <button class="icon-btn" @click="$emit('toggle-dark')">
         {{ isDark ? '☀' : '🌙' }}
       </button>
@@ -62,10 +80,10 @@ const logout = () => {
         </button>
 
         <div v-if="profileOpen" class="profile-dropdown">
-          <button class="dropdown-item">Profile</button>
-          <button class="dropdown-item">Settings</button>
+          <button class="dropdown-item">{{ t('Profile') }}</button>
+          <button class="dropdown-item">{{ t('Settings') }}</button>
           <button class="dropdown-item danger" @click="logout">
-            Logout
+            {{ t('Logout') }}
           </button>
         </div>
       </div>
@@ -86,7 +104,7 @@ const logout = () => {
 
 .topbar.dark {
   background: #0f172a;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
@@ -128,11 +146,41 @@ const logout = () => {
 .topbar.dark .icon-btn {
   background: #111827;
   color: white;
-  border-color: rgba(255,255,255,0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .mobile-menu-btn {
   display: none;
+}
+
+.language-switcher {
+  display: flex;
+  align-items: center;
+}
+
+.language-select {
+  min-width: 120px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  outline: none;
+}
+
+.language-select:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.topbar.dark .language-select {
+  background: #111827;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .profile-wrap {
@@ -153,14 +201,14 @@ const logout = () => {
 .topbar.dark .profile-btn {
   background: #111827;
   color: white;
-  border-color: rgba(255,255,255,0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .avatar {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #60E66C, #059814);
+  background: linear-gradient(135deg, #60e66c, #059814);
   color: white;
   display: inline-flex;
   align-items: center;
@@ -181,14 +229,14 @@ const logout = () => {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.08);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
   padding: 8px;
   z-index: 40;
 }
 
 .topbar.dark .profile-dropdown {
   background: #111827;
-  border-color: rgba(255,255,255,0.08);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .dropdown-item {
@@ -207,7 +255,7 @@ const logout = () => {
 }
 
 .topbar.dark .dropdown-item:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .dropdown-item.danger {
@@ -223,6 +271,12 @@ const logout = () => {
 
   .profile-name {
     display: none;
+  }
+
+  .language-select {
+    min-width: 96px;
+    font-size: 13px;
+    padding: 0 10px;
   }
 }
 </style>

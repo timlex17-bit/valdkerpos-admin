@@ -59,6 +59,9 @@ const isMobileOpen = ref(false)
 const isDark = ref(false)
 const profileOpen = ref(false)
 
+const stockAlertCount = ref(0)
+const pendingOrderCount = ref(0)
+
 const loggedUser = ref<LoggedUser | null>(null)
 const loggedShop = ref<LoggedShop | null>(null)
 
@@ -175,8 +178,8 @@ onMounted(() => {
       :is-mobile-open="isMobileOpen"
       :is-dark="isDark"
       :open-groups="openGroups"
-      :stock-alert-count="7"
-      :pending-order-count="3"
+      :stock-alert-count="stockAlertCount"
+      :pending-order-count="pendingOrderCount"
       :shops="shops"
       :current-shop="currentShop"
       @toggle-group="toggleGroup"
