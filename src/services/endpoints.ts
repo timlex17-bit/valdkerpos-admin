@@ -26,4 +26,9 @@ export const ENDPOINTS = {
 
   // SHOP
   SHOP_ME: '/api/shop/me/',
+
+  // REPORTS
+  REPORT_DAILY_PROFIT: '/api/reports/daily-profit/',
+  REPORT_MONTHLY_PL: '/api/reports/monthly-pl/',
+  REPORT_NET_INCOME_TODAY: '/api/reports/net-income-today/',
 } as const
