@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, toRefs } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 type Shop = {
   id: string | number
@@ -34,6 +35,8 @@ const emit = defineEmits<{
   (e: 'change-shop', shopId: string | number): void
 }>()
 
+const { t } = useI18n()
+
 const {
   isCollapsed,
   isMobileOpen,
@@ -49,7 +52,8 @@ const safeShops = computed<Shop[]>(() => shops.value ?? [])
 const safeCurrentShop = computed<Shop | null>(() => currentShop.value ?? null)
 
 const handleShopChange = (event: Event) => {
-  const target = event.target as HTMLSelectElement
+  const target = event.target as HTMLSelectElement | null
+  if (!target) return
   emit('change-shop', target.value)
 }
 </script>
@@ -69,13 +73,13 @@ const handleShopChange = (event: Event) => {
 
         <div v-if="!isCollapsed" class="brand-text">
           <h2 class="logo">ValdKerPOS</h2>
-          <p class="brand-subtitle">Admin Panel</p>
+          <p class="brand-subtitle">{{ t('adminPanel') }}</p>
         </div>
       </div>
     </div>
 
     <div v-if="!isCollapsed" class="shop-switcher">
-      <label class="shop-label">Shop</label>
+      <label class="shop-label">{{ t('shop') }}</label>
       <select
         class="shop-select"
         :value="safeCurrentShop?.id ?? ''"
@@ -93,7 +97,7 @@ const handleShopChange = (event: Event) => {
 
     <nav class="menu">
       <div class="menu-section">
-        <p v-if="!isCollapsed" class="menu-title">MAIN</p>
+        <p v-if="!isCollapsed" class="menu-title">{{ t('menu.main') }}</p>
 
         <RouterLink to="/dashboard" class="menu-link" @click="emit('close-mobile')">
           <span class="menu-icon dashboard">
@@ -101,13 +105,13 @@ const handleShopChange = (event: Event) => {
               <path d="M3 13h8V3H3v10zM13 21h8v-6h-8v6zM13 3v8h8V3h-8zM3 21h8v-6H3v6z" />
             </svg>
           </span>
-          <span v-if="!isCollapsed">Dashboard</span>
+          <span>{{ t('menu.dashboard') }}</span>
         </RouterLink>
       </div>
 
       <div class="menu-section">
-        <button class="group-toggle" @click="emit('toggle-group', 'sales')">
-          <span v-if="!isCollapsed">SALES</span>
+        <button class="group-toggle" type="button" @click="emit('toggle-group', 'sales')">
+          <span v-if="!isCollapsed">{{ t('menu.sales') }}</span>
           <span v-else>•</span>
           <span
             v-if="!isCollapsed"
@@ -125,7 +129,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M6 2h12l1 7H5l1-7zM5 9h14v11H5z" />
               </svg>
             </span>
-            <span>Orders</span>
+            <span>{{ t('menu.orders') }}</span>
             <span v-if="pendingOrderCount > 0" class="menu-badge warning">
               {{ pendingOrderCount }}
             </span>
@@ -140,7 +144,7 @@ const handleShopChange = (event: Event) => {
                 <circle cx="18" cy="20" r="1" />
               </svg>
             </span>
-            <span>Purchases</span>
+            <span>{{ t('menu.purchases') }}</span>
           </RouterLink>
 
           <RouterLink to="/product-returns" class="menu-link" @click="emit('close-mobile')">
@@ -150,7 +154,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M5 10h10a4 4 0 1 1 0 8h-1" />
               </svg>
             </span>
-            <span>Product Returns</span>
+            <span>{{ t('menu.productReturns') }}</span>
           </RouterLink>
 
           <RouterLink to="/shifts" class="menu-link" @click="emit('close-mobile')">
@@ -160,14 +164,14 @@ const handleShopChange = (event: Event) => {
                 <path d="M12 7v5l3 3" />
               </svg>
             </span>
-            <span>Shifts</span>
+            <span>{{ t('menu.shifts') }}</span>
           </RouterLink>
         </div>
       </div>
 
       <div class="menu-section">
-        <button class="group-toggle" @click="emit('toggle-group', 'inventory')">
-          <span v-if="!isCollapsed">INVENTORY</span>
+        <button class="group-toggle" type="button" @click="emit('toggle-group', 'inventory')">
+          <span v-if="!isCollapsed">{{ t('menu.inventory') }}</span>
           <span v-else>•</span>
           <span
             v-if="!isCollapsed"
@@ -187,7 +191,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M12 11v10" />
               </svg>
             </span>
-            <span>Products</span>
+            <span>{{ t('menu.products') }}</span>
           </RouterLink>
 
           <RouterLink to="/categories" class="menu-link" @click="emit('close-mobile')">
@@ -196,7 +200,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M4 7h16M4 12h10M4 17h7" />
               </svg>
             </span>
-            <span>Categories</span>
+            <span>{{ t('menu.categories') }}</span>
           </RouterLink>
 
           <RouterLink to="/units" class="menu-link" @click="emit('close-mobile')">
@@ -205,7 +209,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M4 20h16M7 20V8m5 12V4m5 16v-9" />
               </svg>
             </span>
-            <span>Units</span>
+            <span>{{ t('menu.units') }}</span>
           </RouterLink>
 
           <RouterLink to="/inventory-counts" class="menu-link" @click="emit('close-mobile')">
@@ -215,7 +219,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               </svg>
             </span>
-            <span>Inventory Counts</span>
+            <span>{{ t('menu.inventoryCounts') }}</span>
             <span v-if="stockAlertCount > 0" class="menu-badge success">
               {{ stockAlertCount }}
             </span>
@@ -227,7 +231,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </span>
-            <span>Stock Adjustments</span>
+            <span>{{ t('menu.stockAdjustments') }}</span>
           </RouterLink>
 
           <RouterLink to="/stock-movements" class="menu-link" @click="emit('close-mobile')">
@@ -237,14 +241,14 @@ const handleShopChange = (event: Event) => {
                 <path d="M7 17L18 6" />
               </svg>
             </span>
-            <span>Stock Movements</span>
+            <span>{{ t('menu.stockMovements') }}</span>
           </RouterLink>
         </div>
       </div>
 
       <div class="menu-section">
-        <button class="group-toggle" @click="emit('toggle-group', 'people')">
-          <span v-if="!isCollapsed">PEOPLE</span>
+        <button class="group-toggle" type="button" @click="emit('toggle-group', 'people')">
+          <span v-if="!isCollapsed">{{ t('menu.people') }}</span>
           <span v-else>•</span>
           <span
             v-if="!isCollapsed"
@@ -263,7 +267,7 @@ const handleShopChange = (event: Event) => {
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </span>
-            <span>Customers</span>
+            <span>{{ t('menu.customers') }}</span>
           </RouterLink>
 
           <RouterLink to="/suppliers" class="menu-link" @click="emit('close-mobile')">
@@ -274,7 +278,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01" />
               </svg>
             </span>
-            <span>Suppliers</span>
+            <span>{{ t('menu.suppliers') }}</span>
           </RouterLink>
 
           <RouterLink to="/users" class="menu-link" @click="emit('close-mobile')">
@@ -286,14 +290,14 @@ const handleShopChange = (event: Event) => {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </span>
-            <span>Users</span>
+            <span>{{ t('menu.users') }}</span>
           </RouterLink>
         </div>
       </div>
 
       <div class="menu-section">
-        <button class="group-toggle" @click="emit('toggle-group', 'finance')">
-          <span v-if="!isCollapsed">FINANCE</span>
+        <button class="group-toggle" type="button" @click="emit('toggle-group', 'finance')">
+          <span v-if="!isCollapsed">{{ t('menu.finance') }}</span>
           <span v-else>•</span>
           <span
             v-if="!isCollapsed"
@@ -312,7 +316,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M3 10h18" />
               </svg>
             </span>
-            <span>Expenses</span>
+            <span>{{ t('menu.expenses') }}</span>
           </RouterLink>
 
           <RouterLink to="/bank-accounts" class="menu-link" @click="emit('close-mobile')">
@@ -323,7 +327,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M7 15h4" />
               </svg>
             </span>
-            <span>Bank Accounts</span>
+            <span>{{ t('menu.bankAccounts') }}</span>
           </RouterLink>
 
           <RouterLink to="/bank-ledgers" class="menu-link" @click="emit('close-mobile')">
@@ -333,14 +337,14 @@ const handleShopChange = (event: Event) => {
                 <path d="M9 8h6M9 12h6M9 16h4" />
               </svg>
             </span>
-            <span>Bank Ledgers</span>
+            <span>{{ t('menu.bankLedgers') }}</span>
           </RouterLink>
         </div>
       </div>
 
       <div class="menu-section">
-        <button class="group-toggle" @click="emit('toggle-group', 'reports')">
-          <span v-if="!isCollapsed">REPORTS</span>
+        <button class="group-toggle" type="button" @click="emit('toggle-group', 'reports')">
+          <span v-if="!isCollapsed">{{ t('menu.reports') }}</span>
           <span v-else>•</span>
           <span
             v-if="!isCollapsed"
@@ -359,7 +363,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M14 2v6h6" />
               </svg>
             </span>
-            <span>Sales Report</span>
+            <span>{{ t('menu.salesReport') }}</span>
           </RouterLink>
 
           <RouterLink to="/expense-report" class="menu-link" @click="emit('close-mobile')">
@@ -368,7 +372,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
               </svg>
             </span>
-            <span>Expense Report</span>
+            <span>{{ t('menu.expenseReport') }}</span>
           </RouterLink>
 
           <RouterLink to="/sales-chart" class="menu-link" @click="emit('close-mobile')">
@@ -378,7 +382,7 @@ const handleShopChange = (event: Event) => {
                 <path d="M7 14l4-4 3 3 5-6" />
               </svg>
             </span>
-            <span>Sales Chart</span>
+            <span>{{ t('menu.salesChart') }}</span>
           </RouterLink>
 
           <RouterLink to="/expense-chart" class="menu-link" @click="emit('close-mobile')">
@@ -387,14 +391,13 @@ const handleShopChange = (event: Event) => {
                 <path d="M4 19V5M10 19V9M16 19V12M22 19V7" />
               </svg>
             </span>
-            <span>Expense Chart</span>
+            <span>{{ t('menu.expenseChart') }}</span>
           </RouterLink>
         </div>
       </div>
 
-      <!-- NEW SECTION -->
       <div class="menu-section utility-section">
-        <p v-if="!isCollapsed" class="menu-title">SYSTEM TOOLS</p>
+        <p v-if="!isCollapsed" class="menu-title">{{ t('menu.systemTools') }}</p>
 
         <RouterLink to="/backup-center" class="menu-link utility-link" @click="emit('close-mobile')">
           <span class="menu-icon backup-center">
@@ -405,10 +408,10 @@ const handleShopChange = (event: Event) => {
             </svg>
           </span>
 
-          <span class="menu-content" v-if="!isCollapsed">
+          <span v-if="!isCollapsed" class="menu-content">
             <span class="menu-text-group">
-              <span class="menu-main-text">Backup & Restore</span>
-              <span class="menu-sub-text">Settings, history, restore</span>
+              <span class="menu-main-text">{{ t('menu.backupRestore') }}</span>
+              <span class="menu-sub-text">{{ t('menu.backupSubtitle') }}</span>
             </span>
           </span>
         </RouterLink>
@@ -422,10 +425,10 @@ const handleShopChange = (event: Event) => {
             </svg>
           </span>
 
-          <span class="menu-content" v-if="!isCollapsed">
+          <span v-if="!isCollapsed" class="menu-content">
             <span class="menu-text-group">
-              <span class="menu-main-text">Import Master Data</span>
-              <span class="menu-sub-text">Excel migration wizard</span>
+              <span class="menu-main-text">{{ t('menu.importMasterData') }}</span>
+              <span class="menu-sub-text">{{ t('menu.importSubtitle') }}</span>
             </span>
           </span>
         </RouterLink>
@@ -675,7 +678,6 @@ const handleShopChange = (event: Event) => {
 .menu-icon.sales-chart { color: #10b981; }
 .menu-icon.expense-chart { color: #f97316; }
 
-/* NEW */
 .menu-icon.backup-center {
   color: #16a34a;
 }

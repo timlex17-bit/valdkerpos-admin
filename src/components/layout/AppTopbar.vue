@@ -3,24 +3,27 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
-const props = defineProps({
-  isDark: Boolean,
-  userName: {
-    type: String,
-    default: 'Owner',
-  },
-  currentShopName: {
-    type: String,
-    default: 'Main Shop',
-  },
-  profileOpen: Boolean,
+type AppLocale = 'en' | 'id' | 'tet'
+
+interface Props {
+  isDark?: boolean
+  userName?: string
+  currentShopName?: string
+  profileOpen?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isDark: false,
+  userName: 'Owner',
+  currentShopName: 'Main Shop',
+  profileOpen: false,
 })
 
-const emit = defineEmits([
-  'toggle-mobile-sidebar',
-  'toggle-dark',
-  'toggle-profile',
-])
+const emit = defineEmits<{
+  (e: 'toggle-mobile-sidebar'): void
+  (e: 'toggle-dark'): void
+  (e: 'toggle-profile'): void
+}>()
 
 const router = useRouter()
 const { locale, t } = useI18n()
@@ -29,9 +32,9 @@ const userInitial = computed(() => {
   return (props.userName || 'U').trim().charAt(0).toUpperCase()
 })
 
-const currentLanguage = computed({
-  get: () => locale.value,
-  set: (value: string) => {
+const currentLanguage = computed<AppLocale>({
+  get: () => (locale.value as AppLocale) || 'en',
+  set: (value) => {
     locale.value = value
     localStorage.setItem('lang', value)
   },
@@ -39,6 +42,7 @@ const currentLanguage = computed({
 
 const logout = () => {
   localStorage.removeItem('token')
+  localStorage.removeItem('auth_token')
   localStorage.removeItem('user')
   localStorage.removeItem('shop')
   localStorage.removeItem('shop_code')
@@ -48,15 +52,15 @@ const logout = () => {
 </script>
 
 <template>
-  <header class="topbar" :class="{ dark: isDark }">
+  <header class="topbar" :class="{ dark: props.isDark }">
     <div class="topbar-left">
-      <button class="mobile-menu-btn" @click="$emit('toggle-mobile-sidebar')">
+      <button class="mobile-menu-btn" type="button" @click="emit('toggle-mobile-sidebar')">
         ☰
       </button>
 
       <div class="topbar-title-wrap">
         <h1>{{ t('adminPanel') }}</h1>
-        <p>{{ currentShopName }}</p>
+        <p>{{ props.currentShopName }}</p>
       </div>
     </div>
 
@@ -69,21 +73,21 @@ const logout = () => {
         </select>
       </div>
 
-      <button class="icon-btn" @click="$emit('toggle-dark')">
-        {{ isDark ? '☀' : '🌙' }}
+      <button class="icon-btn" type="button" @click="emit('toggle-dark')">
+        {{ props.isDark ? '☀' : '🌙' }}
       </button>
 
       <div class="profile-wrap">
-        <button class="profile-btn" @click="$emit('toggle-profile')">
+        <button class="profile-btn" type="button" @click="emit('toggle-profile')">
           <span class="avatar">{{ userInitial }}</span>
-          <span class="profile-name">{{ userName }}</span>
+          <span class="profile-name">{{ props.userName }}</span>
         </button>
 
-        <div v-if="profileOpen" class="profile-dropdown">
-          <button class="dropdown-item">{{ t('Profile') }}</button>
-          <button class="dropdown-item">{{ t('Settings') }}</button>
-          <button class="dropdown-item danger" @click="logout">
-            {{ t('Logout') }}
+        <div v-if="props.profileOpen" class="profile-dropdown">
+          <button class="dropdown-item" type="button">{{ t('profile') }}</button>
+          <button class="dropdown-item" type="button">{{ t('settings') }}</button>
+          <button class="dropdown-item danger" type="button" @click="logout">
+            {{ t('logout') }}
           </button>
         </div>
       </div>
