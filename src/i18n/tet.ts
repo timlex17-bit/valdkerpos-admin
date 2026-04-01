@@ -23,11 +23,11 @@ const tet = {
     categories: 'Kategoria',
     units: 'Unidade',
     inventoryCounts: 'Kontajen Stok',
-    stockAdjustments: 'Ajuste Stok',
+    stockAdjustments: 'Ajusta Stok',
     stockMovements: 'Movimentu Stok',
 
     customers: 'Kliente',
-    suppliers: 'Fornecedór',
+    suppliers: 'Fornesedór',
     users: 'Utilizadór',
 
     expenses: 'Despeza',
