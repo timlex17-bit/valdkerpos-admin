@@ -3,24 +3,24 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Shifts</h1>
+          <h1 class="page-title">{{ t('shiftsPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage cashier shift sessions for your current shop.
+            {{ t('shiftsPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Shifts</span>
+          <span class="current">{{ t('shiftsPage.title') }}</span>
         </nav>
       </div>
 
       <div class="header-actions">
         <button class="btn btn-light" @click="refreshAll">
-          Refresh Current
+          {{ t('shiftsPage.refreshCurrent') }}
         </button>
 
         <button
@@ -29,7 +29,7 @@
           @click="openShiftModal"
         >
           <span class="btn-icon">＋</span>
-          Open Shift
+          {{ t('shiftsPage.openShift') }}
         </button>
 
         <button
@@ -37,31 +37,31 @@
           class="btn btn-danger add-btn"
           @click="openCloseModal(currentShift)"
         >
-          Close Current Shift
+          {{ t('shiftsPage.closeCurrentShift') }}
         </button>
       </div>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Shifts</div>
+        <div class="stat-label">{{ t('shiftsPage.visibleShifts') }}</div>
         <div class="stat-value">{{ filteredShifts.length }}</div>
-        <div class="stat-note">Shifts shown in current filter</div>
+        <div class="stat-note">{{ t('shiftsPage.visibleShiftsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Open Shifts</div>
+        <div class="stat-label">{{ t('shiftsPage.openShifts') }}</div>
         <div class="stat-value">{{ openShiftsCount }}</div>
-        <div class="stat-note">Currently open shift records</div>
+        <div class="stat-note">{{ t('shiftsPage.openShiftsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Current Shift</div>
+        <div class="stat-label">{{ t('shiftsPage.currentShift') }}</div>
         <div class="stat-value">
           {{ currentShift ? `#${currentShift.id}` : '-' }}
         </div>
         <div class="stat-note">
-          {{ currentShift ? 'There is an active shift' : 'No active shift' }}
+          {{ currentShift ? t('shiftsPage.activeShiftExists') : t('shiftsPage.noActiveShift') }}
         </div>
       </div>
     </div>
@@ -69,37 +69,37 @@
     <div v-if="currentShift" class="current-shift-card">
       <div class="current-shift-top">
         <div>
-          <h2>Current Shift</h2>
-          <p>Shift currently active for this account.</p>
+          <h2>{{ t('shiftsPage.currentShiftTitle') }}</h2>
+          <p>{{ t('shiftsPage.currentShiftSubtitle') }}</p>
         </div>
 
-        <span class="status-badge status-open">Open</span>
+        <span class="status-badge status-open">{{ t('shiftsPage.open') }}</span>
       </div>
 
       <div class="current-shift-grid">
         <div class="info-box">
-          <span class="label">Shift ID</span>
+          <span class="label">{{ t('shiftsPage.shiftId') }}</span>
           <strong>#{{ currentShift.id }}</strong>
         </div>
 
         <div class="info-box">
-          <span class="label">Cashier</span>
+          <span class="label">{{ t('shiftsPage.cashier') }}</span>
           <strong>{{ getCashierName(currentShift) }}</strong>
         </div>
 
         <div class="info-box">
-          <span class="label">Opened At</span>
+          <span class="label">{{ t('shiftsPage.openedAt') }}</span>
           <strong>{{ formatDateTimeDisplay(getOpenedAt(currentShift)) }}</strong>
         </div>
 
         <div class="info-box">
-          <span class="label">Opening Cash</span>
+          <span class="label">{{ t('shiftsPage.openingCash') }}</span>
           <strong>${{ formatMoney(getOpeningCash(currentShift)) }}</strong>
         </div>
 
         <div class="info-box">
-          <span class="label">Status</span>
-          <strong>{{ getShiftStatus(currentShift) }}</strong>
+          <span class="label">{{ t('shiftsPage.status') }}</span>
+          <strong>{{ getShiftStatusLabel(currentShift) }}</strong>
         </div>
       </div>
     </div>
@@ -111,15 +111,15 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by cashier, id, or status..."
+            :placeholder="t('shiftsPage.searchPlaceholder')"
           />
         </div>
 
         <div class="toolbar-item">
           <select v-model="statusFilter" class="filter-select">
-            <option value="">All status</option>
-            <option value="Open">Open</option>
-            <option value="Closed">Closed</option>
+            <option value="">{{ t('shiftsPage.allStatus') }}</option>
+            <option value="open">{{ t('shiftsPage.open') }}</option>
+            <option value="closed">{{ t('shiftsPage.closed') }}</option>
           </select>
         </div>
 
@@ -133,7 +133,7 @@
 
         <div class="toolbar-item toolbar-reset">
           <button class="btn btn-light" @click="resetFilters">
-            Reset
+            {{ t('common.reset') }}
           </button>
         </div>
       </div>
@@ -142,13 +142,13 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Shift List</h2>
-          <p>{{ filteredShifts.length }} shift(s) found</p>
+          <h2>{{ t('shiftsPage.shiftList') }}</h2>
+          <p>{{ t('shiftsPage.shiftsFound', { count: filteredShifts.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading shifts...
+        {{ t('shiftsPage.loadingShifts') }}
       </div>
 
       <div v-else-if="errorMessage" class="error-state">
@@ -160,20 +160,20 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Cashier</th>
-              <th>Status</th>
-              <th>Opened At</th>
-              <th>Closed At</th>
-              <th>Opening Cash</th>
-              <th>Closing Cash</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('shiftsPage.cashier') }}</th>
+              <th>{{ t('shiftsPage.status') }}</th>
+              <th>{{ t('shiftsPage.openedAt') }}</th>
+              <th>{{ t('shiftsPage.closedAt') }}</th>
+              <th>{{ t('shiftsPage.openingCash') }}</th>
+              <th>{{ t('shiftsPage.closingCash') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="filteredShifts.length === 0">
               <td colspan="8" class="empty-cell">
-                No shifts found.
+                {{ t('shiftsPage.noShiftsFound') }}
               </td>
             </tr>
 
@@ -189,7 +189,7 @@
                   </div>
                   <div>
                     <div class="cashier-name">{{ getCashierName(shift) }}</div>
-                    <div class="cashier-sub">Cashier</div>
+                    <div class="cashier-sub">{{ t('shiftsPage.cashierLabel') }}</div>
                   </div>
                 </div>
               </td>
@@ -198,10 +198,10 @@
                 <span
                   :class="[
                     'status-badge',
-                    getShiftStatus(shift) === 'Open' ? 'status-open' : 'status-closed'
+                    getShiftStatusKey(shift) === 'open' ? 'status-open' : 'status-closed'
                   ]"
                 >
-                  {{ getShiftStatus(shift) }}
+                  {{ getShiftStatusLabel(shift) }}
                 </span>
               </td>
 
@@ -229,19 +229,19 @@
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(shift)">
-                    View
+                    {{ t('shiftsPage.view') }}
                   </button>
 
                   <button class="btn btn-sm btn-info" @click="fetchShiftReport(shift.id)">
-                    Report
+                    {{ t('shiftsPage.report') }}
                   </button>
 
                   <button
-                    v-if="getShiftStatus(shift) === 'Open'"
+                    v-if="getShiftStatusKey(shift) === 'open'"
                     class="btn btn-sm btn-warning"
                     @click="openCloseModal(shift)"
                   >
-                    Close
+                    {{ t('shiftsPage.close') }}
                   </button>
                 </div>
               </td>
@@ -252,7 +252,7 @@
 
       <div v-if="!loading && !errorMessage" class="mobile-list">
         <div v-if="filteredShifts.length === 0" class="mobile-empty">
-          No shifts found.
+          {{ t('shiftsPage.noShiftsFound') }}
         </div>
 
         <div
@@ -267,35 +267,35 @@
               </div>
               <div>
                 <div class="cashier-name">{{ getCashierName(shift) }}</div>
-                <div class="cashier-sub">Shift #{{ shift.id }}</div>
+                <div class="cashier-sub">{{ t('shiftsPage.shiftNumber', { id: shift.id }) }}</div>
               </div>
             </div>
 
             <span
               :class="[
                 'status-badge',
-                getShiftStatus(shift) === 'Open' ? 'status-open' : 'status-closed'
+                getShiftStatusKey(shift) === 'open' ? 'status-open' : 'status-closed'
               ]"
             >
-              {{ getShiftStatus(shift) }}
+              {{ getShiftStatusLabel(shift) }}
             </span>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Opened At</span>
+              <span class="label">{{ t('shiftsPage.openedAt') }}</span>
               <span class="value">{{ formatDateTimeDisplay(getOpenedAt(shift)) }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Closed At</span>
+              <span class="label">{{ t('shiftsPage.closedAt') }}</span>
               <span class="value">{{ getClosedAt(shift) ? formatDateTimeDisplay(getClosedAt(shift)) : '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Opening Cash</span>
+              <span class="label">{{ t('shiftsPage.openingCash') }}</span>
               <span class="value">${{ formatMoney(getOpeningCash(shift)) }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Closing Cash</span>
+              <span class="label">{{ t('shiftsPage.closingCash') }}</span>
               <span class="value">
                 {{ hasClosingCashValue(shift) ? `$${formatMoney(getClosingCash(shift))}` : '-' }}
               </span>
@@ -304,19 +304,19 @@
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(shift)">
-              View
+              {{ t('shiftsPage.view') }}
             </button>
 
             <button class="btn btn-sm btn-info" @click="fetchShiftReport(shift.id)">
-              Report
+              {{ t('shiftsPage.report') }}
             </button>
 
             <button
-              v-if="getShiftStatus(shift) === 'Open'"
+              v-if="getShiftStatusKey(shift) === 'open'"
               class="btn btn-sm btn-warning"
               @click="openCloseModal(shift)"
             >
-              Close
+              {{ t('shiftsPage.close') }}
             </button>
           </div>
         </div>
@@ -328,8 +328,8 @@
         <div class="modal-card">
           <div class="modal-header">
             <div>
-              <h3>Open Shift</h3>
-              <p>Open a new cashier shift for the current shop.</p>
+              <h3>{{ t('shiftsPage.openShiftTitle') }}</h3>
+              <p>{{ t('shiftsPage.openShiftSubtitle') }}</p>
             </div>
 
             <button class="modal-close" @click="closeOpenModal">×</button>
@@ -339,24 +339,24 @@
             <form class="shift-form" @submit.prevent="submitOpenShift">
               <div class="form-grid single-col">
                 <div class="form-group">
-                  <label>Shop ID <span>*</span></label>
+                  <label>{{ t('shiftsPage.shopId') }} <span>*</span></label>
                   <input
                     v-model="openForm.shop"
                     type="number"
                     min="1"
-                    placeholder="Shop ID"
+                    :placeholder="t('shiftsPage.shopIdPlaceholder')"
                     :disabled="openingShift"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Opening Cash <span>*</span></label>
+                  <label>{{ t('shiftsPage.openingCash') }} <span>*</span></label>
                   <input
                     v-model="openForm.opening_cash"
                     type="number"
                     min="0"
                     step="0.01"
-                    placeholder="50.00"
+                    :placeholder="t('shiftsPage.openingCashPlaceholder')"
                     :disabled="openingShift"
                   />
                 </div>
@@ -368,10 +368,10 @@
 
               <div class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeOpenModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary modal-btn" :disabled="openingShift">
-                  {{ openingShift ? 'Opening...' : 'Open Shift' }}
+                  {{ openingShift ? t('shiftsPage.opening') : t('shiftsPage.openShift') }}
                 </button>
               </div>
             </form>
@@ -385,8 +385,8 @@
         <div class="modal-card">
           <div class="modal-header">
             <div>
-              <h3>Close Shift</h3>
-              <p>Enter closing cash to close this shift.</p>
+              <h3>{{ t('shiftsPage.closeShiftTitle') }}</h3>
+              <p>{{ t('shiftsPage.closeShiftSubtitle') }}</p>
             </div>
 
             <button class="modal-close" @click="closeCloseModal">×</button>
@@ -396,18 +396,18 @@
             <form class="shift-form" @submit.prevent="submitCloseShift">
               <div class="form-grid single-col">
                 <div class="form-group">
-                  <label>Shift ID</label>
+                  <label>{{ t('shiftsPage.shiftId') }}</label>
                   <input :value="closingShiftId || '-'" type="text" disabled />
                 </div>
 
                 <div class="form-group">
-                  <label>Closing Cash <span>*</span></label>
+                  <label>{{ t('shiftsPage.closingCash') }} <span>*</span></label>
                   <input
                     v-model="closeForm.closing_cash"
                     type="number"
                     min="0"
                     step="0.01"
-                    placeholder="120.00"
+                    :placeholder="t('shiftsPage.closingCashPlaceholder')"
                     :disabled="closingShift"
                   />
                 </div>
@@ -419,10 +419,10 @@
 
               <div class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeCloseModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-danger modal-btn" :disabled="closingShift">
-                  {{ closingShift ? 'Closing...' : 'Close Shift' }}
+                  {{ closingShift ? t('shiftsPage.closing') : t('shiftsPage.closeShiftTitle') }}
                 </button>
               </div>
             </form>
@@ -436,8 +436,8 @@
         <div class="modal-card modal-lg">
           <div class="modal-header">
             <div>
-              <h3>Shift Detail</h3>
-              <p>View shift information.</p>
+              <h3>{{ t('shiftsPage.shiftDetailTitle') }}</h3>
+              <p>{{ t('shiftsPage.shiftDetailSubtitle') }}</p>
             </div>
 
             <button class="modal-close" @click="closeViewModal">×</button>
@@ -446,36 +446,36 @@
           <div class="modal-body">
             <div v-if="selectedShift" class="detail-grid">
               <div class="detail-item">
-                <span class="label">Shift ID</span>
+                <span class="label">{{ t('shiftsPage.shiftId') }}</span>
                 <strong>#{{ selectedShift.id }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Cashier</span>
+                <span class="label">{{ t('shiftsPage.cashier') }}</span>
                 <strong>{{ getCashierName(selectedShift) }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Status</span>
-                <strong>{{ getShiftStatus(selectedShift) }}</strong>
+                <span class="label">{{ t('shiftsPage.status') }}</span>
+                <strong>{{ getShiftStatusLabel(selectedShift) }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Opened At</span>
+                <span class="label">{{ t('shiftsPage.openedAt') }}</span>
                 <strong>{{ formatDateTimeDisplay(getOpenedAt(selectedShift)) }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Closed At</span>
+                <span class="label">{{ t('shiftsPage.closedAt') }}</span>
                 <strong>{{ getClosedAt(selectedShift) ? formatDateTimeDisplay(getClosedAt(selectedShift)) : '-' }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Opening Cash</span>
+                <span class="label">{{ t('shiftsPage.openingCash') }}</span>
                 <strong>${{ formatMoney(getOpeningCash(selectedShift)) }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Closing Cash</span>
+                <span class="label">{{ t('shiftsPage.closingCash') }}</span>
                 <strong>{{ hasClosingCashValue(selectedShift) ? `$${formatMoney(getClosingCash(selectedShift))}` : '-' }}</strong>
               </div>
               <div class="detail-item">
-                <span class="label">Raw Data</span>
-                <strong>Available</strong>
+                <span class="label">{{ t('shiftsPage.rawData') }}</span>
+                <strong>{{ t('shiftsPage.rawDataAvailable') }}</strong>
               </div>
             </div>
 
@@ -483,7 +483,7 @@
 
             <div class="modal-footer">
               <button type="button" class="btn btn-primary modal-btn" @click="closeViewModal">
-                Close
+                {{ t('common.close') }}
               </button>
             </div>
           </div>
@@ -496,8 +496,8 @@
         <div class="modal-card modal-lg">
           <div class="modal-header">
             <div>
-              <h3>Shift Report</h3>
-              <p>Shift report response from API.</p>
+              <h3>{{ t('shiftsPage.shiftReportTitle') }}</h3>
+              <p>{{ t('shiftsPage.shiftReportSubtitle') }}</p>
             </div>
 
             <button class="modal-close" @click="closeReportModal">×</button>
@@ -508,7 +508,7 @@
 
             <div class="modal-footer">
               <button type="button" class="btn btn-primary modal-btn" @click="closeReportModal">
-                Close
+                {{ t('common.close') }}
               </button>
             </div>
           </div>
@@ -520,10 +520,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type ShiftRecord = Record<string, any>
+
+const { t, locale } = useI18n()
 
 const search = ref('')
 const statusFilter = ref('')
@@ -559,6 +562,13 @@ const closingShiftId = ref<number | null>(null)
 const selectedShift = ref<ShiftRecord | null>(null)
 const shiftReport = ref<any>(null)
 
+function currentDateLocale() {
+  const current = String(locale.value || 'en').toLowerCase()
+  if (current === 'id') return 'id-ID'
+  if (current === 'tet') return 'pt-PT'
+  return 'en-US'
+}
+
 const filteredShifts = computed(() => {
   let result = [...shifts.value]
   const q = search.value.trim().toLowerCase()
@@ -568,13 +578,13 @@ const filteredShifts = computed(() => {
       return (
         String(shift?.id ?? '').toLowerCase().includes(q) ||
         getCashierName(shift).toLowerCase().includes(q) ||
-        getShiftStatus(shift).toLowerCase().includes(q)
+        getShiftStatusLabel(shift).toLowerCase().includes(q)
       )
     })
   }
 
   if (statusFilter.value) {
-    result = result.filter((shift) => getShiftStatus(shift) === statusFilter.value)
+    result = result.filter((shift) => getShiftStatusKey(shift) === statusFilter.value)
   }
 
   if (dateFilter.value) {
@@ -588,7 +598,7 @@ const filteredShifts = computed(() => {
 })
 
 const openShiftsCount = computed(() => {
-  return shifts.value.filter((shift) => getShiftStatus(shift) === 'Open').length
+  return shifts.value.filter((shift) => getShiftStatusKey(shift) === 'open').length
 })
 
 function resetFilters() {
@@ -686,7 +696,7 @@ function normalizeShift(raw: any): ShiftRecord {
 }
 
 function getCashierName(shift: ShiftRecord): string {
-  if (!shift || typeof shift !== 'object') return 'Cashier'
+  if (!shift || typeof shift !== 'object') return t('shiftsPage.cashier')
 
   const directCandidates = [
     shift.cashier_name,
@@ -704,7 +714,7 @@ function getCashierName(shift: ShiftRecord): string {
 
   const cashier = shift.cashier
   if (typeof cashier === 'string' || typeof cashier === 'number') {
-    return safeText(cashier, 'Cashier')
+    return safeText(cashier, t('shiftsPage.cashier'))
   }
 
   if (cashier && typeof cashier === 'object') {
@@ -722,7 +732,7 @@ function getCashierName(shift: ShiftRecord): string {
     }
   }
 
-  return 'Cashier'
+  return t('shiftsPage.cashier')
 }
 
 function getOpenedAt(shift: ShiftRecord): string {
@@ -790,7 +800,7 @@ function hasClosingCashValue(shift: ShiftRecord): boolean {
   return value !== null && value !== undefined && value !== ''
 }
 
-function getShiftStatus(shift: ShiftRecord): 'Open' | 'Closed' {
+function getShiftStatusKey(shift: ShiftRecord): 'open' | 'closed' {
   const rawStatus = firstDefined(
     shift?.is_open,
     shift?.status,
@@ -800,16 +810,20 @@ function getShiftStatus(shift: ShiftRecord): 'Open' | 'Closed' {
   )
 
   if (typeof rawStatus === 'boolean') {
-    return rawStatus ? 'Open' : 'Closed'
+    return rawStatus ? 'open' : 'closed'
   }
 
   if (rawStatus !== null && rawStatus !== undefined) {
     const value = String(rawStatus).trim().toLowerCase()
-    if (['open', 'opened', 'active'].includes(value)) return 'Open'
-    if (['closed', 'close', 'inactive'].includes(value)) return 'Closed'
+    if (['open', 'opened', 'active'].includes(value)) return 'open'
+    if (['closed', 'close', 'inactive'].includes(value)) return 'closed'
   }
 
-  return getClosedAt(shift) ? 'Closed' : 'Open'
+  return getClosedAt(shift) ? 'closed' : 'open'
+}
+
+function getShiftStatusLabel(shift: ShiftRecord): string {
+  return getShiftStatusKey(shift) === 'open' ? t('shiftsPage.open') : t('shiftsPage.closed')
 }
 
 function formatMoney(value: unknown): string {
@@ -823,7 +837,7 @@ function formatDateTimeDisplay(value: string): string {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return value
 
-  return d.toLocaleString('en-US', {
+  return d.toLocaleString(currentDateLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -906,7 +920,7 @@ async function fetchShifts() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to load shifts.'
+      t('shiftsPage.failedLoad')
     shifts.value = []
   } finally {
     loading.value = false
@@ -983,12 +997,12 @@ async function submitOpenShift() {
   openFormError.value = ''
 
   if (!openForm.value.shop) {
-    openFormError.value = 'Shop ID is required.'
+    openFormError.value = t('shiftsPage.shopIdRequired')
     return
   }
 
   if (Number(openForm.value.opening_cash) < 0) {
-    openFormError.value = 'Opening cash cannot be negative.'
+    openFormError.value = t('shiftsPage.openingCashCannotBeNegative')
     return
   }
 
@@ -1014,7 +1028,7 @@ async function submitOpenShift() {
       const firstValue = data[firstKey]
       openFormError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
     } else {
-      openFormError.value = error?.message || 'Failed to open shift.'
+      openFormError.value = error?.message || t('shiftsPage.failedOpen')
     }
   } finally {
     openingShift.value = false
@@ -1025,7 +1039,7 @@ async function submitCloseShift() {
   closeFormError.value = ''
 
   if (Number(closeForm.value.closing_cash) < 0) {
-    closeFormError.value = 'Closing cash cannot be negative.'
+    closeFormError.value = t('shiftsPage.closingCashCannotBeNegative')
     return
   }
 
@@ -1056,7 +1070,7 @@ async function submitCloseShift() {
       const firstValue = data[firstKey]
       closeFormError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
     } else {
-      closeFormError.value = error?.message || 'Failed to close shift.'
+      closeFormError.value = error?.message || t('shiftsPage.failedClose')
     }
   } finally {
     closingShift.value = false
@@ -1072,7 +1086,7 @@ async function fetchShiftReport(id: number) {
     window.alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to fetch shift report.'
+      t('shiftsPage.failedReport')
     )
   }
 }

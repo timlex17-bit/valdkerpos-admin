@@ -3,44 +3,44 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Purchases</h1>
+          <h1 class="page-title">{{ t('purchasesPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage purchase transactions for your current shop.
+            {{ t('purchasesPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Purchases</span>
+          <span class="current">{{ t('purchasesPage.title') }}</span>
         </nav>
       </div>
 
       <button class="btn btn-primary add-btn" @click="openCreateModal">
         <span class="btn-icon">＋</span>
-        Add Purchase
+        {{ t('purchasesPage.addPurchase') }}
       </button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Purchases</div>
+        <div class="stat-label">{{ t('purchasesPage.visiblePurchases') }}</div>
         <div class="stat-value">{{ filteredPurchases.length }}</div>
-        <div class="stat-note">Purchases shown in current filter</div>
+        <div class="stat-note">{{ t('purchasesPage.visiblePurchasesNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Total Amount</div>
+        <div class="stat-label">{{ t('purchasesPage.totalAmount') }}</div>
         <div class="stat-value">${{ filteredGrandTotal }}</div>
-        <div class="stat-note">Total amount from visible purchases</div>
+        <div class="stat-note">{{ t('purchasesPage.totalAmountNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Total Items</div>
+        <div class="stat-label">{{ t('purchasesPage.totalItems') }}</div>
         <div class="stat-value">{{ filteredItemsCount }}</div>
-        <div class="stat-note">Purchase items in visible records</div>
+        <div class="stat-note">{{ t('purchasesPage.totalItemsNote') }}</div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by invoice, supplier, note..."
+            :placeholder="t('purchasesPage.searchPlaceholder')"
           />
         </div>
 
@@ -65,7 +65,7 @@
 
         <div class="toolbar-item">
           <select v-model="supplierFilter" class="filter-select">
-            <option value="">All suppliers</option>
+            <option value="">{{ t('purchasesPage.allSuppliers') }}</option>
             <option
               v-for="supplier in supplierOptions"
               :key="supplier.id"
@@ -78,7 +78,7 @@
 
         <div class="toolbar-item toolbar-reset">
           <button class="btn btn-light" @click="resetFilters">
-            Reset
+            {{ t('common.reset') }}
           </button>
         </div>
       </div>
@@ -87,13 +87,13 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Purchase List</h2>
-          <p>{{ filteredPurchases.length }} purchase(s) found</p>
+          <h2>{{ t('purchasesPage.purchaseList') }}</h2>
+          <p>{{ t('purchasesPage.purchasesFound', { count: filteredPurchases.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading purchases...
+        {{ t('purchasesPage.loadingPurchases') }}
       </div>
 
       <div v-else-if="errorMessage" class="error-state">
@@ -104,21 +104,21 @@
         <table class="purchase-table">
           <thead>
             <tr>
-              <th>Invoice ID</th>
-              <th>Supplier</th>
-              <th>Purchase Date</th>
-              <th>Created At</th>
-              <th>Created By</th>
-              <th>Items</th>
-              <th>Total</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('purchasesPage.invoiceId') }}</th>
+              <th>{{ t('purchasesPage.supplier') }}</th>
+              <th>{{ t('purchasesPage.purchaseDate') }}</th>
+              <th>{{ t('common.createdAt') }}</th>
+              <th>{{ t('purchasesPage.createdBy') }}</th>
+              <th>{{ t('purchasesPage.items') }}</th>
+              <th>{{ t('common.total') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="filteredPurchases.length === 0">
               <td colspan="8" class="empty-cell">
-                No purchases found.
+                {{ t('purchasesPage.noPurchasesFound') }}
               </td>
             </tr>
 
@@ -126,7 +126,7 @@
               <td>
                 <div class="invoice-block">
                   <span class="invoice-code">{{ purchase.invoice_id || '-' }}</span>
-                  <span class="invoice-type">{{ purchase.items.length }} item(s)</span>
+                  <span class="invoice-type">{{ Number(purchase.items_count || purchase.items.length || 0) }} item(s)</span>
                 </div>
               </td>
 
@@ -136,8 +136,8 @@
                     {{ getInitials(purchase.supplier_name || 'SP') }}
                   </div>
                   <div>
-                    <div class="supplier-name">{{ purchase.supplier_name || 'No Supplier' }}</div>
-                    <div class="supplier-sub">Purchase supplier</div>
+                    <div class="supplier-name">{{ purchase.supplier_name || t('purchasesPage.noSupplier') }}</div>
+                    <div class="supplier-sub">{{ t('purchasesPage.purchaseSupplier') }}</div>
                   </div>
                 </div>
               </td>
@@ -171,17 +171,17 @@
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(purchase)">
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button class="btn btn-sm btn-warning" @click="openEditModal(purchase)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
                     :disabled="deletingId === purchase.id"
                     @click="removePurchase(purchase.id)"
                   >
-                    {{ deletingId === purchase.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === purchase.id ? t('purchasesPage.deleting') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -192,7 +192,7 @@
 
       <div v-if="!loading && !errorMessage" class="mobile-list">
         <div v-if="filteredPurchases.length === 0" class="mobile-empty">
-          No purchases found.
+          {{ t('purchasesPage.noPurchasesFound') }}
         </div>
 
         <div
@@ -203,7 +203,7 @@
           <div class="mobile-card-top">
             <div class="mobile-card-head-left">
               <div class="invoice-code">{{ purchase.invoice_id || '-' }}</div>
-              <div class="supplier-sub">{{ purchase.supplier_name || 'No Supplier' }}</div>
+              <div class="supplier-sub">{{ purchase.supplier_name || t('purchasesPage.noSupplier') }}</div>
             </div>
 
             <div class="mobile-total">
@@ -216,14 +216,14 @@
               {{ getInitials(purchase.supplier_name || 'SP') }}
             </div>
             <div>
-              <div class="supplier-name">{{ purchase.supplier_name || 'No Supplier' }}</div>
-              <div class="supplier-sub">Purchase supplier</div>
+              <div class="supplier-name">{{ purchase.supplier_name || t('purchasesPage.noSupplier') }}</div>
+              <div class="supplier-sub">{{ t('purchasesPage.purchaseSupplier') }}</div>
             </div>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Purchase Date</span>
+              <span class="label">{{ t('purchasesPage.purchaseDate') }}</span>
               <span class="value">
                 <span class="purchase-date-text">
                   {{ formatDateDisplay(purchase.purchase_date) }}
@@ -232,7 +232,7 @@
             </div>
 
             <div class="info-item">
-              <span class="label">Created By</span>
+              <span class="label">{{ t('purchasesPage.createdBy') }}</span>
               <span class="value">
                 <span class="created-by-badge">
                   {{ purchase.created_by || '-' }}
@@ -241,7 +241,7 @@
             </div>
 
             <div class="info-item">
-              <span class="label">Items</span>
+              <span class="label">{{ t('purchasesPage.items') }}</span>
               <span class="value">
                 <span class="items-badge">
                   {{ Number(purchase.items_count || purchase.items.length || 0) }}
@@ -250,7 +250,7 @@
             </div>
 
             <div class="info-item">
-              <span class="label">Created At</span>
+              <span class="label">{{ t('common.createdAt') }}</span>
               <span class="value">
                 <span class="created-at-text">
                   {{ formatDateTime(purchase.created_at) }}
@@ -259,24 +259,24 @@
             </div>
 
             <div class="info-item full">
-              <span class="label">Note</span>
+              <span class="label">{{ t('common.note') }}</span>
               <span class="value">{{ purchase.note || '-' }}</span>
             </div>
           </div>
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(purchase)">
-              View
+              {{ t('common.view') }}
             </button>
             <button class="btn btn-sm btn-warning" @click="openEditModal(purchase)">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button
               class="btn btn-sm btn-danger"
               :disabled="deletingId === purchase.id"
               @click="removePurchase(purchase.id)"
             >
-              {{ deletingId === purchase.id ? 'Deleting...' : 'Delete' }}
+              {{ deletingId === purchase.id ? t('purchasesPage.deleting') : t('common.delete') }}
             </button>
           </div>
         </div>
@@ -291,17 +291,17 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Purchase'
+                    ? t('purchasesPage.addPurchaseTitle')
                     : modalMode === 'edit'
-                    ? 'Edit Purchase'
-                    : 'Purchase Detail'
+                    ? t('purchasesPage.editPurchaseTitle')
+                    : t('purchasesPage.purchaseDetailTitle')
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View purchase information'
-                    : 'Fill in general info and purchase items'
+                    ? t('purchasesPage.viewPurchaseInformation')
+                    : t('purchasesPage.fillPurchaseForm')
                 }}
               </p>
             </div>
@@ -316,14 +316,14 @@
                 :class="['tab-btn', activeTab === 'general' ? 'active' : '']"
                 @click="activeTab = 'general'"
               >
-                General
+                {{ t('purchasesPage.generalTab') }}
               </button>
               <button
                 type="button"
                 :class="['tab-btn', activeTab === 'items' ? 'active' : '']"
                 @click="activeTab = 'items'"
               >
-                Purchase Items
+                {{ t('purchasesPage.itemsTab') }}
               </button>
             </div>
 
@@ -331,12 +331,12 @@
               <div v-show="activeTab === 'general'" class="form-section">
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Supplier</label>
+                    <label>{{ t('purchasesPage.supplier') }}</label>
                     <select
                       v-model="form.supplier"
                       :disabled="modalMode === 'view' || saving"
                     >
-                      <option value="">Select supplier</option>
+                      <option value="">{{ t('purchasesPage.selectSupplier') }}</option>
                       <option
                         v-for="supplier in supplierOptions"
                         :key="supplier.id"
@@ -348,17 +348,17 @@
                   </div>
 
                   <div class="form-group">
-                    <label>Invoice ID</label>
+                    <label>{{ t('purchasesPage.invoiceId') }}</label>
                     <input
                       v-model="form.invoice_id"
                       type="text"
-                      placeholder="Enter invoice id"
+                      :placeholder="t('purchasesPage.invoiceIdPlaceholder')"
                       :disabled="modalMode === 'view' || saving"
                     />
                   </div>
 
                   <div class="form-group">
-                    <label>Purchase Date</label>
+                    <label>{{ t('purchasesPage.purchaseDate') }}</label>
                     <input
                       v-model="form.purchase_date"
                       type="date"
@@ -367,7 +367,7 @@
                   </div>
 
                   <div class="form-group">
-                    <label>Created By</label>
+                    <label>{{ t('purchasesPage.createdBy') }}</label>
                     <input
                       :value="selectedPurchase?.created_by || '-'"
                       type="text"
@@ -376,11 +376,11 @@
                   </div>
 
                   <div class="form-group full">
-                    <label>Note</label>
+                    <label>{{ t('common.note') }}</label>
                     <textarea
                       v-model="form.note"
                       rows="5"
-                      placeholder="Enter purchase note"
+                      :placeholder="t('purchasesPage.notePlaceholder')"
                       :disabled="modalMode === 'view' || saving"
                     />
                   </div>
@@ -390,8 +390,8 @@
               <div v-show="activeTab === 'items'" class="form-section">
                 <div class="items-header">
                   <div>
-                    <h4>Purchase Items</h4>
-                    <p>Add products included in this purchase.</p>
+                    <h4>{{ t('purchasesPage.purchaseItemsTitle') }}</h4>
+                    <p>{{ t('purchasesPage.purchaseItemsSubtitle') }}</p>
                   </div>
 
                   <button
@@ -400,7 +400,7 @@
                     class="btn btn-primary btn-sm add-item-btn"
                     @click="addPurchaseItem"
                   >
-                    + Add Item
+                    + {{ t('purchasesPage.addItem') }}
                   </button>
                 </div>
 
@@ -408,19 +408,19 @@
                   <table class="items-table">
                     <thead>
                       <tr>
-                        <th>Product ID</th>
-                        <th>Quantity</th>
-                        <th>Cost Price</th>
-                        <th>Expired Date</th>
-                        <th>Batch Code</th>
-                        <th>Total</th>
-                        <th v-if="modalMode !== 'view'" class="text-right">Delete?</th>
+                        <th>{{ t('purchasesPage.productId') }}</th>
+                        <th>{{ t('purchasesPage.quantity') }}</th>
+                        <th>{{ t('purchasesPage.costPrice') }}</th>
+                        <th>{{ t('purchasesPage.expiredDate') }}</th>
+                        <th>{{ t('purchasesPage.batchCode') }}</th>
+                        <th>{{ t('purchasesPage.itemTotal') }}</th>
+                        <th v-if="modalMode !== 'view'" class="text-right">{{ t('common.delete') }}?</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-if="form.items.length === 0">
                         <td :colspan="modalMode !== 'view' ? 7 : 6" class="empty-cell">
-                          No purchase items yet.
+                          {{ t('purchasesPage.noPurchaseItemsYet') }}
                         </td>
                       </tr>
 
@@ -430,7 +430,7 @@
                             v-model="item.product"
                             type="number"
                             min="1"
-                            placeholder="Product ID"
+                            :placeholder="t('purchasesPage.productId')"
                             :disabled="modalMode === 'view' || saving"
                           />
                         </td>
@@ -465,7 +465,7 @@
                           <input
                             v-model="item.batch_code"
                             type="text"
-                            placeholder="Batch code"
+                            :placeholder="t('purchasesPage.batchCodePlaceholder')"
                             :disabled="modalMode === 'view' || saving"
                           />
                         </td>
@@ -478,7 +478,7 @@
                             class="icon-delete-btn"
                             @click="removePurchaseItem(index)"
                           >
-                            Remove
+                            {{ t('purchasesPage.remove') }}
                           </button>
                         </td>
                       </tr>
@@ -488,7 +488,7 @@
 
                 <div class="mobile-items-list">
                   <div v-if="form.items.length === 0" class="mobile-empty">
-                    No purchase items yet.
+                    {{ t('purchasesPage.noPurchaseItemsYet') }}
                   </div>
 
                   <div
@@ -498,18 +498,18 @@
                   >
                     <div class="mobile-item-grid">
                       <div class="form-group full">
-                        <label>Product ID</label>
+                        <label>{{ t('purchasesPage.productId') }}</label>
                         <input
                           v-model="item.product"
                           type="number"
                           min="1"
-                          placeholder="Product ID"
+                          :placeholder="t('purchasesPage.productId')"
                           :disabled="modalMode === 'view' || saving"
                         />
                       </div>
 
                       <div class="form-group">
-                        <label>Quantity</label>
+                        <label>{{ t('purchasesPage.quantity') }}</label>
                         <input
                           v-model="item.quantity"
                           type="number"
@@ -521,7 +521,7 @@
                       </div>
 
                       <div class="form-group">
-                        <label>Cost Price</label>
+                        <label>{{ t('purchasesPage.costPrice') }}</label>
                         <input
                           v-model="item.cost_price"
                           type="number"
@@ -533,7 +533,7 @@
                       </div>
 
                       <div class="form-group">
-                        <label>Expired Date</label>
+                        <label>{{ t('purchasesPage.expiredDate') }}</label>
                         <input
                           v-model="item.expired_date"
                           type="date"
@@ -542,17 +542,18 @@
                       </div>
 
                       <div class="form-group">
-                        <label>Batch Code</label>
+                        <label>{{ t('purchasesPage.batchCode') }}</label>
                         <input
                           v-model="item.batch_code"
                           type="text"
-                          placeholder="Batch code"
+                          :placeholder="t('purchasesPage.batchCodePlaceholder')"
                           :disabled="modalMode === 'view' || saving"
                         />
                       </div>
 
                       <div class="mobile-item-total">
-                        Total: <strong>${{ formatMoney(itemTotal(item)) }}</strong>
+                        {{ t('purchasesPage.itemTotal') }}:
+                        <strong>${{ formatMoney(itemTotal(item)) }}</strong>
                       </div>
 
                       <div v-if="modalMode !== 'view'" class="mobile-item-actions">
@@ -561,7 +562,7 @@
                           class="btn btn-danger btn-sm"
                           @click="removePurchaseItem(index)"
                         >
-                          Remove
+                          {{ t('purchasesPage.remove') }}
                         </button>
                       </div>
                     </div>
@@ -569,7 +570,7 @@
                 </div>
 
                 <div class="grand-total-box">
-                  <span>Grand Total</span>
+                  <span>{{ t('purchasesPage.grandTotal') }}</span>
                   <strong>${{ formatMoney(form.grand_total) }}</strong>
                 </div>
               </div>
@@ -580,20 +581,20 @@
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
                   {{
                     saving
-                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
-                      : (modalMode === 'create' ? 'Save Purchase' : 'Update Purchase')
+                      ? (modalMode === 'create' ? t('purchasesPage.saving') : t('purchasesPage.updating'))
+                      : (modalMode === 'create' ? t('purchasesPage.savePurchase') : t('purchasesPage.updatePurchase'))
                   }}
                 </button>
               </div>
 
               <div v-else class="modal-footer">
                 <button type="button" class="btn btn-primary modal-btn" @click="closeModal">
-                  Close
+                  {{ t('common.close') }}
                 </button>
               </div>
             </form>
@@ -606,6 +607,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -648,6 +650,8 @@ type Purchase = {
 
 type ModalMode = 'create' | 'edit' | 'view'
 type TabKey = 'general' | 'items'
+
+const { t, locale } = useI18n()
 
 const search = ref('')
 const dateFilter = ref('')
@@ -715,6 +719,13 @@ const filteredItemsCount = computed(() => {
     0
   )
 })
+
+function currentDateLocale() {
+  const current = String(locale.value || 'en').toLowerCase()
+  if (current === 'id') return 'id-ID'
+  if (current === 'tet') return 'pt-PT'
+  return 'en-US'
+}
 
 function resetForm() {
   form.supplier = ''
@@ -824,30 +835,30 @@ function validateForm() {
   const validItems = form.items.filter((item) => String(item.product).trim())
 
   if (!form.purchase_date) {
-    formError.value = 'Purchase date is required.'
+    formError.value = t('purchasesPage.purchaseDateRequired')
     activeTab.value = 'general'
     return false
   }
 
   if (validItems.length === 0) {
-    formError.value = 'At least one purchase item is required.'
+    formError.value = t('purchasesPage.purchaseItemRequired')
     activeTab.value = 'items'
     return false
   }
 
   for (const item of validItems) {
     if (!String(item.product).trim()) {
-      formError.value = 'Product ID is required for each item.'
+      formError.value = t('purchasesPage.productIdRequiredEachItem')
       activeTab.value = 'items'
       return false
     }
     if (Number(item.quantity) <= 0) {
-      formError.value = 'Quantity must be greater than 0.'
+      formError.value = t('purchasesPage.quantityMustBeGreaterThanZero')
       activeTab.value = 'items'
       return false
     }
     if (Number(item.cost_price) < 0) {
-      formError.value = 'Cost price cannot be negative.'
+      formError.value = t('purchasesPage.costPriceCannotBeNegative')
       activeTab.value = 'items'
       return false
     }
@@ -908,7 +919,7 @@ async function fetchPurchases() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to load purchases.'
+      t('purchasesPage.failedLoad')
   } finally {
     loading.value = false
   }
@@ -940,10 +951,10 @@ async function savePurchase() {
         const firstValue = data[firstKey]
         formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
       } else {
-        formError.value = 'Failed to save purchase.'
+        formError.value = t('purchasesPage.failedSave')
       }
     } else {
-      formError.value = error?.message || 'Failed to save purchase.'
+      formError.value = error?.message || t('purchasesPage.failedSave')
     }
   } finally {
     saving.value = false
@@ -951,7 +962,7 @@ async function savePurchase() {
 }
 
 async function removePurchase(id: number) {
-  const ok = window.confirm('Delete this purchase?')
+  const ok = window.confirm(t('purchasesPage.deleteConfirm'))
   if (!ok) return
 
   deletingId.value = id
@@ -963,7 +974,7 @@ async function removePurchase(id: number) {
     alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to delete purchase.'
+      t('purchasesPage.failedDelete')
     )
   } finally {
     deletingId.value = null
@@ -997,7 +1008,7 @@ function formatDateDisplay(date: string) {
   const d = new Date(date)
   if (Number.isNaN(d.getTime())) return date
 
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString(currentDateLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -1009,7 +1020,7 @@ function formatDateTime(value: string) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return value
 
-  return d.toLocaleString('en-US', {
+  return d.toLocaleString(currentDateLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

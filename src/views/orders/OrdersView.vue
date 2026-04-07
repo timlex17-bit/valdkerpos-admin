@@ -3,44 +3,44 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Orders</h1>
+          <h1 class="page-title">{{ t('ordersPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage sales orders for your current shop.
+            {{ t('ordersPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Orders</span>
+          <span class="current">{{ t('ordersPage.title') }}</span>
         </nav>
       </div>
 
       <button class="btn btn-primary add-btn" @click="openCreateModal">
         <span class="btn-icon">＋</span>
-        Add Order
+        {{ t('ordersPage.addOrder') }}
       </button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Orders</div>
+        <div class="stat-label">{{ t('ordersPage.visibleOrders') }}</div>
         <div class="stat-value">{{ filteredOrders.length }}</div>
-        <div class="stat-note">Orders shown in current filter</div>
+        <div class="stat-note">{{ t('ordersPage.visibleOrdersNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Paid Orders</div>
+        <div class="stat-label">{{ t('ordersPage.paidOrders') }}</div>
         <div class="stat-value">{{ paidOrdersCount }}</div>
-        <div class="stat-note">Orders marked as paid</div>
+        <div class="stat-note">{{ t('ordersPage.paidOrdersNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Total Amount</div>
+        <div class="stat-label">{{ t('ordersPage.totalAmount') }}</div>
         <div class="stat-value">${{ filteredTotalAmount }}</div>
-        <div class="stat-note">Total from visible orders</div>
+        <div class="stat-note">{{ t('ordersPage.totalAmountNote') }}</div>
       </div>
     </div>
 
@@ -51,33 +51,33 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by invoice, customer id, payment, notes..."
+            :placeholder="t('ordersPage.searchPlaceholder')"
           />
         </div>
 
         <div class="toolbar-item">
           <select v-model="paymentFilter" class="filter-select">
-            <option value="">All payment methods</option>
-            <option value="CASH">Cash</option>
-            <option value="CARD">Card</option>
-            <option value="TRANSFER">Transfer</option>
-            <option value="QRIS">QRIS</option>
-            <option value="BANK">Bank</option>
-            <option value="SPLIT">Split</option>
+            <option value="">{{ t('ordersPage.allPaymentMethods') }}</option>
+            <option value="CASH">{{ t('ordersPage.paymentCash') }}</option>
+            <option value="CARD">{{ t('ordersPage.paymentCard') }}</option>
+            <option value="TRANSFER">{{ t('ordersPage.paymentTransfer') }}</option>
+            <option value="QRIS">{{ t('ordersPage.paymentQris') }}</option>
+            <option value="BANK">{{ t('ordersPage.paymentBank') }}</option>
+            <option value="SPLIT">{{ t('ordersPage.paymentSplit') }}</option>
           </select>
         </div>
 
         <div class="toolbar-item">
           <select v-model="paidFilter" class="filter-select">
-            <option value="">All status</option>
-            <option value="paid">Paid</option>
-            <option value="unpaid">Unpaid</option>
+            <option value="">{{ t('ordersPage.allStatus') }}</option>
+            <option value="paid">{{ t('ordersPage.paid') }}</option>
+            <option value="unpaid">{{ t('ordersPage.unpaid') }}</option>
           </select>
         </div>
 
         <div class="toolbar-item toolbar-reset">
           <button class="btn btn-light" @click="resetFilters">
-            Reset
+            {{ t('common.reset') }}
           </button>
         </div>
       </div>
@@ -86,13 +86,13 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Order List</h2>
-          <p>{{ filteredOrders.length }} order(s) found</p>
+          <h2>{{ t('ordersPage.orderList') }}</h2>
+          <p>{{ t('ordersPage.ordersFound', { count: filteredOrders.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading orders...
+        {{ t('ordersPage.loadingOrders') }}
       </div>
 
       <div v-else-if="errorMessage" class="error-state">
@@ -103,21 +103,21 @@
         <table class="order-table">
           <thead>
             <tr>
-              <th>Invoice</th>
-              <th>Customer</th>
-              <th>Payment</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Created At</th>
-              <th>Order Type</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('common.invoice') }}</th>
+              <th>{{ t('common.customer') }}</th>
+              <th>{{ t('common.payment') }}</th>
+              <th>{{ t('common.total') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('common.createdAt') }}</th>
+              <th>{{ t('common.orderType') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="filteredOrders.length === 0">
               <td colspan="8" class="empty-cell">
-                No orders found.
+                {{ t('ordersPage.noOrdersFound') }}
               </td>
             </tr>
 
@@ -125,7 +125,7 @@
               <td>
                 <div class="invoice-block">
                   <span class="invoice-code">{{ order.invoice_number }}</span>
-                  <span class="invoice-type">{{ order.default_order_type || '-' }}</span>
+                  <span class="invoice-type">{{ displayOrderType(order.default_order_type || '-') }}</span>
                 </div>
               </td>
 
@@ -136,7 +136,7 @@
                   </div>
                   <div>
                     <div class="customer-name">{{ getCustomerLabel(order.customer) }}</div>
-                    <div class="customer-sub">Order #{{ order.id }}</div>
+                    <div class="customer-sub">{{ t('ordersPage.orderNumber', { id: order.id }) }}</div>
                   </div>
                 </div>
               </td>
@@ -154,7 +154,7 @@
 
               <td>
                 <span :class="['status-badge', order.is_paid ? 'status-paid' : 'status-unpaid']">
-                  {{ order.is_paid ? 'Paid' : 'Unpaid' }}
+                  {{ order.is_paid ? t('ordersPage.paid') : t('ordersPage.unpaid') }}
                 </span>
               </td>
 
@@ -169,24 +169,24 @@
                   class="order-type-badge"
                   :class="orderTypeBadgeClass(order.default_order_type)"
                 >
-                  {{ order.default_order_type || '-' }}
+                  {{ displayOrderType(order.default_order_type || '-') }}
                 </span>
               </td>
 
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(order)">
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button class="btn btn-sm btn-warning" @click="openEditModal(order)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
                     :disabled="deletingId === order.id"
                     @click="removeOrder(order.id)"
                   >
-                    {{ deletingId === order.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === order.id ? t('ordersPage.deleting') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -197,7 +197,7 @@
 
       <div v-if="!loading && !errorMessage" class="mobile-list">
         <div v-if="filteredOrders.length === 0" class="mobile-empty">
-          No orders found.
+          {{ t('ordersPage.noOrdersFound') }}
         </div>
 
         <div
@@ -208,11 +208,11 @@
           <div class="mobile-card-top">
             <div class="mobile-card-head-left">
               <div class="invoice-code">{{ order.invoice_number }}</div>
-              <div class="customer-sub">Order #{{ order.id }}</div>
+              <div class="customer-sub">{{ t('ordersPage.orderNumber', { id: order.id }) }}</div>
             </div>
 
             <span :class="['status-badge', order.is_paid ? 'status-paid' : 'status-unpaid']">
-              {{ order.is_paid ? 'Paid' : 'Unpaid' }}
+              {{ order.is_paid ? t('ordersPage.paid') : t('ordersPage.unpaid') }}
             </span>
           </div>
 
@@ -222,13 +222,13 @@
             </div>
             <div>
               <div class="customer-name">{{ getCustomerLabel(order.customer) }}</div>
-              <div class="customer-sub">{{ order.notes || 'No notes' }}</div>
+              <div class="customer-sub">{{ order.notes || t('ordersPage.noNotes') }}</div>
             </div>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Payment</span>
+              <span class="label">{{ t('common.payment') }}</span>
               <span class="value">
                 <span
                   class="payment-badge"
@@ -240,53 +240,58 @@
             </div>
 
             <div class="info-item">
-              <span class="label">Order Type</span>
+              <span class="label">{{ t('common.orderType') }}</span>
               <span class="value">
                 <span
                   class="order-type-badge"
                   :class="orderTypeBadgeClass(order.default_order_type)"
                 >
-                  {{ order.default_order_type || '-' }}
+                  {{ displayOrderType(order.default_order_type || '-') }}
                 </span>
               </span>
             </div>
 
             <div class="info-item">
-              <span class="label">Total</span>
+              <span class="label">{{ t('common.total') }}</span>
               <span class="value strong">${{ formatMoney(order.total) }}</span>
             </div>
 
             <div class="info-item">
-              <span class="label">Discount</span>
+              <span class="label">{{ t('common.discount') }}</span>
               <span class="value">${{ formatMoney(order.discount) }}</span>
             </div>
 
             <div class="info-item full">
-              <span class="label">Created At</span>
+              <span class="label">{{ t('common.createdAt') }}</span>
               <span class="value">{{ order.created_at ? formatDateTime(order.created_at) : '-' }}</span>
             </div>
 
             <div class="info-item full">
-              <span class="label">Delivery / Table</span>
+              <span class="label">{{ t('ordersPage.deliveryTable') }}</span>
               <span class="value">
-                Table: {{ order.table_number || '-' }} · Address: {{ order.delivery_address || '-' }}
+                {{
+                  t('ordersPage.tableAddress', {
+                    table: order.table_number || '-',
+                    address: order.delivery_address || '-',
+                  })
+                }}
               </span>
             </div>
           </div>
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(order)">
-              View
+              {{ t('common.view') }}
             </button>
             <button class="btn btn-sm btn-warning" @click="openEditModal(order)">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button
               class="btn btn-sm btn-danger"
               :disabled="deletingId === order.id"
               @click="removeOrder(order.id)"
             >
-              {{ deletingId === order.id ? 'Deleting...' : 'Delete' }}
+              {{ deletingId === order.id ? t('ordersPage.deleting') : t('common.delete') }}
             </button>
           </div>
         </div>
@@ -301,17 +306,17 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Order'
+                    ? t('ordersPage.addOrderTitle')
                     : modalMode === 'edit'
-                    ? 'Edit Order'
-                    : 'Order Detail'
+                    ? t('ordersPage.editOrderTitle')
+                    : t('ordersPage.orderDetailTitle')
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View order information'
-                    : 'Fill in the order form below'
+                    ? t('ordersPage.viewOrderInformation')
+                    : t('ordersPage.fillOrderForm')
                 }}
               </p>
             </div>
@@ -323,48 +328,48 @@
             <form class="order-form" @submit.prevent="saveOrder">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Customer ID</label>
+                  <label>{{ t('ordersPage.customerId') }}</label>
                   <input
                     v-model="form.customer"
                     type="number"
                     min="1"
-                    placeholder="Leave empty for walk-in"
+                    :placeholder="t('ordersPage.customerIdPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Payment Method</label>
+                  <label>{{ t('ordersPage.paymentMethod') }}</label>
                   <input
                     v-model="form.payment_method"
                     type="text"
-                    placeholder="CASH / CARD / TRANSFER / QRIS / BANK / SPLIT"
+                    :placeholder="t('ordersPage.paymentMethodPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Order Type</label>
+                  <label>{{ t('common.orderType') }}</label>
                   <select v-model="form.order_type" :disabled="modalMode === 'view' || saving">
-                    <option value="GENERAL">GENERAL</option>
-                    <option value="DINE_IN">DINE_IN</option>
-                    <option value="TAKE_OUT">TAKE_OUT</option>
-                    <option value="DELIVERY">DELIVERY</option>
+                    <option value="GENERAL">{{ t('ordersPage.general') }}</option>
+                    <option value="DINE_IN">{{ t('ordersPage.dineIn') }}</option>
+                    <option value="TAKE_OUT">{{ t('ordersPage.takeOut') }}</option>
+                    <option value="DELIVERY">{{ t('ordersPage.delivery') }}</option>
                   </select>
                 </div>
 
                 <div class="form-group">
-                  <label>Default Order Type</label>
+                  <label>{{ t('ordersPage.defaultOrderType') }}</label>
                   <select v-model="form.default_order_type" :disabled="modalMode === 'view' || saving">
-                    <option value="GENERAL">GENERAL</option>
-                    <option value="DINE_IN">DINE_IN</option>
-                    <option value="TAKE_OUT">TAKE_OUT</option>
-                    <option value="DELIVERY">DELIVERY</option>
+                    <option value="GENERAL">{{ t('ordersPage.general') }}</option>
+                    <option value="DINE_IN">{{ t('ordersPage.dineIn') }}</option>
+                    <option value="TAKE_OUT">{{ t('ordersPage.takeOut') }}</option>
+                    <option value="DELIVERY">{{ t('ordersPage.delivery') }}</option>
                   </select>
                 </div>
 
                 <div class="form-group">
-                  <label>Discount</label>
+                  <label>{{ t('common.discount') }}</label>
                   <input
                     v-model="form.discount"
                     type="text"
@@ -374,7 +379,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Tax</label>
+                  <label>{{ t('common.tax') }}</label>
                   <input
                     v-model="form.tax"
                     type="text"
@@ -384,7 +389,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Delivery Fee</label>
+                  <label>{{ t('ordersPage.deliveryFee') }}</label>
                   <input
                     v-model="form.delivery_fee"
                     type="text"
@@ -394,63 +399,66 @@
                 </div>
 
                 <div class="form-group checkbox-group">
-                  <label>Paid Status</label>
+                  <label>{{ t('ordersPage.paidStatus') }}</label>
                   <div class="checkbox-wrap">
                     <input
                       v-model="form.is_paid"
                       type="checkbox"
                       :disabled="modalMode === 'view' || saving"
                     />
-                    <span>Mark this order as paid</span>
+                    <span>{{ t('ordersPage.markAsPaid') }}</span>
                   </div>
                 </div>
 
                 <div class="form-group full">
-                  <label>Table Number</label>
+                  <label>{{ t('ordersPage.tableNumber') }}</label>
                   <input
                     v-model="form.table_number"
                     type="text"
-                    placeholder="Table 01"
+                    :placeholder="t('ordersPage.tableNumberPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Delivery Address</label>
+                  <label>{{ t('ordersPage.deliveryAddress') }}</label>
                   <textarea
                     v-model="form.delivery_address"
                     rows="3"
-                    placeholder="Enter delivery address"
+                    :placeholder="t('ordersPage.deliveryAddressPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Notes</label>
+                  <label>{{ t('common.notes') }}</label>
                   <textarea
                     v-model="form.notes"
                     rows="4"
-                    placeholder="Enter order notes"
+                    :placeholder="t('ordersPage.notesPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Items JSON <span>*</span></label>
+                  <label>
+                    {{ t('ordersPage.itemsJson') }}
+                    <span>*</span>
+                  </label>
                   <textarea
                     v-model="itemsJson"
                     rows="8"
-                    placeholder='Example: [{"product":1,"quantity":"2","unit_price":"5.00"}]'
+                    :placeholder="t('ordersPage.itemsJsonPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Payments JSON</label>
+                  <label>{{ t('ordersPage.paymentsJson') }}</label>
                   <textarea
                     v-model="paymentsJson"
                     rows="6"
-                    placeholder='Example: [{"method":"CASH","amount":"10.00"}]'
+                    :placeholder="t('ordersPage.paymentsJsonPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -458,37 +466,37 @@
 
               <div v-if="modalMode === 'view'" class="summary-grid">
                 <div class="summary-card">
-                  <div class="summary-label">Invoice</div>
+                  <div class="summary-label">{{ t('common.invoice') }}</div>
                   <div class="summary-value">{{ selectedOrder?.invoice_number || '-' }}</div>
                 </div>
 
                 <div class="summary-card">
-                  <div class="summary-label">Payment</div>
+                  <div class="summary-label">{{ t('common.payment') }}</div>
                   <div class="summary-value">
                     {{ displayPaymentMethod(selectedOrder?.payment_method) }}
                   </div>
                 </div>
 
                 <div class="summary-card">
-                  <div class="summary-label">Created At</div>
+                  <div class="summary-label">{{ t('common.createdAt') }}</div>
                   <div class="summary-value">
                     {{ selectedOrder?.created_at ? formatDateTime(selectedOrder.created_at) : '-' }}
                   </div>
                 </div>
 
                 <div class="summary-card">
-                  <div class="summary-label">Subtotal</div>
+                  <div class="summary-label">{{ t('common.subtotal') }}</div>
                   <div class="summary-value">${{ formatMoney(selectedOrder?.subtotal) }}</div>
                 </div>
 
                 <div class="summary-card">
-                  <div class="summary-label">Total</div>
+                  <div class="summary-label">{{ t('common.total') }}</div>
                   <div class="summary-value">${{ formatMoney(selectedOrder?.total) }}</div>
                 </div>
 
                 <div class="summary-card">
-                  <div class="summary-label">Order Type</div>
-                  <div class="summary-value">{{ selectedOrder?.default_order_type || '-' }}</div>
+                  <div class="summary-label">{{ t('common.orderType') }}</div>
+                  <div class="summary-value">{{ displayOrderType(selectedOrder?.default_order_type || '-') }}</div>
                 </div>
               </div>
 
@@ -498,20 +506,20 @@
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
                   {{
                     saving
-                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
-                      : (modalMode === 'create' ? 'Save Order' : 'Update Order')
+                      ? (modalMode === 'create' ? t('ordersPage.saving') : t('ordersPage.updating'))
+                      : (modalMode === 'create' ? t('ordersPage.saveOrder') : t('ordersPage.updateOrder'))
                   }}
                 </button>
               </div>
 
               <div v-else class="modal-footer">
                 <button type="button" class="btn btn-primary modal-btn" @click="closeModal">
-                  Close
+                  {{ t('common.close') }}
                 </button>
               </div>
             </form>
@@ -524,6 +532,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -552,6 +561,8 @@ type Order = {
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
+
+const { t, locale } = useI18n()
 
 const search = ref('')
 const paymentFilter = ref('')
@@ -596,7 +607,9 @@ const filteredOrders = computed(() => {
         getCustomerLabel(order.customer).toLowerCase().includes(q) ||
         String(order.payment_method || '').toLowerCase().includes(q) ||
         String(order.notes || '').toLowerCase().includes(q) ||
-        String(order.default_order_type || '').toLowerCase().includes(q)
+        String(order.default_order_type || '').toLowerCase().includes(q) ||
+        displayPaymentMethod(order.payment_method).toLowerCase().includes(q) ||
+        displayOrderType(order.default_order_type).toLowerCase().includes(q)
       )
     })
   }
@@ -697,6 +710,14 @@ function resetFilters() {
   paidFilter.value = ''
 }
 
+function currentDateLocale() {
+  const current = String(locale.value || 'en').toLowerCase()
+
+  if (current === 'id') return 'id-ID'
+  if (current === 'tet') return 'pt-PT'
+  return 'en-US'
+}
+
 function formatMoney(value: unknown) {
   return Number(value || 0).toFixed(2)
 }
@@ -707,7 +728,7 @@ function formatDateTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(currentDateLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -727,7 +748,7 @@ function getInitials(name: string) {
 }
 
 function getCustomerLabel(customer: number | null) {
-  return customer ? `Customer #${customer}` : 'Walk In'
+  return customer ? t('ordersPage.customerLabel', { id: customer }) : t('ordersPage.walkIn')
 }
 
 function normalizeDecimalInput(value: unknown, fallback = '0.00') {
@@ -739,11 +760,14 @@ function safeParseJsonArray(raw: string, fieldName: string) {
   try {
     const parsed = JSON.parse(raw || '[]')
     if (!Array.isArray(parsed)) {
-      throw new Error(`${fieldName} must be a JSON array.`)
+      throw new Error(t('ordersPage.jsonArrayRequired', { field: fieldName }))
     }
     return parsed
   } catch (error: any) {
-    throw new Error(error?.message || `Invalid JSON in ${fieldName}.`)
+    if (error?.message?.includes(fieldName) && error?.message?.includes('JSON')) {
+      throw error
+    }
+    throw new Error(t('ordersPage.invalidJsonField', { field: fieldName }))
   }
 }
 
@@ -751,17 +775,17 @@ function validateForm() {
   formError.value = ''
 
   if (!String(form.payment_method).trim()) {
-    formError.value = 'Payment method is required.'
+    formError.value = t('ordersPage.paymentMethodRequired')
     return false
   }
 
   try {
-    const parsedItems = safeParseJsonArray(itemsJson.value, 'Items')
+    const parsedItems = safeParseJsonArray(itemsJson.value, t('ordersPage.itemsJson'))
     if (parsedItems.length === 0) {
-      formError.value = 'Items JSON is required and cannot be empty.'
+      formError.value = t('ordersPage.itemsJsonRequired')
       return false
     }
-    safeParseJsonArray(paymentsJson.value || '[]', 'Payments')
+    safeParseJsonArray(paymentsJson.value || '[]', t('ordersPage.paymentsJson'))
   } catch (error: any) {
     formError.value = error.message
     return false
@@ -786,8 +810,8 @@ function buildPayload() {
     table_number: String(form.table_number).trim(),
     delivery_address: String(form.delivery_address).trim(),
     delivery_fee: normalizeDecimalInput(form.delivery_fee, '0.00'),
-    items: safeParseJsonArray(itemsJson.value, 'Items'),
-    payments: safeParseJsonArray(paymentsJson.value || '[]', 'Payments'),
+    items: safeParseJsonArray(itemsJson.value, t('ordersPage.itemsJson')),
+    payments: safeParseJsonArray(paymentsJson.value || '[]', t('ordersPage.paymentsJson')),
   }
 }
 
@@ -828,12 +852,22 @@ function normalizeOrder(order: any): Order {
 function displayPaymentMethod(value: unknown) {
   const raw = String(value || '-').toUpperCase()
 
-  if (raw === 'CASH') return 'Cash'
-  if (raw === 'CARD') return 'Card'
-  if (raw === 'TRANSFER') return 'Transfer'
-  if (raw === 'QRIS') return 'QRIS'
-  if (raw === 'BANK') return 'Bank'
-  if (raw === 'SPLIT') return 'Split'
+  if (raw === 'CASH') return t('ordersPage.paymentCash')
+  if (raw === 'CARD') return t('ordersPage.paymentCard')
+  if (raw === 'TRANSFER') return t('ordersPage.paymentTransfer')
+  if (raw === 'QRIS') return t('ordersPage.paymentQris')
+  if (raw === 'BANK') return t('ordersPage.paymentBank')
+  if (raw === 'SPLIT') return t('ordersPage.paymentSplit')
+  return raw || '-'
+}
+
+function displayOrderType(value: unknown) {
+  const raw = String(value || '').toUpperCase()
+
+  if (raw === 'GENERAL') return t('ordersPage.general')
+  if (raw === 'DINE_IN') return t('ordersPage.dineIn')
+  if (raw === 'TAKE_OUT') return t('ordersPage.takeOut')
+  if (raw === 'DELIVERY') return t('ordersPage.delivery')
   return raw || '-'
 }
 
@@ -872,7 +906,7 @@ async function fetchOrders() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to load orders.'
+      t('ordersPage.failedLoad')
   } finally {
     loading.value = false
   }
@@ -904,10 +938,10 @@ async function saveOrder() {
         const firstValue = data[firstKey as keyof typeof data]
         formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
       } else {
-        formError.value = 'Failed to save order.'
+        formError.value = t('ordersPage.failedSave')
       }
     } else {
-      formError.value = error?.message || 'Failed to save order.'
+      formError.value = error?.message || t('ordersPage.failedSave')
     }
   } finally {
     saving.value = false
@@ -915,7 +949,7 @@ async function saveOrder() {
 }
 
 async function removeOrder(id: number) {
-  const ok = window.confirm('Delete this order?')
+  const ok = window.confirm(t('ordersPage.deleteConfirm'))
   if (!ok) return
 
   deletingId.value = id
@@ -927,7 +961,7 @@ async function removeOrder(id: number) {
     alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to delete order.'
+      t('ordersPage.failedDelete')
     )
   } finally {
     deletingId.value = null

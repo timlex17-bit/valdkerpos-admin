@@ -3,44 +3,44 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Product Returns</h1>
+          <h1 class="page-title">{{ t('productReturnsPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage product return records for your current shop.
+            {{ t('productReturnsPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Product Returns</span>
+          <span class="current">{{ t('productReturnsPage.title') }}</span>
         </nav>
       </div>
 
       <button class="btn btn-primary add-btn" @click="openCreateModal">
         <span class="btn-icon">＋</span>
-        Add Product Return
+        {{ t('productReturnsPage.addProductReturn') }}
       </button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Returns</div>
+        <div class="stat-label">{{ t('productReturnsPage.visibleReturns') }}</div>
         <div class="stat-value">{{ filteredReturns.length }}</div>
-        <div class="stat-note">Returns shown in current filter</div>
+        <div class="stat-note">{{ t('productReturnsPage.visibleReturnsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">With Customer</div>
+        <div class="stat-label">{{ t('productReturnsPage.withCustomer') }}</div>
         <div class="stat-value">{{ returnsWithCustomer }}</div>
-        <div class="stat-note">Returns linked to a customer</div>
+        <div class="stat-note">{{ t('productReturnsPage.withCustomerNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Latest Return</div>
+        <div class="stat-label">{{ t('productReturnsPage.latestReturn') }}</div>
         <div class="stat-value stat-truncate">{{ latestReturnLabel }}</div>
-        <div class="stat-note">Most recent visible return</div>
+        <div class="stat-note">{{ t('productReturnsPage.latestReturnNote') }}</div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by invoice, order, customer, returned by, or note..."
+            :placeholder="t('productReturnsPage.searchPlaceholder')"
           />
         </div>
 
@@ -65,7 +65,7 @@
 
         <div class="toolbar-item">
           <select v-model="customerFilter" class="filter-select">
-            <option value="">All customers</option>
+            <option value="">{{ t('productReturnsPage.allCustomers') }}</option>
             <option
               v-for="customer in uniqueCustomers"
               :key="customer.id"
@@ -78,7 +78,7 @@
 
         <div class="toolbar-item toolbar-reset">
           <button class="btn btn-light" @click="resetFilters">
-            Reset
+            {{ t('common.reset') }}
           </button>
         </div>
       </div>
@@ -87,11 +87,11 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Return List</h2>
-          <p>{{ filteredReturns.length }} return(s) found</p>
+          <h2>{{ t('productReturnsPage.returnList') }}</h2>
+          <p>{{ t('productReturnsPage.returnsFound', { count: filteredReturns.length }) }}</p>
         </div>
 
-        <div v-if="loading" class="table-meta">Loading...</div>
+        <div v-if="loading" class="table-meta">{{ t('productReturnsPage.loadingReturns') }}</div>
       </div>
 
       <div v-if="errorMessage" class="alert-error">
@@ -102,22 +102,22 @@
         <table class="return-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Invoice</th>
-              <th>Order</th>
-              <th>Customer</th>
-              <th>Items</th>
-              <th>Returned At</th>
-              <th>Returned By</th>
-              <th>Note</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('productReturnsPage.id') }}</th>
+              <th>{{ t('productReturnsPage.invoice') }}</th>
+              <th>{{ t('productReturnsPage.order') }}</th>
+              <th>{{ t('productReturnsPage.customer') }}</th>
+              <th>{{ t('productReturnsPage.items') }}</th>
+              <th>{{ t('productReturnsPage.returnedAt') }}</th>
+              <th>{{ t('productReturnsPage.returnedBy') }}</th>
+              <th>{{ t('productReturnsPage.note') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="!loading && filteredReturns.length === 0">
               <td colspan="9" class="empty-cell">
-                No product returns found.
+                {{ t('productReturnsPage.noReturnsFound') }}
               </td>
             </tr>
 
@@ -129,14 +129,14 @@
               <td>
                 <div class="order-block">
                   <div class="order-code">{{ item.invoice_number || '-' }}</div>
-                  <div class="order-sub">Return invoice</div>
+                  <div class="order-sub">{{ t('productReturnsPage.returnInvoice') }}</div>
                 </div>
               </td>
 
               <td>
                 <div class="order-block">
                   <div class="order-code">{{ item.order ?? '-' }}</div>
-                  <div class="order-sub">Order reference</div>
+                  <div class="order-sub">{{ t('productReturnsPage.orderReference') }}</div>
                 </div>
               </td>
 
@@ -147,17 +147,18 @@
                   </div>
                   <div>
                     <div class="customer-name">{{ item.customer_name || '-' }}</div>
-                    <div class="customer-sub">Customer</div>
+                    <div class="customer-sub">{{ t('productReturnsPage.customerText') }}</div>
                   </div>
                 </div>
               </td>
 
               <td>
                 <span class="item-count-badge">
-                  {{ item.items.length }} item(s)
+                  {{ item.items.length }} {{ t('productReturnsPage.items') }}
                 </span>
               </td>
-             <td>
+
+              <td>
                 <div class="cell-primary">
                   {{ formatDateTimeDisplay(item.returned_at) }}
                 </div>
@@ -168,22 +169,23 @@
                   {{ resolveReturnedByName(item.returned_by) }}
                 </div>
               </td>
+
               <td class="note-cell">{{ item.note || '-' }}</td>
 
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(item)">
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button class="btn btn-sm btn-warning" @click="openEditModal(item)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
                     :disabled="submitting"
                     @click="removeReturn(item.id)"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -194,7 +196,7 @@
 
       <div class="mobile-list">
         <div v-if="!loading && filteredReturns.length === 0" class="mobile-empty">
-          No product returns found.
+          {{ t('productReturnsPage.noReturnsFound') }}
         </div>
 
         <div
@@ -205,7 +207,7 @@
           <div class="mobile-card-top">
             <div class="mobile-card-head-left">
               <div class="order-code">{{ item.invoice_number || '-' }}</div>
-              <div class="customer-sub">Return #{{ item.id }}</div>
+              <div class="customer-sub">{{ t('productReturnsPage.returnNumber', { id: item.id }) }}</div>
             </div>
 
             <span class="mobile-time">
@@ -219,43 +221,43 @@
             </div>
             <div>
               <div class="customer-name">{{ item.customer_name || '-' }}</div>
-              <div class="customer-sub">Customer</div>
+              <div class="customer-sub">{{ t('productReturnsPage.customerText') }}</div>
             </div>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Order</span>
+              <span class="label">{{ t('productReturnsPage.order') }}</span>
               <span class="value">{{ item.order ?? '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Items</span>
+              <span class="label">{{ t('productReturnsPage.items') }}</span>
               <span class="value">{{ item.items.length }}</span>
             </div>
-           <div class="info-item">
-              <span class="label">Returned By</span>
+            <div class="info-item">
+              <span class="label">{{ t('productReturnsPage.returnedBy') }}</span>
               <span class="value value-strong">{{ resolveReturnedByName(item.returned_by) }}</span>
             </div>
 
             <div class="info-item full">
-              <span class="label">Returned At</span>
+              <span class="label">{{ t('productReturnsPage.returnedAt') }}</span>
               <span class="value value-strong">{{ formatDateTimeDisplay(item.returned_at) }}</span>
             </div>
             <div class="info-item full">
-              <span class="label">Note</span>
+              <span class="label">{{ t('productReturnsPage.note') }}</span>
               <span class="value">{{ item.note || '-' }}</span>
             </div>
           </div>
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(item)">
-              View
+              {{ t('common.view') }}
             </button>
             <button class="btn btn-sm btn-warning" @click="openEditModal(item)">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button class="btn btn-sm btn-danger" @click="removeReturn(item.id)">
-              Delete
+              {{ t('common.delete') }}
             </button>
           </div>
         </div>
@@ -270,17 +272,17 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Product Return'
+                    ? t('productReturnsPage.addReturnTitle')
                     : modalMode === 'edit'
-                    ? 'Edit Product Return'
-                    : 'Product Return Detail'
+                    ? t('productReturnsPage.editReturnTitle')
+                    : t('productReturnsPage.returnDetailTitle')
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View return information'
-                    : 'Fill in the product return form below'
+                    ? t('productReturnsPage.viewReturnInformation')
+                    : t('productReturnsPage.fillReturnForm')
                 }}
               </p>
             </div>
@@ -292,22 +294,22 @@
             <form class="return-form" @submit.prevent="saveReturn">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Order</label>
+                  <label>{{ t('productReturnsPage.order') }}</label>
                   <input
                     v-model.number="form.order"
                     type="number"
-                    placeholder="Enter order id"
+                    :placeholder="t('productReturnsPage.orderPlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Customer</label>
+                  <label>{{ t('productReturnsPage.customer') }}</label>
                   <select
                     v-model="form.customer_id"
                     :disabled="modalMode === 'view'"
                   >
-                    <option :value="null">Select customer</option>
+                    <option :value="null">{{ t('productReturnsPage.selectCustomer') }}</option>
                     <option
                       v-for="customer in customers"
                       :key="customer.id"
@@ -319,17 +321,17 @@
                 </div>
 
                 <div class="form-group full">
-                  <label>Note</label>
+                  <label>{{ t('productReturnsPage.note') }}</label>
                   <textarea
                     v-model="form.note"
                     rows="4"
-                    placeholder="Enter return note"
+                    :placeholder="t('productReturnsPage.notePlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Return Date <span>*</span></label>
+                  <label>{{ t('productReturnsPage.returnDate') }} <span>*</span></label>
                   <input
                     v-model="returnedDate"
                     type="date"
@@ -342,12 +344,12 @@
                     class="quick-link"
                     @click="setTodayDate"
                   >
-                    Today
+                    {{ t('productReturnsPage.today') }}
                   </button>
                 </div>
 
                 <div class="form-group">
-                  <label>Return Time <span>*</span></label>
+                  <label>{{ t('productReturnsPage.returnTime') }} <span>*</span></label>
                   <input
                     v-model="returnedTime"
                     type="time"
@@ -361,12 +363,12 @@
                     class="quick-link"
                     @click="setNowTime"
                   >
-                    Now
+                    {{ t('productReturnsPage.now') }}
                   </button>
                 </div>
 
                 <div class="form-group">
-                  <label>Combined Returned At</label>
+                  <label>{{ t('productReturnsPage.combinedReturnedAt') }}</label>
                   <input
                     :value="form.returned_at"
                     type="text"
@@ -378,8 +380,8 @@
               <div class="items-section">
                 <div class="items-header">
                   <div>
-                    <h4>Return Items</h4>
-                    <p>Add one or more items for this return.</p>
+                    <h4>{{ t('productReturnsPage.returnItemsTitle') }}</h4>
+                    <p>{{ t('productReturnsPage.returnItemsSubtitle') }}</p>
                   </div>
 
                   <button
@@ -388,12 +390,12 @@
                     class="btn btn-light btn-sm"
                     @click="addItemRow"
                   >
-                    Add Item
+                    {{ t('productReturnsPage.addItem') }}
                   </button>
                 </div>
 
                 <div v-if="form.items.length === 0" class="empty-items">
-                  No return items added yet.
+                  {{ t('productReturnsPage.noReturnItemsYet') }}
                 </div>
 
                 <div
@@ -403,12 +405,12 @@
                 >
                   <div class="item-grid">
                     <div class="form-group">
-                      <label>Product <span>*</span></label>
+                      <label>{{ t('productReturnsPage.product') }} <span>*</span></label>
                       <select
                         v-model="item.product_id"
                         :disabled="modalMode === 'view'"
                       >
-                        <option :value="null">Select product</option>
+                        <option :value="null">{{ t('productReturnsPage.selectProduct') }}</option>
                         <option
                           v-for="product in products"
                           :key="product.id"
@@ -420,7 +422,7 @@
                     </div>
 
                     <div class="form-group">
-                      <label>Quantity <span>*</span></label>
+                      <label>{{ t('productReturnsPage.quantity') }} <span>*</span></label>
                       <input
                         v-model.number="item.quantity"
                         type="number"
@@ -432,7 +434,7 @@
                     </div>
 
                     <div class="form-group">
-                      <label>Unit Price</label>
+                      <label>{{ t('productReturnsPage.unitPrice') }}</label>
                       <input
                         v-model.number="item.unit_price"
                         type="number"
@@ -453,7 +455,7 @@
                         class="btn btn-danger btn-sm"
                         @click="removeItemRow(index)"
                       >
-                        Remove
+                        {{ t('productReturnsPage.remove') }}
                       </button>
                     </div>
                   </div>
@@ -462,16 +464,22 @@
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary modal-btn" :disabled="submitting">
-                  {{ submitting ? 'Saving...' : modalMode === 'create' ? 'Save Product Return' : 'Update Product Return' }}
+                  {{
+                    submitting
+                      ? t('productReturnsPage.saving')
+                      : modalMode === 'create'
+                        ? t('productReturnsPage.saveReturn')
+                        : t('productReturnsPage.updateReturn')
+                  }}
                 </button>
               </div>
 
               <div v-else class="modal-footer">
                 <button type="button" class="btn btn-primary modal-btn" @click="closeModal">
-                  Close
+                  {{ t('common.close') }}
                 </button>
               </div>
             </form>
@@ -484,6 +492,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -513,17 +522,6 @@ type ApiReturnItem = {
   product_name?: string
   quantity?: number | string
   unit_price?: number | string
-}
-
-type ApiProductReturn = {
-  id: number
-  order: number | null
-  invoice_number: string
-  customer: ApiCustomer | null
-  note: string
-  returned_at: string
-  returned_by: ApiReturnedBy | string | null
-  items: ApiReturnItem[]
 }
 
 type ProductReturnRow = {
@@ -557,6 +555,8 @@ type FormItem = {
   unit_price: number | null
 }
 
+const { t, locale } = useI18n()
+
 const search = ref('')
 const dateFilter = ref('')
 const customerFilter = ref('')
@@ -581,6 +581,13 @@ const form = reactive({
   returned_at: '',
   items: [] as FormItem[],
 })
+
+function currentDateLocale() {
+  const current = String(locale.value || 'en').toLowerCase()
+  if (current === 'id') return 'id-ID'
+  if (current === 'tet') return 'pt-PT'
+  return 'en-US'
+}
 
 function resolveCustomerName(customer: any) {
   if (!customer) return ''
@@ -835,7 +842,7 @@ function formatDateTimeDisplay(value: any) {
     return raw
   }
 
-  return d.toLocaleString('en-US', {
+  return d.toLocaleString(currentDateLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -854,7 +861,7 @@ function formatDateShort(value: any) {
   const d = new Date(raw)
   if (Number.isNaN(d.getTime())) return raw
 
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString(currentDateLocale(), {
     month: 'short',
     day: 'numeric',
   })
@@ -877,22 +884,22 @@ function validateForm() {
   syncReturnedAt()
 
   if (!form.returned_at.trim()) {
-    alert('Returned date and time are required.')
+    alert(t('productReturnsPage.returnedDateTimeRequired'))
     return false
   }
 
   if (!Array.isArray(form.items) || form.items.length === 0) {
-    alert('At least one return item is required.')
+    alert(t('productReturnsPage.returnItemRequired'))
     return false
   }
 
   for (const item of form.items) {
     if (!item.product_id) {
-      alert('Each item must have a product.')
+      alert(t('productReturnsPage.eachItemMustHaveProduct'))
       return false
     }
     if (!item.quantity || Number(item.quantity) <= 0) {
-      alert('Each item quantity must be greater than 0.')
+      alert(t('productReturnsPage.eachItemQuantityMustBeGreaterThanZero'))
       return false
     }
   }
@@ -926,7 +933,7 @@ async function fetchReturns() {
     console.error('Failed to fetch product returns:', error)
     errorMessage.value =
       error?.response?.data?.detail ||
-      'Failed to load product returns.'
+      t('productReturnsPage.failedLoad')
   } finally {
     loading.value = false
   }
@@ -980,7 +987,7 @@ async function saveReturn() {
     const serverMessage =
       error?.response?.data?.detail ||
       JSON.stringify(error?.response?.data || {}) ||
-      'Failed to save product return.'
+      t('productReturnsPage.failedSave')
     alert(serverMessage)
   } finally {
     submitting.value = false
@@ -988,7 +995,7 @@ async function saveReturn() {
 }
 
 async function removeReturn(id: number) {
-  const ok = window.confirm('Delete this product return?')
+  const ok = window.confirm(t('productReturnsPage.deleteConfirm'))
   if (!ok) return
 
   submitting.value = true
@@ -999,7 +1006,7 @@ async function removeReturn(id: number) {
     console.error('Failed to delete product return:', error)
     alert(
       error?.response?.data?.detail ||
-      'Failed to delete product return.'
+      t('productReturnsPage.failedDelete')
     )
   } finally {
     submitting.value = false
@@ -1916,6 +1923,7 @@ onMounted(async () => {
     font-size: 22px;
   }
 }
+
 .cell-primary {
   color: #162033 !important;
   font-size: 14px;
