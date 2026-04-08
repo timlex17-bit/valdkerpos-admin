@@ -2,40 +2,40 @@
   <div class="dashboard-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Units</h1>
-        <p class="page-subtitle">Manage product units for your current shop.</p>
+        <h1 class="page-title">{{ t('unitsPage.title') }}</h1>
+        <p class="page-subtitle">{{ t('unitsPage.subtitle') }}</p>
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span>/</span>
-          <span class="active">Units</span>
+          <span class="active">{{ t('unitsPage.title') }}</span>
         </div>
       </div>
 
       <button class="add-btn" @click="openAddModal">
         <span>+</span>
-        Add Unit
+        {{ t('unitsPage.addUnit') }}
       </button>
     </section>
 
     <section class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Units</div>
+        <div class="stat-label">{{ t('unitsPage.visibleUnits') }}</div>
         <div class="stat-value">{{ filteredUnits.length }}</div>
-        <div class="stat-note">Units shown in current filter</div>
+        <div class="stat-note">{{ t('unitsPage.visibleUnitsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Total Units</div>
+        <div class="stat-label">{{ t('unitsPage.totalUnits') }}</div>
         <div class="stat-value">{{ units.length }}</div>
-        <div class="stat-note">All units from API</div>
+        <div class="stat-note">{{ t('unitsPage.totalUnitsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Search Result</div>
+        <div class="stat-label">{{ t('unitsPage.searchResult') }}</div>
         <div class="stat-value">{{ filteredUnits.length }}</div>
-        <div class="stat-note">Filtered by current keyword</div>
+        <div class="stat-note">{{ t('unitsPage.searchResultNote') }}</div>
       </div>
     </section>
 
@@ -46,29 +46,29 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search unit..."
+            :placeholder="t('unitsPage.searchPlaceholder')"
           />
         </div>
 
-        <button class="reset-btn" @click="resetFilters">Reset</button>
+        <button class="reset-btn" @click="resetFilters">{{ t('common.reset') }}</button>
       </div>
     </section>
 
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>Unit List</h2>
-          <p>{{ filteredUnits.length }} unit(s) found</p>
+          <h2>{{ t('unitsPage.unitList') }}</h2>
+          <p>{{ t('unitsPage.unitsFound', { count: filteredUnits.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="empty-state">
-        <h3>Loading units...</h3>
-        <p>Please wait a moment.</p>
+        <h3>{{ t('unitsPage.loadingTitle') }}</h3>
+        <p>{{ t('unitsPage.loadingSubtitle') }}</p>
       </div>
 
       <div v-else-if="errorMessage" class="empty-state">
-        <h3>Failed to load units</h3>
+        <h3>{{ t('unitsPage.failedLoadTitle') }}</h3>
         <p>{{ errorMessage }}</p>
       </div>
 
@@ -76,11 +76,11 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Unit</th>
-              <th>Display</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{{ t('unitsPage.id') }}</th>
+              <th>{{ t('unitsPage.unit') }}</th>
+              <th>{{ t('unitsPage.display') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -89,7 +89,7 @@
               <td>
                 <div class="ref-cell">
                   <div class="ref-main">UN{{ String(unit.id).padStart(10, '0') }}</div>
-                  <div class="ref-sub">Unit</div>
+                  <div class="ref-sub">{{ t('unitsPage.unit') }}</div>
                 </div>
               </td>
 
@@ -104,19 +104,19 @@
               </td>
 
               <td>
-                <span class="status-badge paid">Ready</span>
+                <span class="status-badge paid">{{ t('unitsPage.ready') }}</span>
               </td>
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openEditModal(unit)">View</button>
-                  <button class="btn-edit" @click="openEditModal(unit)">Edit</button>
+                  <button class="btn-view" @click="openEditModal(unit)">{{ t('common.view') }}</button>
+                  <button class="btn-edit" @click="openEditModal(unit)">{{ t('common.edit') }}</button>
                   <button
                     class="btn-delete"
                     :disabled="deletingId === unit.id"
                     @click="deleteUnit(unit.id)"
                   >
-                    {{ deletingId === unit.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === unit.id ? t('common.loading') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -126,8 +126,8 @@
       </div>
 
       <div v-else class="empty-state">
-        <h3>No units found</h3>
-        <p>Try another keyword or create a new unit.</p>
+        <h3>{{ t('unitsPage.noUnitsTitle') }}</h3>
+        <p>{{ t('unitsPage.noUnitsSubtitle') }}</p>
       </div>
     </section>
 
@@ -135,8 +135,8 @@
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditMode ? 'Edit Unit' : 'Add Unit' }}</h2>
-            <p>Fill in the form below to save unit data.</p>
+            <h2>{{ isEditMode ? t('unitsPage.editUnitTitle') : t('unitsPage.addUnitTitle') }}</h2>
+            <p>{{ t('unitsPage.unitFormSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeModal">×</button>
         </div>
@@ -144,29 +144,29 @@
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group form-group-full">
-              <label>Unit Name</label>
+              <label>{{ t('unitsPage.unitName') }}</label>
               <input
                 v-model="form.name"
                 type="text"
                 class="form-input"
-                placeholder="Enter unit name"
+                :placeholder="t('unitsPage.unitNamePlaceholder')"
               />
               <small v-if="formError" class="error-text">{{ formError }}</small>
             </div>
           </div>
 
           <div class="preview-box">
-            <div class="preview-label">Preview</div>
+            <div class="preview-label">{{ t('unitsPage.preview') }}</div>
             <div class="preview-avatar">
               {{ getInitial(form.name || 'U') }}
             </div>
-            <div class="preview-name">{{ form.name || 'Unit Name' }}</div>
+            <div class="preview-name">{{ form.name || t('unitsPage.previewName') }}</div>
           </div>
 
           <div class="modal-actions">
-            <button class="secondary-btn" @click="closeModal">Cancel</button>
+            <button class="secondary-btn" @click="closeModal">{{ t('common.cancel') }}</button>
             <button class="save-btn" :disabled="saving" @click="saveUnit">
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ saving ? t('productsPage.saving') : t('common.save') }}
             </button>
           </div>
         </div>
@@ -177,6 +177,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -184,6 +185,8 @@ type Unit = {
   id: number
   name: string
 }
+
+const { t } = useI18n()
 
 const units = ref<Unit[]>([])
 const search = ref('')
@@ -246,7 +249,7 @@ function validateForm() {
   formError.value = ''
 
   if (!form.name.trim()) {
-    formError.value = 'Unit name is required.'
+    formError.value = t('unitsPage.unitNameRequired')
     return false
   }
 
@@ -264,7 +267,7 @@ async function fetchUnits() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Unable to fetch units.'
+      t('unitsPage.unableFetch')
   } finally {
     loading.value = false
   }
@@ -306,10 +309,10 @@ async function saveUnit() {
         const firstValue = data[firstKey]
         formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
       } else {
-        formError.value = 'Failed to save unit.'
+        formError.value = t('unitsPage.failedSave')
       }
     } else {
-      formError.value = error?.message || 'Failed to save unit.'
+      formError.value = error?.message || t('unitsPage.failedSave')
     }
   } finally {
     saving.value = false
@@ -317,7 +320,7 @@ async function saveUnit() {
 }
 
 async function deleteUnit(id: number) {
-  if (!window.confirm('Delete this unit?')) return
+  if (!window.confirm(t('unitsPage.deleteConfirm'))) return
 
   deletingId.value = id
 
@@ -328,7 +331,7 @@ async function deleteUnit(id: number) {
     alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to delete unit.'
+      t('unitsPage.failedDelete')
     )
   } finally {
     deletingId.value = null

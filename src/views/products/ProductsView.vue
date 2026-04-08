@@ -3,50 +3,50 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Products</h1>
+          <h1 class="page-title">{{ t('productsPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage products for your current shop.
+            {{ t('productsPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Products</span>
+          <span class="current">{{ t('productsPage.title') }}</span>
         </nav>
       </div>
 
       <div class="header-actions">
         <button class="btn btn-light" @click="fetchAllData" :disabled="loading">
-          {{ loading ? 'Loading...' : 'Refresh' }}
+          {{ loading ? t('common.loading') : t('productsPage.refresh') }}
         </button>
 
         <button class="btn btn-primary add-btn" @click="openCreateModal">
           <span class="btn-icon">＋</span>
-          Add Product
+          {{ t('productsPage.addProduct') }}
         </button>
       </div>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Products</div>
+        <div class="stat-label">{{ t('productsPage.visibleProducts') }}</div>
         <div class="stat-value">{{ filteredProducts.length }}</div>
-        <div class="stat-note">Products shown in current filter</div>
+        <div class="stat-note">{{ t('productsPage.visibleProductsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Low Stock</div>
+        <div class="stat-label">{{ t('productsPage.lowStock') }}</div>
         <div class="stat-value">{{ lowStockCount }}</div>
-        <div class="stat-note">Products with stock below 20</div>
+        <div class="stat-note">{{ t('productsPage.lowStockNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Inventory Units</div>
+        <div class="stat-label">{{ t('productsPage.inventoryUnits') }}</div>
         <div class="stat-value">{{ totalStockUnits }}</div>
-        <div class="stat-note">Total stock from visible products</div>
+        <div class="stat-note">{{ t('productsPage.inventoryUnitsNote') }}</div>
       </div>
     </div>
 
@@ -61,13 +61,13 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by name, code, SKU, supplier..."
+            :placeholder="t('productsPage.searchPlaceholder')"
           />
         </div>
 
         <div class="toolbar-item">
           <select v-model="categoryFilter" class="filter-select">
-            <option value="">All categories</option>
+            <option value="">{{ t('productsPage.allCategories') }}</option>
             <option
               v-for="category in categoryOptions"
               :key="category.id"
@@ -80,7 +80,7 @@
 
         <div class="toolbar-item">
           <select v-model="supplierFilter" class="filter-select">
-            <option value="">All suppliers</option>
+            <option value="">{{ t('productsPage.allSuppliers') }}</option>
             <option
               v-for="supplier in supplierOptions"
               :key="supplier.id"
@@ -93,17 +93,17 @@
 
         <div class="toolbar-item">
           <select v-model="itemTypeFilter" class="filter-select">
-            <option value="">All item types</option>
-            <option value="product">Product</option>
-            <option value="menu">Menu</option>
-            <option value="service">Service</option>
-            <option value="sparepart">Sparepart</option>
+            <option value="">{{ t('productsPage.allItemTypes') }}</option>
+            <option value="product">{{ t('productsPage.productType') }}</option>
+            <option value="menu">{{ t('productsPage.menuType') }}</option>
+            <option value="service">{{ t('productsPage.serviceType') }}</option>
+            <option value="sparepart">{{ t('productsPage.sparepartType') }}</option>
           </select>
         </div>
 
         <div class="toolbar-item toolbar-reset">
           <button class="btn btn-light" @click="resetFilters">
-            Reset
+            {{ t('common.reset') }}
           </button>
         </div>
       </div>
@@ -112,8 +112,8 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Product List</h2>
-          <p>{{ filteredProducts.length }} product(s) found</p>
+          <h2>{{ t('productsPage.productList') }}</h2>
+          <p>{{ t('productsPage.productsFound', { count: filteredProducts.length }) }}</p>
         </div>
       </div>
 
@@ -121,24 +121,24 @@
         <table class="product-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Product</th>
-              <th>Code</th>
-              <th>SKU</th>
-              <th>Item Type</th>
-              <th>Category</th>
-              <th>Sell Price</th>
-              <th>Supplier</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('productsPage.id') }}</th>
+              <th>{{ t('productsPage.product') }}</th>
+              <th>{{ t('productsPage.code') }}</th>
+              <th>{{ t('productsPage.sku') }}</th>
+              <th>{{ t('productsPage.itemType') }}</th>
+              <th>{{ t('productsPage.category') }}</th>
+              <th>{{ t('productsPage.sellPrice') }}</th>
+              <th>{{ t('productsPage.supplier') }}</th>
+              <th>{{ t('productsPage.stock') }}</th>
+              <th>{{ t('productsPage.status') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="!loading && filteredProducts.length === 0">
               <td colspan="11" class="empty-cell">
-                No products found.
+                {{ t('productsPage.noProductsFound') }}
               </td>
             </tr>
 
@@ -164,7 +164,7 @@
                   <div class="product-text">
                     <div class="product-name">{{ product.name }}</div>
                     <div class="product-sub">
-                      {{ product.description || 'No description' }}
+                      {{ product.description || t('productsPage.noDescription') }}
                     </div>
                   </div>
                 </div>
@@ -183,20 +183,20 @@
               </td>
               <td>
                 <span :class="['status-badge', product.is_active ? 'status-active' : 'status-inactive']">
-                  {{ product.is_active ? 'Active' : 'Inactive' }}
+                  {{ product.is_active ? t('productsPage.active') : t('productsPage.inactive') }}
                 </span>
               </td>
 
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(product)">
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button class="btn btn-sm btn-warning" @click="openEditModal(product)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button class="btn btn-sm btn-danger" @click="removeProduct(product.id)">
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -207,7 +207,7 @@
 
       <div class="mobile-list">
         <div v-if="!loading && filteredProducts.length === 0" class="mobile-empty">
-          No products found.
+          {{ t('productsPage.noProductsFound') }}
         </div>
 
         <div
@@ -236,57 +236,57 @@
             </div>
 
             <span :class="['status-badge', product.is_active ? 'status-active' : 'status-inactive']">
-              {{ product.is_active ? 'Active' : 'Inactive' }}
+              {{ product.is_active ? t('productsPage.active') : t('productsPage.inactive') }}
             </span>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">SKU</span>
+              <span class="label">{{ t('productsPage.sku') }}</span>
               <span class="value">{{ product.sku || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Type</span>
+              <span class="label">{{ t('productsPage.type') }}</span>
               <span class="value">{{ formatItemType(product.item_type) }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Category</span>
+              <span class="label">{{ t('productsPage.category') }}</span>
               <span class="value">{{ product.category_name || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Supplier</span>
+              <span class="label">{{ t('productsPage.supplier') }}</span>
               <span class="value">{{ product.supplier_name || '-' }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Sell Price</span>
+              <span class="label">{{ t('productsPage.sellPrice') }}</span>
               <span class="value strong">${{ formatMoney(product.sell_price) }}</span>
             </div>
             <div class="info-item">
-              <span class="label">Stock</span>
+              <span class="label">{{ t('productsPage.stock') }}</span>
               <span class="value">{{ displayNumber(product.stock) }}</span>
             </div>
             <div class="info-item full">
-              <span class="label">Description</span>
+              <span class="label">{{ t('productsPage.description') }}</span>
               <span class="value">{{ product.description || '-' }}</span>
             </div>
           </div>
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(product)">
-              View
+              {{ t('common.view') }}
             </button>
             <button class="btn btn-sm btn-warning" @click="openEditModal(product)">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button class="btn btn-sm btn-danger" @click="removeProduct(product.id)">
-              Delete
+              {{ t('common.delete') }}
             </button>
           </div>
         </div>
       </div>
 
       <div v-if="loading" class="loading-box">
-        Loading products...
+        {{ t('productsPage.loadingProducts') }}
       </div>
     </div>
 
@@ -298,17 +298,17 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Product'
+                    ? t('productsPage.addProductTitle')
                     : modalMode === 'edit'
-                    ? 'Edit Product'
-                    : 'Product Detail'
+                      ? t('productsPage.editProductTitle')
+                      : t('productsPage.productDetailTitle')
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View product information'
-                    : 'Fill in product information below'
+                    ? t('productsPage.viewProductInformation')
+                    : t('productsPage.fillProductForm')
                 }}
               </p>
             </div>
@@ -320,49 +320,49 @@
             <form class="product-form" @submit.prevent="saveProduct">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Name <span>*</span></label>
+                  <label>{{ t('productsPage.name') }} <span>*</span></label>
                   <input
                     v-model="form.name"
                     type="text"
-                    placeholder="Enter product name"
+                    :placeholder="t('productsPage.namePlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Code <span>*</span></label>
+                  <label>{{ t('productsPage.code') }} <span>*</span></label>
                   <input
                     v-model="form.code"
                     type="text"
-                    placeholder="Enter barcode / code"
+                    :placeholder="t('productsPage.codePlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>SKU</label>
+                  <label>{{ t('productsPage.sku') }}</label>
                   <input
                     v-model="form.sku"
                     type="text"
-                    placeholder="Enter SKU"
+                    :placeholder="t('productsPage.skuPlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Item Type <span>*</span></label>
+                  <label>{{ t('productsPage.itemType') }} <span>*</span></label>
                   <select v-model="form.item_type" :disabled="modalMode === 'view'">
-                    <option value="product">Product</option>
-                    <option value="menu">Menu</option>
-                    <option value="service">Service</option>
-                    <option value="sparepart">Sparepart</option>
+                    <option value="product">{{ t('productsPage.productType') }}</option>
+                    <option value="menu">{{ t('productsPage.menuType') }}</option>
+                    <option value="service">{{ t('productsPage.serviceType') }}</option>
+                    <option value="sparepart">{{ t('productsPage.sparepartType') }}</option>
                   </select>
                 </div>
 
                 <div class="form-group">
-                  <label>Category</label>
+                  <label>{{ t('productsPage.category') }}</label>
                   <select v-model="form.category_id" :disabled="modalMode === 'view'">
-                    <option :value="null">Select category</option>
+                    <option :value="null">{{ t('productsPage.selectCategory') }}</option>
                     <option
                       v-for="category in categoryOptions"
                       :key="category.id"
@@ -374,9 +374,9 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Unit</label>
+                  <label>{{ t('productsPage.unit') }}</label>
                   <select v-model="form.unit_id" :disabled="modalMode === 'view'">
-                    <option :value="null">Select unit</option>
+                    <option :value="null">{{ t('productsPage.selectUnit') }}</option>
                     <option
                       v-for="unit in unitOptions"
                       :key="unit.id"
@@ -388,9 +388,9 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Supplier</label>
+                  <label>{{ t('productsPage.supplier') }}</label>
                   <select v-model="form.supplier_id" :disabled="modalMode === 'view'">
-                    <option :value="null">Select supplier</option>
+                    <option :value="null">{{ t('productsPage.selectSupplier') }}</option>
                     <option
                       v-for="supplier in supplierOptions"
                       :key="supplier.id"
@@ -402,7 +402,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Stock <span>*</span></label>
+                  <label>{{ t('productsPage.stock') }} <span>*</span></label>
                   <input
                     v-model.number="form.stock"
                     type="number"
@@ -412,7 +412,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Buy Price <span>*</span></label>
+                  <label>{{ t('productsPage.buyPrice') }} <span>*</span></label>
                   <input
                     v-model="form.buy_price"
                     type="number"
@@ -422,7 +422,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Sell Price <span>*</span></label>
+                  <label>{{ t('productsPage.sellPrice') }} <span>*</span></label>
                   <input
                     v-model="form.sell_price"
                     type="number"
@@ -432,7 +432,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Weight</label>
+                  <label>{{ t('productsPage.weight') }}</label>
                   <input
                     v-model="form.weight"
                     type="number"
@@ -442,73 +442,73 @@
                 </div>
 
                 <div class="form-group checkbox-row">
-                  <label>Track Stock</label>
+                  <label>{{ t('productsPage.trackStock') }}</label>
                   <div class="checkbox-wrap">
                     <input
                       v-model="form.track_stock"
                       type="checkbox"
                       :disabled="modalMode === 'view'"
                     />
-                    <span>Enable stock tracking</span>
+                    <span>{{ t('productsPage.enableStockTracking') }}</span>
                   </div>
                 </div>
 
                 <div class="form-group checkbox-row">
-                  <label>Is Active</label>
+                  <label>{{ t('productsPage.isActive') }}</label>
                   <div class="checkbox-wrap">
                     <input
                       v-model="form.is_active"
                       type="checkbox"
                       :disabled="modalMode === 'view'"
                     />
-                    <span>Product is active</span>
+                    <span>{{ t('productsPage.productIsActive') }}</span>
                   </div>
                 </div>
 
                 <div class="form-group full">
-                  <label>Description</label>
+                  <label>{{ t('productsPage.description') }}</label>
                   <textarea
                     v-model="form.description"
                     rows="5"
-                    placeholder="Enter product description"
+                    :placeholder="t('productsPage.descriptionPlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Image URL</label>
+                  <label>{{ t('productsPage.imageUrl') }}</label>
                   <input
                     v-model="form.image"
                     type="text"
-                    placeholder="Enter image URL"
+                    :placeholder="t('productsPage.imageUrlPlaceholder')"
                     :disabled="modalMode === 'view'"
                   />
                 </div>
 
                 <div class="form-group full" v-if="currentPreviewImage">
-                  <label>Preview</label>
+                  <label>{{ t('productsPage.preview') }}</label>
                   <div class="image-preview-wrap">
-                    <img :src="currentPreviewImage" alt="Preview" class="image-preview" />
+                    <img :src="currentPreviewImage" :alt="t('productsPage.preview')" class="image-preview" />
                   </div>
                 </div>
               </div>
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light modal-btn" @click="closeModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
                   {{
                     saving
-                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
-                      : (modalMode === 'create' ? 'Save Product' : 'Update Product')
+                      ? (modalMode === 'create' ? t('productsPage.saving') : t('productsPage.updating'))
+                      : (modalMode === 'create' ? t('productsPage.saveProduct') : t('productsPage.updateProduct'))
                   }}
                 </button>
               </div>
 
               <div v-else class="modal-footer">
                 <button type="button" class="btn btn-primary modal-btn" @click="closeModal">
-                  Close
+                  {{ t('common.close') }}
                 </button>
               </div>
             </form>
@@ -521,6 +521,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -578,6 +579,8 @@ type LookupOption = {
   id: number
   name: string
 }
+
+const { t } = useI18n()
 
 const search = ref('')
 const categoryFilter = ref('')
@@ -761,7 +764,7 @@ async function fetchAllData() {
     console.error('Failed to load products data:', err)
     error.value =
       err?.response?.data?.detail ||
-      'Failed to load products data. Please check API and token.'
+      t('productsPage.failedLoad')
   } finally {
     loading.value = false
   }
@@ -848,22 +851,22 @@ function closeModal() {
 
 function validateForm() {
   if (!form.name.trim()) {
-    alert('Product name is required.')
+    alert(t('productsPage.productNameRequired'))
     return false
   }
 
   if (!form.code.trim()) {
-    alert('Product code is required.')
+    alert(t('productsPage.productCodeRequired'))
     return false
   }
 
   if (Number(form.stock) < 0) {
-    alert('Stock cannot be negative.')
+    alert(t('productsPage.stockCannotBeNegative'))
     return false
   }
 
   if (Number(form.buy_price) < 0 || Number(form.sell_price) < 0 || Number(form.weight) < 0) {
-    alert('Numeric values cannot be negative.')
+    alert(t('productsPage.numericCannotBeNegative'))
     return false
   }
 
@@ -911,7 +914,7 @@ async function saveProduct() {
     alert(
       err?.response?.data?.detail ||
       JSON.stringify(err?.response?.data || {}) ||
-      'Failed to save product.'
+      t('productsPage.failedSave')
     )
   } finally {
     saving.value = false
@@ -919,7 +922,7 @@ async function saveProduct() {
 }
 
 async function removeProduct(id: number) {
-  const ok = window.confirm('Delete this product?')
+  const ok = window.confirm(t('productsPage.deleteConfirm'))
   if (!ok) return
 
   try {
@@ -929,7 +932,7 @@ async function removeProduct(id: number) {
     console.error('Failed to delete product:', err)
     alert(
       err?.response?.data?.detail ||
-      'Failed to delete product.'
+      t('productsPage.failedDelete')
     )
   }
 }
@@ -953,13 +956,13 @@ function displayNumber(value: number | null | undefined) {
 function formatItemType(value: string) {
   switch (value) {
     case 'product':
-      return 'Product'
+      return t('productsPage.productType')
     case 'menu':
-      return 'Menu'
+      return t('productsPage.menuType')
     case 'service':
-      return 'Service'
+      return t('productsPage.serviceType')
     case 'sparepart':
-      return 'Sparepart'
+      return t('productsPage.sparepartType')
     default:
       return value || '-'
   }

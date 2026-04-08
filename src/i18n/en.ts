@@ -380,6 +380,353 @@ shiftsPage: {
   failedClose: 'Failed to close shift.',
   failedReport: 'Failed to fetch shift report.',
 },
+// en.ts
+productsPage: {
+  title: 'Products',
+  subtitle: 'Manage products for your current shop.',
+  addProduct: 'Add Product',
+  refresh: 'Refresh',
+
+  visibleProducts: 'Visible Products',
+  visibleProductsNote: 'Products shown in current filter',
+  lowStock: 'Low Stock',
+  lowStockNote: 'Products with stock below 20',
+  inventoryUnits: 'Inventory Units',
+  inventoryUnitsNote: 'Total stock from visible products',
+
+  searchPlaceholder: 'Search by name, code, SKU, supplier...',
+  allCategories: 'All categories',
+  allSuppliers: 'All suppliers',
+  allItemTypes: 'All item types',
+
+  productList: 'Product List',
+  productsFound: '{count} product(s) found',
+  noProductsFound: 'No products found.',
+  loadingProducts: 'Loading products...',
+
+  id: 'ID',
+  product: 'Product',
+  code: 'Code',
+  sku: 'SKU',
+  itemType: 'Item Type',
+  category: 'Category',
+  sellPrice: 'Sell Price',
+  supplier: 'Supplier',
+  stock: 'Stock',
+  status: 'Status',
+
+  type: 'Type',
+  description: 'Description',
+  noDescription: 'No description',
+
+  active: 'Active',
+  inactive: 'Inactive',
+
+  productType: 'Product',
+  menuType: 'Menu',
+  serviceType: 'Service',
+  sparepartType: 'Sparepart',
+
+  addProductTitle: 'Add Product',
+  editProductTitle: 'Edit Product',
+  productDetailTitle: 'Product Detail',
+  viewProductInformation: 'View product information',
+  fillProductForm: 'Fill in product information below',
+
+  name: 'Name',
+  namePlaceholder: 'Enter product name',
+  codePlaceholder: 'Enter barcode / code',
+  skuPlaceholder: 'Enter SKU',
+  selectCategory: 'Select category',
+  unit: 'Unit',
+  selectUnit: 'Select unit',
+  selectSupplier: 'Select supplier',
+
+  buyPrice: 'Buy Price',
+  weight: 'Weight',
+  trackStock: 'Track Stock',
+  enableStockTracking: 'Enable stock tracking',
+  isActive: 'Is Active',
+  productIsActive: 'Product is active',
+  descriptionPlaceholder: 'Enter product description',
+  imageUrl: 'Image URL',
+  imageUrlPlaceholder: 'Enter image URL',
+  preview: 'Preview',
+
+  saveProduct: 'Save Product',
+  updateProduct: 'Update Product',
+  saving: 'Saving...',
+  updating: 'Updating...',
+
+  productNameRequired: 'Product name is required.',
+  productCodeRequired: 'Product code is required.',
+  stockCannotBeNegative: 'Stock cannot be negative.',
+  numericCannotBeNegative: 'Numeric values cannot be negative.',
+
+  deleteConfirm: 'Delete this product?',
+  failedLoad: 'Failed to load products data. Please check API and token.',
+  failedSave: 'Failed to save product.',
+  failedDelete: 'Failed to delete product.',
+},
+
+categoriesPage: {
+  title: 'Categories',
+  subtitle: 'Manage product categories for your current shop.',
+  addCategory: 'Add Category',
+
+  visibleCategories: 'Visible Categories',
+  visibleCategoriesNote: 'Categories shown in current filter',
+  withIcon: 'With Icon',
+  withIconNote: 'Categories with uploaded icon',
+  withoutIcon: 'Without Icon',
+  withoutIconNote: 'Categories without icon',
+
+  searchPlaceholder: 'Search category...',
+  categoryList: 'Category List',
+  categoriesFound: '{count} category(s) found',
+
+  loadingTitle: 'Loading categories...',
+  loadingSubtitle: 'Please wait a moment.',
+  failedLoadTitle: 'Failed to load categories',
+  noCategoriesTitle: 'No categories found',
+  noCategoriesSubtitle: 'Try another keyword or create a new category.',
+
+  id: 'ID',
+  category: 'Category',
+  icon: 'Icon',
+  ready: 'Ready',
+  noIcon: 'No icon',
+  ownerCategory: 'Owner category',
+
+  addCategoryTitle: 'Add Category',
+  editCategoryTitle: 'Edit Category',
+  categoryFormSubtitle: 'Fill in the form below to save category data.',
+
+  name: 'Name',
+  namePlaceholder: 'Enter category name',
+  categoryIcon: 'Category Icon',
+  preview: 'Preview',
+
+  nameRequired: 'Name is required.',
+  unableFetch: 'Unable to fetch categories.',
+  failedSave: 'Failed to save category.',
+  deleteConfirm: 'Delete this category?',
+  failedDelete: 'Failed to delete category.',
+},
+
+unitsPage: {
+  title: 'Units',
+  subtitle: 'Manage product units for your current shop.',
+  addUnit: 'Add Unit',
+
+  visibleUnits: 'Visible Units',
+  visibleUnitsNote: 'Units shown in current filter',
+  totalUnits: 'Total Units',
+  totalUnitsNote: 'All units from API',
+  searchResult: 'Search Result',
+  searchResultNote: 'Filtered by current keyword',
+
+  searchPlaceholder: 'Search unit...',
+  unitList: 'Unit List',
+  unitsFound: '{count} unit(s) found',
+
+  loadingTitle: 'Loading units...',
+  loadingSubtitle: 'Please wait a moment.',
+  failedLoadTitle: 'Failed to load units',
+  noUnitsTitle: 'No units found',
+  noUnitsSubtitle: 'Try another keyword or create a new unit.',
+
+  id: 'ID',
+  unit: 'Unit',
+  display: 'Display',
+  ready: 'Ready',
+
+  addUnitTitle: 'Add Unit',
+  editUnitTitle: 'Edit Unit',
+  unitFormSubtitle: 'Fill in the form below to save unit data.',
+
+  unitName: 'Unit Name',
+  unitNamePlaceholder: 'Enter unit name',
+  preview: 'Preview',
+  previewName: 'Unit Name',
+
+  unitNameRequired: 'Unit name is required.',
+  unableFetch: 'Unable to fetch units.',
+  failedSave: 'Failed to save unit.',
+  deleteConfirm: 'Delete this unit?',
+  failedDelete: 'Failed to delete unit.',
+},
+
+inventoryCountsPage: {
+  title: 'Inventory Counts',
+  subtitle: 'Manage inventory count sessions for your current shop.',
+  addInventoryCount: 'Add Inventory Count',
+  refresh: 'Refresh',
+
+  visibleCounts: 'Visible Counts',
+  visibleCountsNote: 'Counts shown in current filter',
+  draftCounts: 'Draft Counts',
+  draftCountsNote: 'Inventory counts still in draft status',
+  completedCounts: 'Completed Counts',
+  completedCountsNote: 'Counts already finalized / completed',
+
+  searchPlaceholder: 'Search by title, note, counted by...',
+  allStatus: 'All status',
+  draft: 'Draft',
+  submitted: 'Submitted',
+  approved: 'Approved',
+  completed: 'Completed',
+
+  inventoryCountList: 'Inventory Count List',
+  countsFound: '{count} count(s) found',
+
+  reference: 'Reference',
+  titleLabel: 'Title',
+  items: 'Items',
+  countedBy: 'Counted By',
+  countedAt: 'Counted At',
+  stockCount: 'Stock count',
+  countLines: 'Count lines',
+
+  noInventoryCountsTitle: 'No inventory counts found',
+  noInventoryCountsSubtitle: 'Try another keyword or create a new inventory count.',
+  loadingInventoryCounts: 'Loading inventory counts...',
+
+  addInventoryCountTitle: 'Add Inventory Count',
+  editInventoryCountTitle: 'Edit Inventory Count',
+  inventoryCountFormSubtitle: 'Fill in the form below to save inventory count data.',
+
+  titlePlaceholder: 'Enter title',
+  notePlaceholder: 'Write note here...',
+
+  inventoryCountDetailTitle: 'Inventory Count Detail',
+  inventoryCountDetailSubtitle: 'Review inventory count information and counted items.',
+
+  countedItems: 'Counted Items',
+  countedItemsLines: '{count} line(s)',
+  product: 'Product',
+  systemStock: 'System Stock',
+  physicalStock: 'Physical Stock',
+  difference: 'Difference',
+
+  noCountedItemsTitle: 'No counted items',
+  noCountedItemsSubtitle: 'This inventory count does not contain item rows yet.',
+
+  finalize: 'Finalize',
+  finalizeConfirm: 'Finalize inventory count "{title}"?',
+  deleteConfirm: 'Delete this inventory count?',
+
+  titleRequired: 'Title is required',
+  failedLoad: 'Failed to load inventory counts. Please check your API and token.',
+  failedSave: 'Failed to save inventory count.',
+  failedDelete: 'Failed to delete inventory count.',
+  failedFinalize: 'Failed to finalize inventory count.',
+},
+
+stockAdjustmentsPage: {
+  title: 'Stock Adjustments',
+  subtitle: 'Manage stock adjustment history for your current shop.',
+  addStockAdjustment: 'Add Stock Adjustment',
+  refresh: 'Refresh',
+
+  visibleAdjustments: 'Visible Adjustments',
+  visibleAdjustmentsNote: 'Adjustments shown in current filter',
+  lost: 'Lost',
+  lostNote: 'Items marked as lost',
+  damaged: 'Damaged',
+  damagedNote: 'Items marked as damaged',
+
+  searchPlaceholder: 'Search by product, adjusted by, reason...',
+  allReasons: 'All reasons',
+  other: 'Other',
+
+  stockAdjustmentList: 'Stock Adjustment List',
+  adjustmentsFound: '{count} adjustment(s) found',
+
+  reference: 'Reference',
+  product: 'Product',
+  oldStock: 'Old Stock',
+  newStock: 'New Stock',
+  difference: 'Difference',
+  reason: 'Reason',
+  adjustedBy: 'Adjusted By',
+  adjustedAt: 'Adjusted At',
+  adjustment: 'Adjustment',
+
+  noStockAdjustmentsTitle: 'No stock adjustments found',
+  noStockAdjustmentsSubtitle: 'Try another keyword or create a new stock adjustment.',
+  loadingStockAdjustments: 'Loading stock adjustments...',
+
+  addStockAdjustmentTitle: 'Add Stock Adjustment',
+  editStockAdjustmentTitle: 'Edit Stock Adjustment',
+  stockAdjustmentFormSubtitle: 'Fill in the form below to save stock adjustment data.',
+
+  selectProduct: 'Select product',
+  selectReason: 'Select reason',
+  currentOldStock: 'Current / Old Stock',
+  notePlaceholder: 'Write note here...',
+
+  stockAdjustmentDetailTitle: 'Stock Adjustment Detail',
+  stockAdjustmentDetailSubtitle: 'Review stock adjustment information.',
+
+  productRequired: 'Product is required.',
+  newStockRequired: 'New stock is required.',
+  reasonRequired: 'Reason is required.',
+
+  deleteConfirm: 'Delete this stock adjustment?',
+  failedLoad: 'Failed to load stock adjustments. Please check API and token.',
+  failedSave: 'Failed to save stock adjustment.',
+  failedDelete: 'Failed to delete stock adjustment.',
+},
+
+stockMovementsPage: {
+  title: 'Stock Movements',
+  subtitle: 'Monitor stock movement history for your current shop.',
+  refresh: 'Refresh',
+
+  visibleMovements: 'Visible Movements',
+  visibleMovementsNote: 'Movements shown in current filter',
+  sales: 'Sales',
+  salesNote: 'Outgoing sales movements',
+  purchases: 'Purchases',
+  purchasesNote: 'Incoming purchase movements',
+  adjustments: 'Adjustments',
+  adjustmentsNote: 'Manual stock corrections',
+
+  searchPlaceholder: 'Search by product, code, sku, note, ref model...',
+  allMovementTypes: 'All movement types',
+
+  stockMovementList: 'Stock Movement List',
+  movementsFound: '{count} movement(s) found',
+
+  reference: 'Reference',
+  product: 'Product',
+  type: 'Type',
+  qtyDelta: 'Qty Delta',
+  before: 'Before',
+  after: 'After',
+  referenceModel: 'Reference Model',
+  createdAt: 'Created At',
+  movement: 'Movement',
+
+  noStockMovementsTitle: 'No stock movements found',
+  noStockMovementsSubtitle: 'Try another keyword or refresh the stock movement history.',
+  loadingStockMovements: 'Loading stock movements...',
+
+  stockMovementDetailTitle: 'Stock Movement Detail',
+  stockMovementDetailSubtitle: 'Review stock movement information.',
+  movementType: 'Movement Type',
+  productId: 'Product ID',
+  productCode: 'Product Code',
+  productSku: 'Product SKU',
+  quantityDelta: 'Quantity Delta',
+  beforeStock: 'Before Stock',
+  afterStock: 'After Stock',
+  createdBy: 'Created By',
+  referenceId: 'Reference ID',
+
+  failedLoad: 'Failed to load stock movements. Please check API and token.',
+  }
 
 }
 

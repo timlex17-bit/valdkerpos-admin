@@ -379,6 +379,353 @@ shiftsPage: {
   failedClose: 'Labele taka turnu.',
   failedReport: 'Labele foti relatoriu turnu.',
   },
+  // tet.ts
+productsPage: {
+  title: 'Produtu',
+  subtitle: 'Jere produtu ba loja nebee ativu.',
+  addProduct: 'Aumenta Produtu',
+  refresh: 'Refresh',
+
+  visibleProducts: 'Produtu Neebee Hatudu',
+  visibleProductsNote: 'Produtu nebee hatudu iha filtru agora',
+  lowStock: 'Stok Kiik',
+  lowStockNote: 'Produtu ho stok menus husi 20',
+  inventoryUnits: 'Unidade Inventariu',
+  inventoryUnitsNote: 'Total stok hosi produtu nebee hatudu',
+
+  searchPlaceholder: 'Buka tuir naran, kode, SKU, fornecedór...',
+  allCategories: 'Kategoria hotu',
+  allSuppliers: 'Fornecedór hotu',
+  allItemTypes: 'Tipu item hotu',
+
+  productList: 'Lista Produtu',
+  productsFound: '{count} produtu hetan',
+  noProductsFound: 'La iha produtu nebee hetan.',
+  loadingProducts: 'Karrega produtu...',
+
+  id: 'ID',
+  product: 'Produtu',
+  code: 'Kode',
+  sku: 'SKU',
+  itemType: 'Tipu Item',
+  category: 'Kategoria',
+  sellPrice: 'Prezú Fa’an',
+  supplier: 'Fornesedór',
+  stock: 'Stok',
+  status: 'Estadu',
+
+  type: 'Tipu',
+  description: 'Deskrisaun',
+  noDescription: 'La iha deskrisaun',
+
+  active: 'Ativu',
+  inactive: 'La Ativu',
+
+  productType: 'Produtu',
+  menuType: 'Menu',
+  serviceType: 'Servisu',
+  sparepartType: 'Pesa Sobressalente',
+
+  addProductTitle: 'Aumenta Produtu',
+  editProductTitle: 'Edita Produtu',
+  productDetailTitle: 'Detallu Produtu',
+  viewProductInformation: 'Haree informasaun produtu',
+  fillProductForm: 'Hatama informasaun produtu iha kraik',
+
+  name: 'Naran',
+  namePlaceholder: 'Hatama naran produtu',
+  codePlaceholder: 'Hatama barcode / kode',
+  skuPlaceholder: 'Hatama SKU',
+  selectCategory: 'Hili kategoria',
+  unit: 'Unidade',
+  selectUnit: 'Hili unidade',
+  selectSupplier: 'Hili fornecedór',
+
+  buyPrice: 'Prezú Sosa',
+  weight: 'Pesu',
+  trackStock: 'Kontrola Stok',
+  enableStockTracking: 'Aktiva kontrola stok',
+  isActive: 'Ativu ka Lae',
+  productIsActive: 'Produtu ativu',
+  descriptionPlaceholder: 'Hatama deskrisaun produtu',
+  imageUrl: 'URL Imajen',
+  imageUrlPlaceholder: 'Hatama URL imajen',
+  preview: 'Preview',
+
+  saveProduct: 'Rai Produtu',
+  updateProduct: 'Atualiza Produtu',
+  saving: 'Rai hela...',
+  updating: 'Atualiza hela...',
+
+  productNameRequired: 'Naran produtu tenki iha.',
+  productCodeRequired: 'Kode produtu tenki iha.',
+  stockCannotBeNegative: 'Stok labele negatívu.',
+  numericCannotBeNegative: 'Valór numériku labele negatívu.',
+
+  deleteConfirm: 'Hapus produtu ida ne’e?',
+  failedLoad: 'Labele karrega dadus produtu. Favor haree API no token.',
+  failedSave: 'Labele rai produtu.',
+  failedDelete: 'Labele hapus produtu.',
+},
+
+categoriesPage: {
+  title: 'Kategoria',
+  subtitle: 'Jere kategoria produtu ba loja nebee ativu.',
+  addCategory: 'Aumenta Kategoria',
+
+  visibleCategories: 'Kategoria Neebee Hatudu',
+  visibleCategoriesNote: 'Kategoria nebee hatudu iha filtru agora',
+  withIcon: 'Ho Ikone',
+  withIconNote: 'Kategoria ho ikone nebee upload ona',
+  withoutIcon: 'La Ho Ikone',
+  withoutIconNote: 'Kategoria sira la iha ikone',
+
+  searchPlaceholder: 'Buka kategoria...',
+  categoryList: 'Lista Kategoria',
+  categoriesFound: '{count} kategoria hetan',
+
+  loadingTitle: 'Karrega kategoria...',
+  loadingSubtitle: 'Favor hein lai.',
+  failedLoadTitle: 'Labele karrega kategoria',
+  noCategoriesTitle: 'La iha kategoria nebee hetan',
+  noCategoriesSubtitle: 'Koko liafuan seluk ka kria kategoria foun.',
+
+  id: 'ID',
+  category: 'Kategoria',
+  icon: 'Ikone',
+  ready: 'Prontu',
+  noIcon: 'La iha ikone',
+  ownerCategory: 'Kategoria owner',
+
+  addCategoryTitle: 'Aumenta Kategoria',
+  editCategoryTitle: 'Edita Kategoria',
+  categoryFormSubtitle: 'Hatama formuláriu iha kraik atu rai dadus kategoria.',
+
+  name: 'Naran',
+  namePlaceholder: 'Hatama naran kategoria',
+  categoryIcon: 'Ikone Kategoria',
+  preview: 'Preview',
+
+  nameRequired: 'Naran tenki iha.',
+  unableFetch: 'Labele foti kategoria.',
+  failedSave: 'Labele rai kategoria.',
+  deleteConfirm: 'Hapus kategoria ida ne’e?',
+  failedDelete: 'Labele hapus kategoria.',
+},
+
+unitsPage: {
+  title: 'Unidade',
+  subtitle: 'Jere unidade produtu ba loja nebee ativu.',
+  addUnit: 'Aumenta Unidade',
+
+  visibleUnits: 'Unidade Neebee Hatudu',
+  visibleUnitsNote: 'Unidade nebee hatudu iha filtru agora',
+  totalUnits: 'Total Unidade',
+  totalUnitsNote: 'Unidade hotu hosi API',
+  searchResult: 'Rezultadu Buka',
+  searchResultNote: 'Filtra tuir liafuan buka agora',
+
+  searchPlaceholder: 'Buka unidade...',
+  unitList: 'Lista Unidade',
+  unitsFound: '{count} unidade hetan',
+
+  loadingTitle: 'Karrega unidade...',
+  loadingSubtitle: 'Favor hein lai.',
+  failedLoadTitle: 'Labele karrega unidade',
+  noUnitsTitle: 'La iha unidade nebee hetan',
+  noUnitsSubtitle: 'Koko liafuan seluk ka kria unidade foun.',
+
+  id: 'ID',
+  unit: 'Unidade',
+  display: 'Aparénsia',
+  ready: 'Prontu',
+
+  addUnitTitle: 'Aumenta Unidade',
+  editUnitTitle: 'Edita Unidade',
+  unitFormSubtitle: 'Hatama formuláriu iha kraik atu rai dadus unidade.',
+
+  unitName: 'Naran Unidade',
+  unitNamePlaceholder: 'Hatama naran unidade',
+  preview: 'Preview',
+  previewName: 'Naran Unidade',
+
+  unitNameRequired: 'Naran unidade tenki iha.',
+  unableFetch: 'Labele foti unidade sira.',
+  failedSave: 'Labele rai unidade.',
+  deleteConfirm: 'Hapus unidade ida ne’e?',
+  failedDelete: 'Labele hapus unidade.',
+},
+
+inventoryCountsPage: {
+  title: 'Kontajen Stok',
+  subtitle: 'Jere sesaun kontajen stok ba loja nebee ativu.',
+  addInventoryCount: 'Aumenta Kontajen Stok',
+  refresh: 'Refresh',
+
+  visibleCounts: 'Kontajen Neebee Hatudu',
+  visibleCountsNote: 'Kontajen nebee hatudu iha filtru agora',
+  draftCounts: 'Kontajen Draft',
+  draftCountsNote: 'Kontajen stok nebee seidauk remata',
+  completedCounts: 'Kontajen Remata',
+  completedCountsNote: 'Kontajen nebee finaliza / remata ona',
+
+  searchPlaceholder: 'Buka tuir títulu, nota, konta husi sé...',
+  allStatus: 'Estadu hotu',
+  draft: 'Draft',
+  submitted: 'Submete',
+  approved: 'Aprova',
+  completed: 'Remata',
+
+  inventoryCountList: 'Lista Kontajen Stok',
+  countsFound: '{count} kontajen hetan',
+
+  reference: 'Referénsia',
+  titleLabel: 'Títulu',
+  items: 'Item',
+  countedBy: 'Konta Husi',
+  countedAt: 'Konta Iha',
+  stockCount: 'Konta stok',
+  countLines: 'Liña kontajen',
+
+  noInventoryCountsTitle: 'La iha kontajen stok nebee hetan',
+  noInventoryCountsSubtitle: 'Koko liafuan seluk ka kria kontajen stok foun.',
+  loadingInventoryCounts: 'Karrega kontajen stok...',
+
+  addInventoryCountTitle: 'Aumenta Kontajen Stok',
+  editInventoryCountTitle: 'Edita Kontajen Stok',
+  inventoryCountFormSubtitle: 'Hatama formuláriu iha kraik atu rai dadus kontajen stok.',
+
+  titlePlaceholder: 'Hatama títulu',
+  notePlaceholder: 'Hakerek nota iha nee...',
+
+  inventoryCountDetailTitle: 'Detallu Kontajen Stok',
+  inventoryCountDetailSubtitle: 'Haree informasaun kontajen stok no item sira nebee konta.',
+
+  countedItems: 'Item Kontadu',
+  countedItemsLines: '{count} liña',
+  product: 'Produtu',
+  systemStock: 'Stok Sistema',
+  physicalStock: 'Stok Fíziku',
+  difference: 'Diferensa',
+
+  noCountedItemsTitle: 'La iha item kontadu',
+  noCountedItemsSubtitle: 'Kontajen stok ida ne’e seidauk iha liña item.',
+
+  finalize: 'Finaliza',
+  finalizeConfirm: 'Finaliza kontajen stok "{title}"?',
+  deleteConfirm: 'Hapus kontajen stok ida ne’e?',
+
+  titleRequired: 'Títulu tenki iha',
+  failedLoad: 'Labele karrega kontajen stok. Favor haree API no token.',
+  failedSave: 'Labele rai kontajen stok.',
+  failedDelete: 'Labele hapus kontajen stok.',
+  failedFinalize: 'Labele finaliza kontajen stok.',
+},
+
+stockAdjustmentsPage: {
+  title: 'Ajusta Stok',
+  subtitle: 'Jere istória ajusta stok ba loja nebee ativu.',
+  addStockAdjustment: 'Aumenta Ajusta Stok',
+  refresh: 'Refresh',
+
+  visibleAdjustments: 'Ajusta Neebee Hatudu',
+  visibleAdjustmentsNote: 'Ajusta nebee hatudu iha filtru agora',
+  lost: 'Lakon',
+  lostNote: 'Item sira nebee markadu lakon',
+  damaged: 'Aat',
+  damagedNote: 'Item sira nebee markadu aat',
+
+  searchPlaceholder: 'Buka tuir produtu, ajusta husi sé, razaun...',
+  allReasons: 'Razaun hotu',
+  other: 'Seluk',
+
+  stockAdjustmentList: 'Lista Ajusta Stok',
+  adjustmentsFound: '{count} ajusta hetan',
+
+  reference: 'Referénsia',
+  product: 'Produtu',
+  oldStock: 'Stok Tuan',
+  newStock: 'Stok Foun',
+  difference: 'Diferensa',
+  reason: 'Razaun',
+  adjustedBy: 'Ajusta Husi',
+  adjustedAt: 'Ajusta Iha',
+  adjustment: 'Ajuste',
+
+  noStockAdjustmentsTitle: 'La iha ajusta stok nebee hetan',
+  noStockAdjustmentsSubtitle: 'Koko liafuan seluk ka kria ajusta stok foun.',
+  loadingStockAdjustments: 'Karrega ajusta stok...',
+
+  addStockAdjustmentTitle: 'Aumenta Ajusta Stok',
+  editStockAdjustmentTitle: 'Edita Ajusta Stok',
+  stockAdjustmentFormSubtitle: 'Hatama formuláriu iha kraik atu rai dadus ajusta stok.',
+
+  selectProduct: 'Hili produtu',
+  selectReason: 'Hili razaun',
+  currentOldStock: 'Stok Agora / Tuan',
+  notePlaceholder: 'Hakerek nota iha nee...',
+
+  stockAdjustmentDetailTitle: 'Detallu Ajusta Stok',
+  stockAdjustmentDetailSubtitle: 'Haree informasaun ajusta stok.',
+
+  productRequired: 'Produtu tenki iha.',
+  newStockRequired: 'Stok foun tenki iha.',
+  reasonRequired: 'Razaun tenki iha.',
+
+  deleteConfirm: 'Hapus ajusta stok ida ne’e?',
+  failedLoad: 'Labele karrega ajusta stok. Favor haree API no token.',
+  failedSave: 'Labele rai ajusta stok.',
+  failedDelete: 'Labele hapus ajusta stok.',
+},
+
+stockMovementsPage: {
+  title: 'Movimentu Stok',
+  subtitle: 'Monitoriza istória movimentu stok ba loja nebee ativu.',
+  refresh: 'Refresh',
+
+  visibleMovements: 'Movimentu Neebee Hatudu',
+  visibleMovementsNote: 'Movimentu nebee hatudu iha filtru agora',
+  sales: 'Venda',
+  salesNote: 'Movimentu sai tanba venda',
+  purchases: 'Kompra',
+  purchasesNote: 'Movimentu tama tanba kompra',
+  adjustments: 'Ajuste',
+  adjustmentsNote: 'Koreksaun stok manual',
+
+  searchPlaceholder: 'Buka tuir produtu, kode, sku, nota, modelu referénsia...',
+  allMovementTypes: 'Tipu movimentu hotu',
+
+  stockMovementList: 'Lista Movimentu Stok',
+  movementsFound: '{count} movimentu hetan',
+
+  reference: 'Referénsia',
+  product: 'Produtu',
+  type: 'Tipu',
+  qtyDelta: 'Delta Qty',
+  before: 'Antes',
+  after: 'Depois',
+  referenceModel: 'Modelu Referénsia',
+  createdAt: 'Kria Iha',
+  movement: 'Movimentu',
+
+  noStockMovementsTitle: 'La iha movimentu stok nebee hetan',
+  noStockMovementsSubtitle: 'Koko liafuan seluk ka refresh istória movimentu stok.',
+  loadingStockMovements: 'Karrega movimentu stok...',
+
+  stockMovementDetailTitle: 'Detallu Movimentu Stok',
+  stockMovementDetailSubtitle: 'Haree informasaun movimentu stok.',
+  movementType: 'Tipu Movimentu',
+  productId: 'ID Produtu',
+  productCode: 'Kode Produtu',
+  productSku: 'SKU Produtu',
+  quantityDelta: 'Delta Kuantidade',
+  beforeStock: 'Stok Antes',
+  afterStock: 'Stok Depois',
+  createdBy: 'Kria Husi',
+  referenceId: 'ID Referénsia',
+
+  failedLoad: 'Labele karrega movimentu stok. Favor haree API no token.',
+  }
 }
 
 export default tet

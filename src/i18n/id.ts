@@ -379,6 +379,353 @@ shiftsPage: {
   failedClose: 'Gagal menutup shift.',
   failedReport: 'Gagal mengambil laporan shift.',
 },
+// id.ts
+productsPage: {
+  title: 'Produk',
+  subtitle: 'Kelola produk untuk toko aktif Anda.',
+  addProduct: 'Tambah Produk',
+  refresh: 'Refresh',
+
+  visibleProducts: 'Produk Tampil',
+  visibleProductsNote: 'Produk yang tampil pada filter saat ini',
+  lowStock: 'Stok Rendah',
+  lowStockNote: 'Produk dengan stok di bawah 20',
+  inventoryUnits: 'Unit Inventori',
+  inventoryUnitsNote: 'Total stok dari produk yang tampil',
+
+  searchPlaceholder: 'Cari berdasarkan nama, kode, SKU, supplier...',
+  allCategories: 'Semua kategori',
+  allSuppliers: 'Semua supplier',
+  allItemTypes: 'Semua tipe item',
+
+  productList: 'Daftar Produk',
+  productsFound: '{count} produk ditemukan',
+  noProductsFound: 'Tidak ada produk ditemukan.',
+  loadingProducts: 'Memuat produk...',
+
+  id: 'ID',
+  product: 'Produk',
+  code: 'Kode',
+  sku: 'SKU',
+  itemType: 'Tipe Item',
+  category: 'Kategori',
+  sellPrice: 'Harga Jual',
+  supplier: 'Supplier',
+  stock: 'Stok',
+  status: 'Status',
+
+  type: 'Tipe',
+  description: 'Deskripsi',
+  noDescription: 'Tidak ada deskripsi',
+
+  active: 'Aktif',
+  inactive: 'Nonaktif',
+
+  productType: 'Produk',
+  menuType: 'Menu',
+  serviceType: 'Layanan',
+  sparepartType: 'Sparepart',
+
+  addProductTitle: 'Tambah Produk',
+  editProductTitle: 'Edit Produk',
+  productDetailTitle: 'Detail Produk',
+  viewProductInformation: 'Lihat informasi produk',
+  fillProductForm: 'Isi informasi produk di bawah ini',
+
+  name: 'Nama',
+  namePlaceholder: 'Masukkan nama produk',
+  codePlaceholder: 'Masukkan barcode / kode',
+  skuPlaceholder: 'Masukkan SKU',
+  selectCategory: 'Pilih kategori',
+  unit: 'Satuan',
+  selectUnit: 'Pilih satuan',
+  selectSupplier: 'Pilih supplier',
+
+  buyPrice: 'Harga Beli',
+  weight: 'Berat',
+  trackStock: 'Lacak Stok',
+  enableStockTracking: 'Aktifkan pelacakan stok',
+  isActive: 'Status Aktif',
+  productIsActive: 'Produk aktif',
+  descriptionPlaceholder: 'Masukkan deskripsi produk',
+  imageUrl: 'URL Gambar',
+  imageUrlPlaceholder: 'Masukkan URL gambar',
+  preview: 'Preview',
+
+  saveProduct: 'Simpan Produk',
+  updateProduct: 'Update Produk',
+  saving: 'Menyimpan...',
+  updating: 'Memperbarui...',
+
+  productNameRequired: 'Nama produk wajib diisi.',
+  productCodeRequired: 'Kode produk wajib diisi.',
+  stockCannotBeNegative: 'Stok tidak boleh negatif.',
+  numericCannotBeNegative: 'Nilai numerik tidak boleh negatif.',
+
+  deleteConfirm: 'Hapus produk ini?',
+  failedLoad: 'Gagal memuat data produk. Silakan cek API dan token.',
+  failedSave: 'Gagal menyimpan produk.',
+  failedDelete: 'Gagal menghapus produk.',
+},
+
+categoriesPage: {
+  title: 'Kategori',
+  subtitle: 'Kelola kategori produk untuk toko aktif Anda.',
+  addCategory: 'Tambah Kategori',
+
+  visibleCategories: 'Kategori Tampil',
+  visibleCategoriesNote: 'Kategori yang tampil pada filter saat ini',
+  withIcon: 'Dengan Icon',
+  withIconNote: 'Kategori dengan icon yang diunggah',
+  withoutIcon: 'Tanpa Icon',
+  withoutIconNote: 'Kategori tanpa icon',
+
+  searchPlaceholder: 'Cari kategori...',
+  categoryList: 'Daftar Kategori',
+  categoriesFound: '{count} kategori ditemukan',
+
+  loadingTitle: 'Memuat kategori...',
+  loadingSubtitle: 'Mohon tunggu sebentar.',
+  failedLoadTitle: 'Gagal memuat kategori',
+  noCategoriesTitle: 'Tidak ada kategori ditemukan',
+  noCategoriesSubtitle: 'Coba kata kunci lain atau buat kategori baru.',
+
+  id: 'ID',
+  category: 'Kategori',
+  icon: 'Icon',
+  ready: 'Siap',
+  noIcon: 'Tidak ada icon',
+  ownerCategory: 'Kategori owner',
+
+  addCategoryTitle: 'Tambah Kategori',
+  editCategoryTitle: 'Edit Kategori',
+  categoryFormSubtitle: 'Isi form di bawah ini untuk menyimpan data kategori.',
+
+  name: 'Nama',
+  namePlaceholder: 'Masukkan nama kategori',
+  categoryIcon: 'Icon Kategori',
+  preview: 'Preview',
+
+  nameRequired: 'Nama wajib diisi.',
+  unableFetch: 'Tidak dapat mengambil kategori.',
+  failedSave: 'Gagal menyimpan kategori.',
+  deleteConfirm: 'Hapus kategori ini?',
+  failedDelete: 'Gagal menghapus kategori.',
+},
+
+unitsPage: {
+  title: 'Satuan',
+  subtitle: 'Kelola satuan produk untuk toko aktif Anda.',
+  addUnit: 'Tambah Satuan',
+
+  visibleUnits: 'Satuan Tampil',
+  visibleUnitsNote: 'Satuan yang tampil pada filter saat ini',
+  totalUnits: 'Total Satuan',
+  totalUnitsNote: 'Semua satuan dari API',
+  searchResult: 'Hasil Pencarian',
+  searchResultNote: 'Difilter berdasarkan kata kunci saat ini',
+
+  searchPlaceholder: 'Cari satuan...',
+  unitList: 'Daftar Satuan',
+  unitsFound: '{count} satuan ditemukan',
+
+  loadingTitle: 'Memuat satuan...',
+  loadingSubtitle: 'Mohon tunggu sebentar.',
+  failedLoadTitle: 'Gagal memuat satuan',
+  noUnitsTitle: 'Tidak ada satuan ditemukan',
+  noUnitsSubtitle: 'Coba kata kunci lain atau buat satuan baru.',
+
+  id: 'ID',
+  unit: 'Satuan',
+  display: 'Tampilan',
+  ready: 'Siap',
+
+  addUnitTitle: 'Tambah Satuan',
+  editUnitTitle: 'Edit Satuan',
+  unitFormSubtitle: 'Isi form di bawah ini untuk menyimpan data satuan.',
+
+  unitName: 'Nama Satuan',
+  unitNamePlaceholder: 'Masukkan nama satuan',
+  preview: 'Preview',
+  previewName: 'Nama Satuan',
+
+  unitNameRequired: 'Nama satuan wajib diisi.',
+  unableFetch: 'Tidak dapat mengambil data satuan.',
+  failedSave: 'Gagal menyimpan satuan.',
+  deleteConfirm: 'Hapus satuan ini?',
+  failedDelete: 'Gagal menghapus satuan.',
+},
+
+inventoryCountsPage: {
+  title: 'Stok Opname',
+  subtitle: 'Kelola sesi stok opname untuk toko aktif Anda.',
+  addInventoryCount: 'Tambah Stok Opname',
+  refresh: 'Refresh',
+
+  visibleCounts: 'Opname Tampil',
+  visibleCountsNote: 'Data opname yang tampil pada filter saat ini',
+  draftCounts: 'Draft Opname',
+  draftCountsNote: 'Stok opname yang masih status draft',
+  completedCounts: 'Opname Selesai',
+  completedCountsNote: 'Data opname yang sudah final / selesai',
+
+  searchPlaceholder: 'Cari berdasarkan judul, catatan, dihitung oleh...',
+  allStatus: 'Semua status',
+  draft: 'Draft',
+  submitted: 'Dikirim',
+  approved: 'Disetujui',
+  completed: 'Selesai',
+
+  inventoryCountList: 'Daftar Stok Opname',
+  countsFound: '{count} data ditemukan',
+
+  reference: 'Referensi',
+  titleLabel: 'Judul',
+  items: 'Item',
+  countedBy: 'Dihitung Oleh',
+  countedAt: 'Dihitung Pada',
+  stockCount: 'Hitung stok',
+  countLines: 'Baris hitung',
+
+  noInventoryCountsTitle: 'Tidak ada stok opname ditemukan',
+  noInventoryCountsSubtitle: 'Coba kata kunci lain atau buat stok opname baru.',
+  loadingInventoryCounts: 'Memuat stok opname...',
+
+  addInventoryCountTitle: 'Tambah Stok Opname',
+  editInventoryCountTitle: 'Edit Stok Opname',
+  inventoryCountFormSubtitle: 'Isi form di bawah ini untuk menyimpan data stok opname.',
+
+  titlePlaceholder: 'Masukkan judul',
+  notePlaceholder: 'Tulis catatan di sini...',
+
+  inventoryCountDetailTitle: 'Detail Stok Opname',
+  inventoryCountDetailSubtitle: 'Tinjau informasi stok opname dan item yang dihitung.',
+
+  countedItems: 'Item Dihitung',
+  countedItemsLines: '{count} baris',
+  product: 'Produk',
+  systemStock: 'Stok Sistem',
+  physicalStock: 'Stok Fisik',
+  difference: 'Selisih',
+
+  noCountedItemsTitle: 'Tidak ada item dihitung',
+  noCountedItemsSubtitle: 'Stok opname ini belum memiliki baris item.',
+
+  finalize: 'Finalisasi',
+  finalizeConfirm: 'Finalisasi stok opname "{title}"?',
+  deleteConfirm: 'Hapus stok opname ini?',
+
+  titleRequired: 'Judul wajib diisi',
+  failedLoad: 'Gagal memuat stok opname. Silakan cek API dan token.',
+  failedSave: 'Gagal menyimpan stok opname.',
+  failedDelete: 'Gagal menghapus stok opname.',
+  failedFinalize: 'Gagal finalisasi stok opname.',
+},
+
+stockAdjustmentsPage: {
+  title: 'Penyesuaian Stok',
+  subtitle: 'Kelola riwayat penyesuaian stok untuk toko aktif Anda.',
+  addStockAdjustment: 'Tambah Penyesuaian Stok',
+  refresh: 'Refresh',
+
+  visibleAdjustments: 'Penyesuaian Tampil',
+  visibleAdjustmentsNote: 'Penyesuaian yang tampil pada filter saat ini',
+  lost: 'Hilang',
+  lostNote: 'Item yang ditandai hilang',
+  damaged: 'Rusak',
+  damagedNote: 'Item yang ditandai rusak',
+
+  searchPlaceholder: 'Cari berdasarkan produk, disesuaikan oleh, alasan...',
+  allReasons: 'Semua alasan',
+  other: 'Lainnya',
+
+  stockAdjustmentList: 'Daftar Penyesuaian Stok',
+  adjustmentsFound: '{count} penyesuaian ditemukan',
+
+  reference: 'Referensi',
+  product: 'Produk',
+  oldStock: 'Stok Lama',
+  newStock: 'Stok Baru',
+  difference: 'Selisih',
+  reason: 'Alasan',
+  adjustedBy: 'Disesuaikan Oleh',
+  adjustedAt: 'Disesuaikan Pada',
+  adjustment: 'Penyesuaian',
+
+  noStockAdjustmentsTitle: 'Tidak ada penyesuaian stok ditemukan',
+  noStockAdjustmentsSubtitle: 'Coba kata kunci lain atau buat penyesuaian stok baru.',
+  loadingStockAdjustments: 'Memuat penyesuaian stok...',
+
+  addStockAdjustmentTitle: 'Tambah Penyesuaian Stok',
+  editStockAdjustmentTitle: 'Edit Penyesuaian Stok',
+  stockAdjustmentFormSubtitle: 'Isi form di bawah ini untuk menyimpan data penyesuaian stok.',
+
+  selectProduct: 'Pilih produk',
+  selectReason: 'Pilih alasan',
+  currentOldStock: 'Stok Saat Ini / Lama',
+  notePlaceholder: 'Tulis catatan di sini...',
+
+  stockAdjustmentDetailTitle: 'Detail Penyesuaian Stok',
+  stockAdjustmentDetailSubtitle: 'Tinjau informasi penyesuaian stok.',
+
+  productRequired: 'Produk wajib diisi.',
+  newStockRequired: 'Stok baru wajib diisi.',
+  reasonRequired: 'Alasan wajib diisi.',
+
+  deleteConfirm: 'Hapus penyesuaian stok ini?',
+  failedLoad: 'Gagal memuat penyesuaian stok. Silakan cek API dan token.',
+  failedSave: 'Gagal menyimpan penyesuaian stok.',
+  failedDelete: 'Gagal menghapus penyesuaian stok.',
+},
+
+stockMovementsPage: {
+  title: 'Pergerakan Stok',
+  subtitle: 'Pantau riwayat pergerakan stok untuk toko aktif Anda.',
+  refresh: 'Refresh',
+
+  visibleMovements: 'Pergerakan Tampil',
+  visibleMovementsNote: 'Pergerakan yang tampil pada filter saat ini',
+  sales: 'Penjualan',
+  salesNote: 'Pergerakan keluar karena penjualan',
+  purchases: 'Pembelian',
+  purchasesNote: 'Pergerakan masuk karena pembelian',
+  adjustments: 'Penyesuaian',
+  adjustmentsNote: 'Koreksi stok manual',
+
+  searchPlaceholder: 'Cari berdasarkan produk, kode, sku, catatan, model referensi...',
+  allMovementTypes: 'Semua tipe pergerakan',
+
+  stockMovementList: 'Daftar Pergerakan Stok',
+  movementsFound: '{count} pergerakan ditemukan',
+
+  reference: 'Referensi',
+  product: 'Produk',
+  type: 'Tipe',
+  qtyDelta: 'Delta Qty',
+  before: 'Sebelum',
+  after: 'Sesudah',
+  referenceModel: 'Model Referensi',
+  createdAt: 'Dibuat Pada',
+  movement: 'Pergerakan',
+
+  noStockMovementsTitle: 'Tidak ada pergerakan stok ditemukan',
+  noStockMovementsSubtitle: 'Coba kata kunci lain atau refresh riwayat pergerakan stok.',
+  loadingStockMovements: 'Memuat pergerakan stok...',
+
+  stockMovementDetailTitle: 'Detail Pergerakan Stok',
+  stockMovementDetailSubtitle: 'Tinjau informasi pergerakan stok.',
+  movementType: 'Tipe Pergerakan',
+  productId: 'ID Produk',
+  productCode: 'Kode Produk',
+  productSku: 'SKU Produk',
+  quantityDelta: 'Delta Kuantitas',
+  beforeStock: 'Stok Sebelum',
+  afterStock: 'Stok Sesudah',
+  createdBy: 'Dibuat Oleh',
+  referenceId: 'ID Referensi',
+
+  failedLoad: 'Gagal memuat pergerakan stok. Silakan cek API dan token.',
+  }
 }
 
 export default id

@@ -2,40 +2,40 @@
   <div class="dashboard-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Categories</h1>
-        <p class="page-subtitle">Manage product categories for your current shop.</p>
+        <h1 class="page-title">{{ t('categoriesPage.title') }}</h1>
+        <p class="page-subtitle">{{ t('categoriesPage.subtitle') }}</p>
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span>/</span>
-          <span class="active">Categories</span>
+          <span class="active">{{ t('categoriesPage.title') }}</span>
         </div>
       </div>
 
       <button class="add-btn" @click="openAddModal">
         <span>+</span>
-        Add Category
+        {{ t('categoriesPage.addCategory') }}
       </button>
     </section>
 
     <section class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Categories</div>
+        <div class="stat-label">{{ t('categoriesPage.visibleCategories') }}</div>
         <div class="stat-value">{{ filteredCategories.length }}</div>
-        <div class="stat-note">Categories shown in current filter</div>
+        <div class="stat-note">{{ t('categoriesPage.visibleCategoriesNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">With Icon</div>
+        <div class="stat-label">{{ t('categoriesPage.withIcon') }}</div>
         <div class="stat-value">{{ categoriesWithIcon }}</div>
-        <div class="stat-note">Categories with uploaded icon</div>
+        <div class="stat-note">{{ t('categoriesPage.withIconNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Without Icon</div>
+        <div class="stat-label">{{ t('categoriesPage.withoutIcon') }}</div>
         <div class="stat-value">{{ categoriesWithoutIcon }}</div>
-        <div class="stat-note">Categories without icon</div>
+        <div class="stat-note">{{ t('categoriesPage.withoutIconNote') }}</div>
       </div>
     </section>
 
@@ -46,29 +46,29 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search category..."
+            :placeholder="t('categoriesPage.searchPlaceholder')"
           />
         </div>
 
-        <button class="reset-btn" @click="resetFilters">Reset</button>
+        <button class="reset-btn" @click="resetFilters">{{ t('common.reset') }}</button>
       </div>
     </section>
 
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>Category List</h2>
-          <p>{{ filteredCategories.length }} category(s) found</p>
+          <h2>{{ t('categoriesPage.categoryList') }}</h2>
+          <p>{{ t('categoriesPage.categoriesFound', { count: filteredCategories.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="empty-state">
-        <h3>Loading categories...</h3>
-        <p>Please wait a moment.</p>
+        <h3>{{ t('categoriesPage.loadingTitle') }}</h3>
+        <p>{{ t('categoriesPage.loadingSubtitle') }}</p>
       </div>
 
       <div v-else-if="errorMessage" class="empty-state">
-        <h3>Failed to load categories</h3>
+        <h3>{{ t('categoriesPage.failedLoadTitle') }}</h3>
         <p>{{ errorMessage }}</p>
       </div>
 
@@ -76,11 +76,11 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Category</th>
-              <th>Icon</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{{ t('categoriesPage.id') }}</th>
+              <th>{{ t('categoriesPage.category') }}</th>
+              <th>{{ t('categoriesPage.icon') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -89,7 +89,7 @@
               <td>
                 <div class="ref-cell">
                   <div class="ref-main">CT{{ String(item.id).padStart(10, '0') }}</div>
-                  <div class="ref-sub">Category</div>
+                  <div class="ref-sub">{{ t('categoriesPage.category') }}</div>
                 </div>
               </td>
 
@@ -101,7 +101,7 @@
 
                   <div>
                     <div class="title-main">{{ item.name }}</div>
-                    <div class="sub-text">Owner category</div>
+                    <div class="sub-text">{{ t('categoriesPage.ownerCategory') }}</div>
                   </div>
                 </div>
               </td>
@@ -109,25 +109,25 @@
                 <div v-if="item.icon_url" class="icon-preview">
                   <img :src="item.icon_url" :alt="item.name" />
                 </div>
-                <span v-else class="muted-text">No icon</span>
+                <span v-else class="muted-text">{{ t('categoriesPage.noIcon') }}</span>
               </td>
 
               <td>
                 <span class="status-badge" :class="item.icon_url ? 'paid' : 'unpaid'">
-                  {{ item.icon_url ? 'Ready' : 'No icon' }}
+                  {{ item.icon_url ? t('categoriesPage.ready') : t('categoriesPage.noIcon') }}
                 </span>
               </td>
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openEditModal(item)">View</button>
-                  <button class="btn-edit" @click="openEditModal(item)">Edit</button>
+                  <button class="btn-view" @click="openEditModal(item)">{{ t('common.view') }}</button>
+                  <button class="btn-edit" @click="openEditModal(item)">{{ t('common.edit') }}</button>
                   <button
                     class="btn-delete"
                     :disabled="deletingId === item.id"
                     @click="deleteCategory(item.id)"
                   >
-                    {{ deletingId === item.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === item.id ? t('common.loading') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -137,8 +137,8 @@
       </div>
 
       <div v-else class="empty-state">
-        <h3>No categories found</h3>
-        <p>Try another keyword or create a new category.</p>
+        <h3>{{ t('categoriesPage.noCategoriesTitle') }}</h3>
+        <p>{{ t('categoriesPage.noCategoriesSubtitle') }}</p>
       </div>
     </section>
 
@@ -146,8 +146,8 @@
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditMode ? 'Edit Category' : 'Add Category' }}</h2>
-            <p>Fill in the form below to save category data.</p>
+            <h2>{{ isEditMode ? t('categoriesPage.editCategoryTitle') : t('categoriesPage.addCategoryTitle') }}</h2>
+            <p>{{ t('categoriesPage.categoryFormSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeModal">×</button>
         </div>
@@ -155,18 +155,18 @@
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group form-group-full">
-              <label>Name</label>
+              <label>{{ t('categoriesPage.name') }}</label>
               <input
                 v-model="form.name"
                 type="text"
                 class="form-input"
-                placeholder="Enter category name"
+                :placeholder="t('categoriesPage.namePlaceholder')"
               />
               <small v-if="formError" class="error-text">{{ formError }}</small>
             </div>
 
             <div class="form-group form-group-full">
-              <label>Category Icon</label>
+              <label>{{ t('categoriesPage.categoryIcon') }}</label>
               <input
                 ref="fileInputRef"
                 type="file"
@@ -177,20 +177,20 @@
             </div>
 
             <div class="form-group form-group-full">
-              <label>Preview</label>
+              <label>{{ t('categoriesPage.preview') }}</label>
               <div class="large-preview" :class="{ empty: !form.iconPreview }">
-                <img v-if="form.iconPreview" :src="form.iconPreview" alt="Preview" />
+                <img v-if="form.iconPreview" :src="form.iconPreview" :alt="t('categoriesPage.preview')" />
                 <div v-else class="large-preview__placeholder">
-                  {{ getInitial(form.name || 'Category') }}
+                  {{ getInitial(form.name || t('categoriesPage.category')) }}
                 </div>
               </div>
             </div>
           </div>
 
           <div class="modal-actions">
-            <button class="secondary-btn" @click="closeModal">Cancel</button>
+            <button class="secondary-btn" @click="closeModal">{{ t('common.cancel') }}</button>
             <button class="save-btn" :disabled="saving" @click="saveCategory">
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ saving ? t('productsPage.saving') : t('common.save') }}
             </button>
           </div>
         </div>
@@ -201,6 +201,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -210,6 +211,8 @@ type Category = {
   icon: string | null
   icon_url: string | null
 }
+
+const { t } = useI18n()
 
 const categories = ref<Category[]>([])
 const search = ref('')
@@ -297,7 +300,7 @@ function handleFileChange(event: Event) {
 function validateForm() {
   formError.value = ''
   if (!form.name.trim()) {
-    formError.value = 'Name is required.'
+    formError.value = t('categoriesPage.nameRequired')
     return false
   }
   return true
@@ -314,7 +317,7 @@ async function fetchCategories() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Unable to fetch categories.'
+      t('categoriesPage.unableFetch')
   } finally {
     loading.value = false
   }
@@ -365,10 +368,10 @@ async function saveCategory() {
         const firstValue = data[firstKey]
         formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
       } else {
-        formError.value = 'Failed to save category.'
+        formError.value = t('categoriesPage.failedSave')
       }
     } else {
-      formError.value = error?.message || 'Failed to save category.'
+      formError.value = error?.message || t('categoriesPage.failedSave')
     }
   } finally {
     saving.value = false
@@ -376,7 +379,7 @@ async function saveCategory() {
 }
 
 async function deleteCategory(id: number) {
-  if (!window.confirm('Delete this category?')) return
+  if (!window.confirm(t('categoriesPage.deleteConfirm'))) return
 
   deletingId.value = id
 
@@ -387,7 +390,7 @@ async function deleteCategory(id: number) {
     alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to delete category.'
+      t('categoriesPage.failedDelete')
     )
   } finally {
     deletingId.value = null

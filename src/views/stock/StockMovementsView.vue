@@ -2,50 +2,50 @@
   <div class="dashboard-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Stock Movements</h1>
+        <h1 class="page-title">{{ t('stockMovementsPage.title') }}</h1>
         <p class="page-subtitle">
-          Monitor stock movement history for your current shop.
+          {{ t('stockMovementsPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span>/</span>
-          <span class="active">Stock Movements</span>
+          <span class="active">{{ t('stockMovementsPage.title') }}</span>
         </div>
       </div>
 
       <div class="header-actions">
         <button class="refresh-btn" @click="fetchStockMovements" :disabled="loading">
-          {{ loading ? 'Loading...' : 'Refresh' }}
+          {{ loading ? t('common.loading') : t('productsPage.refresh') }}
         </button>
       </div>
     </section>
 
     <section class="stats-grid stats-grid-4">
       <div class="stat-card">
-        <div class="stat-label">Visible Movements</div>
+        <div class="stat-label">{{ t('stockMovementsPage.visibleMovements') }}</div>
         <div class="stat-value">{{ filteredItems.length }}</div>
-        <div class="stat-note">Movements shown in current filter</div>
+        <div class="stat-note">{{ t('stockMovementsPage.visibleMovementsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Sales</div>
+        <div class="stat-label">{{ t('stockMovementsPage.sales') }}</div>
         <div class="stat-value">{{ totalByType('SALE') }}</div>
-        <div class="stat-note">Outgoing sales movements</div>
+        <div class="stat-note">{{ t('stockMovementsPage.salesNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Purchases</div>
+        <div class="stat-label">{{ t('stockMovementsPage.purchases') }}</div>
         <div class="stat-value">{{ totalByType('PURCHASE') }}</div>
-        <div class="stat-note">Incoming purchase movements</div>
+        <div class="stat-note">{{ t('stockMovementsPage.purchasesNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Adjustments</div>
+        <div class="stat-label">{{ t('stockMovementsPage.adjustments') }}</div>
         <div class="stat-value">{{ totalByType('ADJUSTMENT') }}</div>
-        <div class="stat-note">Manual stock corrections</div>
+        <div class="stat-note">{{ t('stockMovementsPage.adjustmentsNote') }}</div>
       </div>
     </section>
 
@@ -56,12 +56,12 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by product, code, sku, note, ref model..."
+            :placeholder="t('stockMovementsPage.searchPlaceholder')"
           />
         </div>
 
         <select v-model="movementTypeFilter" class="filter-select">
-          <option value="">All movement types</option>
+          <option value="">{{ t('stockMovementsPage.allMovementTypes') }}</option>
           <option
             v-for="type in movementTypeOptions"
             :key="type"
@@ -73,15 +73,15 @@
 
         <input v-model="dateFilter" type="date" class="filter-select" />
 
-        <button class="reset-btn" @click="resetFilters">Reset</button>
+        <button class="reset-btn" @click="resetFilters">{{ t('common.reset') }}</button>
       </div>
     </section>
 
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>Stock Movement List</h2>
-          <p>{{ filteredItems.length }} movement(s) found</p>
+          <h2>{{ t('stockMovementsPage.stockMovementList') }}</h2>
+          <p>{{ t('stockMovementsPage.movementsFound', { count: filteredItems.length }) }}</p>
         </div>
       </div>
 
@@ -93,15 +93,15 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Reference</th>
-              <th>Product</th>
-              <th>Type</th>
-              <th>Qty Delta</th>
-              <th>Before</th>
-              <th>After</th>
-              <th>Reference Model</th>
-              <th>Created At</th>
-              <th>Action</th>
+              <th>{{ t('stockMovementsPage.reference') }}</th>
+              <th>{{ t('stockMovementsPage.product') }}</th>
+              <th>{{ t('stockMovementsPage.type') }}</th>
+              <th>{{ t('stockMovementsPage.qtyDelta') }}</th>
+              <th>{{ t('stockMovementsPage.before') }}</th>
+              <th>{{ t('stockMovementsPage.after') }}</th>
+              <th>{{ t('stockMovementsPage.referenceModel') }}</th>
+              <th>{{ t('stockMovementsPage.createdAt') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -110,7 +110,7 @@
               <td>
                 <div class="ref-cell">
                   <div class="ref-main">SM{{ String(item.id).padStart(10, '0') }}</div>
-                  <div class="ref-sub">Movement</div>
+                  <div class="ref-sub">{{ t('stockMovementsPage.movement') }}</div>
                 </div>
               </td>
 
@@ -151,7 +151,7 @@
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openViewModalWithRetrieve(item)">View</button>
+                  <button class="btn-view" @click="openViewModalWithRetrieve(item)">{{ t('common.view') }}</button>
                 </div>
               </td>
             </tr>
@@ -160,12 +160,12 @@
       </div>
 
       <div v-else-if="!loading" class="empty-state">
-        <h3>No stock movements found</h3>
-        <p>Try another keyword or refresh the stock movement history.</p>
+        <h3>{{ t('stockMovementsPage.noStockMovementsTitle') }}</h3>
+        <p>{{ t('stockMovementsPage.noStockMovementsSubtitle') }}</p>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading stock movements...
+        {{ t('stockMovementsPage.loadingStockMovements') }}
       </div>
     </section>
 
@@ -173,8 +173,8 @@
       <div class="modal-card modal-card-wide">
         <div class="modal-header">
           <div>
-            <h2>Stock Movement Detail</h2>
-            <p>Review stock movement information.</p>
+            <h2>{{ t('stockMovementsPage.stockMovementDetailTitle') }}</h2>
+            <p>{{ t('stockMovementsPage.stockMovementDetailSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeViewModal">×</button>
         </div>
@@ -182,14 +182,14 @@
         <div class="modal-body" v-if="viewItem">
           <div class="detail-grid">
             <div class="detail-box">
-              <div class="detail-label">Reference</div>
+              <div class="detail-label">{{ t('stockMovementsPage.reference') }}</div>
               <div class="detail-value">
                 SM{{ String(viewItem.id).padStart(10, '0') }}
               </div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Movement Type</div>
+              <div class="detail-label">{{ t('stockMovementsPage.movementType') }}</div>
               <div class="detail-value">
                 <span class="status-badge" :class="movementTypeClass(viewItem.movement_type)">
                   {{ formatMovementType(viewItem.movement_type) }}
@@ -198,64 +198,64 @@
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Product</div>
+              <div class="detail-label">{{ t('stockMovementsPage.product') }}</div>
               <div class="detail-value">{{ viewItem.product_name || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Product ID</div>
+              <div class="detail-label">{{ t('stockMovementsPage.productId') }}</div>
               <div class="detail-value">{{ viewItem.product ?? '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Product Code</div>
+              <div class="detail-label">{{ t('stockMovementsPage.productCode') }}</div>
               <div class="detail-value">{{ viewItem.product_code || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Product SKU</div>
+              <div class="detail-label">{{ t('stockMovementsPage.productSku') }}</div>
               <div class="detail-value">{{ viewItem.product_sku || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Quantity Delta</div>
+              <div class="detail-label">{{ t('stockMovementsPage.quantityDelta') }}</div>
               <div class="detail-value" :class="deltaClass(viewItem.quantity_delta)">
                 {{ formatDelta(viewItem.quantity_delta) }}
               </div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Before Stock</div>
+              <div class="detail-label">{{ t('stockMovementsPage.beforeStock') }}</div>
               <div class="detail-value">{{ displayNumber(viewItem.before_stock) }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">After Stock</div>
+              <div class="detail-label">{{ t('stockMovementsPage.afterStock') }}</div>
               <div class="detail-value">{{ displayNumber(viewItem.after_stock) }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Created By</div>
+              <div class="detail-label">{{ t('stockMovementsPage.createdBy') }}</div>
               <div class="detail-value">{{ viewItem.created_by ?? '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Reference Model</div>
+              <div class="detail-label">{{ t('stockMovementsPage.referenceModel') }}</div>
               <div class="detail-value">{{ viewItem.ref_model || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Reference ID</div>
+              <div class="detail-label">{{ t('stockMovementsPage.referenceId') }}</div>
               <div class="detail-value">{{ viewItem.ref_id ?? '-' }}</div>
             </div>
 
             <div class="detail-box detail-box-full">
-              <div class="detail-label">Created At</div>
+              <div class="detail-label">{{ t('stockMovementsPage.createdAt') }}</div>
               <div class="detail-value">{{ formatDateTime(viewItem.created_at) }}</div>
             </div>
 
             <div class="detail-box detail-box-full">
-              <div class="detail-label">Note</div>
+              <div class="detail-label">{{ t('common.note') }}</div>
               <div class="detail-value">{{ viewItem.note || '-' }}</div>
             </div>
           </div>
@@ -267,6 +267,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -286,6 +287,8 @@ type StockMovement = {
   product_sku: string
   created_by: number | null
 }
+
+const { t, locale } = useI18n()
 
 const stockMovements = ref<StockMovement[]>([])
 const loading = ref(false)
@@ -334,6 +337,11 @@ const filteredItems = computed(() => {
   return results
 })
 
+function getDateLocale() {
+  if (locale.value === 'id') return 'id-ID'
+  return 'en-US'
+}
+
 function normalizeStockMovement(raw: any): StockMovement {
   return {
     id: Number(raw?.id ?? 0),
@@ -365,7 +373,7 @@ async function fetchStockMovements() {
     console.error('Failed to fetch stock movements:', err)
     error.value =
       err?.response?.data?.detail ||
-      'Failed to load stock movements. Please check API and token.'
+      t('stockMovementsPage.failedLoad')
     stockMovements.value = []
   } finally {
     loading.value = false
@@ -415,7 +423,7 @@ function formatDateTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value || '-'
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getDateLocale(), {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -448,10 +456,12 @@ function movementTypeClass(type: string) {
 function formatMovementType(type: string) {
   if (!type) return '-'
 
-  return type
+  const formatted = type
     .replaceAll('_', ' ')
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase())
+
+  return formatted
 }
 
 onMounted(() => {

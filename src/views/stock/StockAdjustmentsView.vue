@@ -2,49 +2,49 @@
   <div class="dashboard-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Stock Adjustments</h1>
+        <h1 class="page-title">{{ t('stockAdjustmentsPage.title') }}</h1>
         <p class="page-subtitle">
-          Manage stock adjustment history for your current shop.
+          {{ t('stockAdjustmentsPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span>/</span>
-          <span class="active">Stock Adjustments</span>
+          <span class="active">{{ t('stockAdjustmentsPage.title') }}</span>
         </div>
       </div>
 
       <div class="header-actions">
         <button class="refresh-btn" @click="fetchStockAdjustments" :disabled="loading">
-          {{ loading ? 'Loading...' : 'Refresh' }}
+          {{ loading ? t('common.loading') : t('productsPage.refresh') }}
         </button>
 
         <button class="add-btn" @click="openAddModal">
           <span>+</span>
-          Add Stock Adjustment
+          {{ t('stockAdjustmentsPage.addStockAdjustment') }}
         </button>
       </div>
     </section>
 
     <section class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Adjustments</div>
+        <div class="stat-label">{{ t('stockAdjustmentsPage.visibleAdjustments') }}</div>
         <div class="stat-value">{{ filteredItems.length }}</div>
-        <div class="stat-note">Adjustments shown in current filter</div>
+        <div class="stat-note">{{ t('stockAdjustmentsPage.visibleAdjustmentsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Lost</div>
+        <div class="stat-label">{{ t('stockAdjustmentsPage.lost') }}</div>
         <div class="stat-value">{{ countByReason('LOST') }}</div>
-        <div class="stat-note">Items marked as lost</div>
+        <div class="stat-note">{{ t('stockAdjustmentsPage.lostNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Damaged</div>
+        <div class="stat-label">{{ t('stockAdjustmentsPage.damaged') }}</div>
         <div class="stat-value">{{ countByReason('DAMAGED') }}</div>
-        <div class="stat-note">Items marked as damaged</div>
+        <div class="stat-note">{{ t('stockAdjustmentsPage.damagedNote') }}</div>
       </div>
     </section>
 
@@ -55,28 +55,28 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by product, adjusted by, reason..."
+            :placeholder="t('stockAdjustmentsPage.searchPlaceholder')"
           />
         </div>
 
         <select v-model="reasonFilter" class="filter-select">
-          <option value="">All reasons</option>
-          <option value="LOST">LOST</option>
-          <option value="DAMAGED">DAMAGED</option>
-          <option value="OTHER">OTHER</option>
+          <option value="">{{ t('stockAdjustmentsPage.allReasons') }}</option>
+          <option value="LOST">{{ t('stockAdjustmentsPage.lost') }}</option>
+          <option value="DAMAGED">{{ t('stockAdjustmentsPage.damaged') }}</option>
+          <option value="OTHER">{{ t('stockAdjustmentsPage.other') }}</option>
         </select>
 
         <input v-model="dateFilter" type="date" class="filter-select" />
 
-        <button class="reset-btn" @click="resetFilters">Reset</button>
+        <button class="reset-btn" @click="resetFilters">{{ t('common.reset') }}</button>
       </div>
     </section>
 
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>Stock Adjustment List</h2>
-          <p>{{ filteredItems.length }} adjustment(s) found</p>
+          <h2>{{ t('stockAdjustmentsPage.stockAdjustmentList') }}</h2>
+          <p>{{ t('stockAdjustmentsPage.adjustmentsFound', { count: filteredItems.length }) }}</p>
         </div>
       </div>
 
@@ -88,15 +88,15 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Reference</th>
-              <th>Product</th>
-              <th>Old Stock</th>
-              <th>New Stock</th>
-              <th>Difference</th>
-              <th>Reason</th>
-              <th>Adjusted By</th>
-              <th>Adjusted At</th>
-              <th>Action</th>
+              <th>{{ t('stockAdjustmentsPage.reference') }}</th>
+              <th>{{ t('stockAdjustmentsPage.product') }}</th>
+              <th>{{ t('stockAdjustmentsPage.oldStock') }}</th>
+              <th>{{ t('stockAdjustmentsPage.newStock') }}</th>
+              <th>{{ t('stockAdjustmentsPage.difference') }}</th>
+              <th>{{ t('stockAdjustmentsPage.reason') }}</th>
+              <th>{{ t('stockAdjustmentsPage.adjustedBy') }}</th>
+              <th>{{ t('stockAdjustmentsPage.adjustedAt') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -105,7 +105,7 @@
               <td>
                 <div class="ref-cell">
                   <div class="ref-main">SA{{ String(item.id).padStart(10, '0') }}</div>
-                  <div class="ref-sub">Adjustment</div>
+                  <div class="ref-sub">{{ t('stockAdjustmentsPage.adjustment') }}</div>
                 </div>
               </td>
 
@@ -123,7 +123,7 @@
 
               <td>
                 <span class="status-badge" :class="reasonClass(item.reason)">
-                  {{ item.reason || '-' }}
+                  {{ formatReason(item.reason) }}
                 </span>
               </td>
 
@@ -132,9 +132,9 @@
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openViewModal(item)">View</button>
-                  <button class="btn-edit" @click="openEditModal(item)">Edit</button>
-                  <button class="btn-delete" @click="deleteItem(item.id)">Delete</button>
+                  <button class="btn-view" @click="openViewModal(item)">{{ t('common.view') }}</button>
+                  <button class="btn-edit" @click="openEditModal(item)">{{ t('common.edit') }}</button>
+                  <button class="btn-delete" @click="deleteItem(item.id)">{{ t('common.delete') }}</button>
                 </div>
               </td>
             </tr>
@@ -143,22 +143,21 @@
       </div>
 
       <div v-else-if="!loading" class="empty-state">
-        <h3>No stock adjustments found</h3>
-        <p>Try another keyword or create a new stock adjustment.</p>
+        <h3>{{ t('stockAdjustmentsPage.noStockAdjustmentsTitle') }}</h3>
+        <p>{{ t('stockAdjustmentsPage.noStockAdjustmentsSubtitle') }}</p>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading stock adjustments...
+        {{ t('stockAdjustmentsPage.loadingStockAdjustments') }}
       </div>
     </section>
 
-    <!-- Add/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-card modal-card-wide">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditMode ? 'Edit Stock Adjustment' : 'Add Stock Adjustment' }}</h2>
-            <p>Fill in the form below to save stock adjustment data.</p>
+            <h2>{{ isEditMode ? t('stockAdjustmentsPage.editStockAdjustmentTitle') : t('stockAdjustmentsPage.addStockAdjustmentTitle') }}</h2>
+            <p>{{ t('stockAdjustmentsPage.stockAdjustmentFormSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeModal">×</button>
         </div>
@@ -166,9 +165,9 @@
         <div class="modal-body">
           <div class="form-grid two-col">
             <div class="form-group">
-              <label>Product <span class="required">*</span></label>
+              <label>{{ t('stockAdjustmentsPage.product') }} <span class="required">*</span></label>
               <select v-model="form.product" class="form-input">
-                <option value="">Select product</option>
+                <option value="">{{ t('stockAdjustmentsPage.selectProduct') }}</option>
                 <option
                   v-for="product in productOptions"
                   :key="product.id"
@@ -180,17 +179,17 @@
             </div>
 
             <div class="form-group">
-              <label>Reason <span class="required">*</span></label>
+              <label>{{ t('stockAdjustmentsPage.reason') }} <span class="required">*</span></label>
               <select v-model="form.reason" class="form-input">
-                <option value="">Select reason</option>
-                <option value="LOST">LOST</option>
-                <option value="DAMAGED">DAMAGED</option>
-                <option value="OTHER">OTHER</option>
+                <option value="">{{ t('stockAdjustmentsPage.selectReason') }}</option>
+                <option value="LOST">{{ t('stockAdjustmentsPage.lost') }}</option>
+                <option value="DAMAGED">{{ t('stockAdjustmentsPage.damaged') }}</option>
+                <option value="OTHER">{{ t('stockAdjustmentsPage.other') }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label>Current / Old Stock</label>
+              <label>{{ t('stockAdjustmentsPage.currentOldStock') }}</label>
               <input
                 :value="displayOldStock"
                 type="text"
@@ -200,7 +199,7 @@
             </div>
 
             <div class="form-group">
-              <label>New Stock <span class="required">*</span></label>
+              <label>{{ t('stockAdjustmentsPage.newStock') }} <span class="required">*</span></label>
               <input
                 v-model.number="form.new_stock"
                 type="number"
@@ -210,33 +209,32 @@
             </div>
 
             <div class="form-group form-group-full">
-              <label>Note</label>
+              <label>{{ t('common.note') }}</label>
               <textarea
                 v-model="form.note"
                 class="form-input textarea"
                 rows="4"
-                placeholder="Write note here..."
+                :placeholder="t('stockAdjustmentsPage.notePlaceholder')"
               ></textarea>
             </div>
           </div>
 
           <div class="modal-actions">
-            <button class="secondary-btn" @click="closeModal">Cancel</button>
+            <button class="secondary-btn" @click="closeModal">{{ t('common.cancel') }}</button>
             <button class="save-btn" @click="saveItem" :disabled="saving">
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ saving ? t('productsPage.saving') : t('common.save') }}
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- View Modal -->
     <div v-if="showViewModal" class="modal-overlay" @click.self="closeViewModal">
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <h2>Stock Adjustment Detail</h2>
-            <p>Review stock adjustment information.</p>
+            <h2>{{ t('stockAdjustmentsPage.stockAdjustmentDetailTitle') }}</h2>
+            <p>{{ t('stockAdjustmentsPage.stockAdjustmentDetailSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeViewModal">×</button>
         </div>
@@ -244,53 +242,53 @@
         <div class="modal-body" v-if="viewItem">
           <div class="detail-grid">
             <div class="detail-box">
-              <div class="detail-label">Reference</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.reference') }}</div>
               <div class="detail-value">
                 SA{{ String(viewItem.id).padStart(10, '0') }}
               </div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Product</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.product') }}</div>
               <div class="detail-value">{{ viewItem.product_name || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Old Stock</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.oldStock') }}</div>
               <div class="detail-value">{{ viewItem.old_stock }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">New Stock</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.newStock') }}</div>
               <div class="detail-value">{{ viewItem.new_stock }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Difference</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.difference') }}</div>
               <div class="detail-value">{{ formatDifference(viewItem) }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Reason</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.reason') }}</div>
               <div class="detail-value">
                 <span class="status-badge" :class="reasonClass(viewItem.reason)">
-                  {{ viewItem.reason || '-' }}
+                  {{ formatReason(viewItem.reason) }}
                 </span>
               </div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Adjusted By</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.adjustedBy') }}</div>
               <div class="detail-value">{{ viewItem.adjusted_by_name || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Adjusted At</div>
+              <div class="detail-label">{{ t('stockAdjustmentsPage.adjustedAt') }}</div>
               <div class="detail-value">{{ formatDateTime(viewItem.adjusted_at) }}</div>
             </div>
 
             <div class="detail-box detail-box-full">
-              <div class="detail-label">Note</div>
+              <div class="detail-label">{{ t('common.note') }}</div>
               <div class="detail-value">{{ viewItem.note || '-' }}</div>
             </div>
           </div>
@@ -302,6 +300,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -327,6 +326,8 @@ type ProductOption = {
   stock?: number | string | null
   label: string
 }
+
+const { t, locale } = useI18n()
 
 const stockAdjustments = ref<StockAdjustment[]>([])
 const productOptions = ref<ProductOption[]>([])
@@ -396,6 +397,11 @@ const displayOldStock = computed(() => {
   return '-'
 })
 
+function getDateLocale() {
+  if (locale.value === 'id') return 'id-ID'
+  return 'en-US'
+}
+
 function normalizeStockAdjustment(raw: any): StockAdjustment {
   return {
     id: Number(raw?.id ?? 0),
@@ -456,7 +462,7 @@ async function fetchStockAdjustments() {
     console.error('Failed to fetch stock adjustments:', err)
     error.value =
       err?.response?.data?.detail ||
-      'Failed to load stock adjustments. Please check API and token.'
+      t('stockAdjustmentsPage.failedLoad')
     stockAdjustments.value = []
   } finally {
     loading.value = false
@@ -514,17 +520,17 @@ function closeViewModal() {
 
 function validateForm() {
   if (!form.product) {
-    alert('Product is required.')
+    alert(t('stockAdjustmentsPage.productRequired'))
     return false
   }
 
   if (form.new_stock === '' || form.new_stock === null || form.new_stock === undefined) {
-    alert('New stock is required.')
+    alert(t('stockAdjustmentsPage.newStockRequired'))
     return false
   }
 
   if (!form.reason || !String(form.reason).trim()) {
-    alert('Reason is required.')
+    alert(t('stockAdjustmentsPage.reasonRequired'))
     return false
   }
 
@@ -560,7 +566,7 @@ async function saveItem() {
     alert(
       err?.response?.data?.detail ||
       JSON.stringify(err?.response?.data || {}) ||
-      'Failed to save stock adjustment.'
+      t('stockAdjustmentsPage.failedSave')
     )
   } finally {
     saving.value = false
@@ -568,7 +574,7 @@ async function saveItem() {
 }
 
 async function deleteItem(id: number) {
-  if (!window.confirm('Delete this stock adjustment?')) return
+  if (!window.confirm(t('stockAdjustmentsPage.deleteConfirm'))) return
 
   try {
     await api.delete(`${ENDPOINTS.STOCK_ADJUSTMENTS}${id}/`)
@@ -577,7 +583,7 @@ async function deleteItem(id: number) {
     console.error('Failed to delete stock adjustment:', err)
     alert(
       err?.response?.data?.detail ||
-      'Failed to delete stock adjustment.'
+      t('stockAdjustmentsPage.failedDelete')
     )
   }
 }
@@ -586,7 +592,7 @@ function formatDateTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value || '-'
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getDateLocale(), {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -615,6 +621,19 @@ function reasonClass(reason: ReasonType) {
     cancelled: reason === 'LOST',
     unpaid: reason === 'DAMAGED',
     info: reason === 'OTHER',
+  }
+}
+
+function formatReason(reason: string) {
+  switch (reason) {
+    case 'LOST':
+      return t('stockAdjustmentsPage.lost')
+    case 'DAMAGED':
+      return t('stockAdjustmentsPage.damaged')
+    case 'OTHER':
+      return t('stockAdjustmentsPage.other')
+    default:
+      return reason || '-'
   }
 }
 

@@ -1,52 +1,49 @@
 <template>
   <div class="inventory-counts-page">
-    <!-- Header -->
     <section class="page-header">
       <div>
-        <h1 class="page-title">Inventory Counts</h1>
+        <h1 class="page-title">{{ t('inventoryCountsPage.title') }}</h1>
         <p class="page-subtitle">
-          Manage inventory count sessions for your current shop.
+          {{ t('inventoryCountsPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>Inventory</span>
+          <span>{{ t('menu.inventory') }}</span>
           <span>/</span>
-          <span class="active">Inventory Counts</span>
+          <span class="active">{{ t('inventoryCountsPage.title') }}</span>
         </div>
       </div>
 
       <div class="header-actions">
         <button class="add-btn" @click="openAddModal">
           <span>+</span>
-          Add Inventory Count
+          {{ t('inventoryCountsPage.addInventoryCount') }}
         </button>
       </div>
     </section>
 
-    <!-- Summary -->
     <section class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Counts</div>
+        <div class="stat-label">{{ t('inventoryCountsPage.visibleCounts') }}</div>
         <div class="stat-value">{{ filteredItems.length }}</div>
-        <div class="stat-note">Counts shown in current filter</div>
+        <div class="stat-note">{{ t('inventoryCountsPage.visibleCountsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Draft Counts</div>
+        <div class="stat-label">{{ t('inventoryCountsPage.draftCounts') }}</div>
         <div class="stat-value">{{ draftCount }}</div>
-        <div class="stat-note">Inventory counts still in draft status</div>
+        <div class="stat-note">{{ t('inventoryCountsPage.draftCountsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Completed Counts</div>
+        <div class="stat-label">{{ t('inventoryCountsPage.completedCounts') }}</div>
         <div class="stat-value">{{ completedCount }}</div>
-        <div class="stat-note">Counts already finalized / completed</div>
+        <div class="stat-note">{{ t('inventoryCountsPage.completedCountsNote') }}</div>
       </div>
     </section>
 
-    <!-- Toolbar -->
     <section class="toolbar-card">
       <div class="toolbar-grid">
         <div class="search-box">
@@ -54,30 +51,29 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by title, note, counted by..."
+            :placeholder="t('inventoryCountsPage.searchPlaceholder')"
           />
         </div>
 
         <input v-model="countDateFilter" type="date" class="filter-input" />
 
         <select v-model="statusFilter" class="filter-select">
-          <option value="">All status</option>
-          <option value="DRAFT">Draft</option>
-          <option value="SUBMITTED">Submitted</option>
-          <option value="APPROVED">Approved</option>
-          <option value="COMPLETED">Completed</option>
+          <option value="">{{ t('inventoryCountsPage.allStatus') }}</option>
+          <option value="DRAFT">{{ t('inventoryCountsPage.draft') }}</option>
+          <option value="SUBMITTED">{{ t('inventoryCountsPage.submitted') }}</option>
+          <option value="APPROVED">{{ t('inventoryCountsPage.approved') }}</option>
+          <option value="COMPLETED">{{ t('inventoryCountsPage.completed') }}</option>
         </select>
 
-        <button class="reset-btn" @click="resetFilters">Reset</button>
+        <button class="reset-btn" @click="resetFilters">{{ t('common.reset') }}</button>
       </div>
     </section>
 
-    <!-- Table -->
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>Inventory Count List</h2>
-          <p>{{ filteredItems.length }} count(s) found</p>
+          <h2>{{ t('inventoryCountsPage.inventoryCountList') }}</h2>
+          <p>{{ t('inventoryCountsPage.countsFound', { count: filteredItems.length }) }}</p>
         </div>
 
         <button
@@ -85,7 +81,7 @@
           @click="fetchInventoryCounts"
           :disabled="loading"
         >
-          {{ loading ? 'Loading...' : 'Refresh' }}
+          {{ loading ? t('common.loading') : t('productsPage.refresh') }}
         </button>
       </div>
 
@@ -97,14 +93,14 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Reference</th>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Items</th>
-              <th>Counted By</th>
-              <th>Counted At</th>
-              <th>Note</th>
-              <th>Action</th>
+              <th>{{ t('inventoryCountsPage.reference') }}</th>
+              <th>{{ t('inventoryCountsPage.titleLabel') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('inventoryCountsPage.items') }}</th>
+              <th>{{ t('inventoryCountsPage.countedBy') }}</th>
+              <th>{{ t('inventoryCountsPage.countedAt') }}</th>
+              <th>{{ t('common.note') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -113,7 +109,7 @@
               <td>
                 <div class="ref-cell">
                   <div class="ref-main">IC{{ String(item.id).padStart(10, '0') }}</div>
-                  <div class="ref-sub">Stock count</div>
+                  <div class="ref-sub">{{ t('inventoryCountsPage.stockCount') }}</div>
                 </div>
               </td>
 
@@ -131,8 +127,8 @@
 
               <td>
                 <div class="items-cell">
-                  <div class="items-main">{{ getItemCount(item) }} item(s)</div>
-                  <div class="items-sub">Count lines</div>
+                  <div class="items-main">{{ t('inventoryCountsPage.countsFound', { count: getItemCount(item) }).replace(' count(s) found', '').replace(' data ditemukan', '').replace(' kontajen hetan', '') }} {{ getLocaleItemWord() }}</div>
+                  <div class="items-sub">{{ t('inventoryCountsPage.countLines') }}</div>
                 </div>
               </td>
 
@@ -145,16 +141,16 @@
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openViewModal(item)">View</button>
-                  <button class="btn-edit" @click="openEditModal(item)">Edit</button>
+                  <button class="btn-view" @click="openViewModal(item)">{{ t('common.view') }}</button>
+                  <button class="btn-edit" @click="openEditModal(item)">{{ t('common.edit') }}</button>
                   <button
                     v-if="item.status !== 'COMPLETED'"
                     class="btn-finalize"
                     @click="finalizeItem(item)"
                   >
-                    Finalize
+                    {{ t('inventoryCountsPage.finalize') }}
                   </button>
-                  <button class="btn-delete" @click="deleteItem(item.id)">Delete</button>
+                  <button class="btn-delete" @click="deleteItem(item.id)">{{ t('common.delete') }}</button>
                 </div>
               </td>
             </tr>
@@ -163,22 +159,21 @@
       </div>
 
       <div v-else-if="!loading" class="empty-state">
-        <h3>No inventory counts found</h3>
-        <p>Try another keyword or create a new inventory count.</p>
+        <h3>{{ t('inventoryCountsPage.noInventoryCountsTitle') }}</h3>
+        <p>{{ t('inventoryCountsPage.noInventoryCountsSubtitle') }}</p>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading inventory counts...
+        {{ t('inventoryCountsPage.loadingInventoryCounts') }}
       </div>
     </section>
 
-    <!-- Add/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditMode ? 'Edit Inventory Count' : 'Add Inventory Count' }}</h2>
-            <p>Fill in the form below to save inventory count data.</p>
+            <h2>{{ isEditMode ? t('inventoryCountsPage.editInventoryCountTitle') : t('inventoryCountsPage.addInventoryCountTitle') }}</h2>
+            <p>{{ t('inventoryCountsPage.inventoryCountFormSubtitle') }}</p>
           </div>
 
           <button class="close-btn" @click="closeModal">×</button>
@@ -187,53 +182,52 @@
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group">
-              <label>Title <span class="required">*</span></label>
+              <label>{{ t('inventoryCountsPage.titleLabel') }} <span class="required">*</span></label>
               <input
                 v-model="form.title"
                 type="text"
                 class="form-input"
-                placeholder="Enter title"
+                :placeholder="t('inventoryCountsPage.titlePlaceholder')"
               />
             </div>
 
             <div class="form-group">
-              <label>Status</label>
+              <label>{{ t('common.status') }}</label>
               <select v-model="form.status" class="form-input">
-                <option value="DRAFT">Draft</option>
-                <option value="SUBMITTED">Submitted</option>
-                <option value="APPROVED">Approved</option>
-                <option value="COMPLETED">Completed</option>
+                <option value="DRAFT">{{ t('inventoryCountsPage.draft') }}</option>
+                <option value="SUBMITTED">{{ t('inventoryCountsPage.submitted') }}</option>
+                <option value="APPROVED">{{ t('inventoryCountsPage.approved') }}</option>
+                <option value="COMPLETED">{{ t('inventoryCountsPage.completed') }}</option>
               </select>
             </div>
 
             <div class="form-group form-group-full">
-              <label>Note</label>
+              <label>{{ t('common.note') }}</label>
               <textarea
                 v-model="form.note"
                 class="form-input textarea"
                 rows="4"
-                placeholder="Write note here..."
+                :placeholder="t('inventoryCountsPage.notePlaceholder')"
               ></textarea>
             </div>
           </div>
 
           <div class="modal-actions">
-            <button class="secondary-btn" @click="closeModal">Cancel</button>
+            <button class="secondary-btn" @click="closeModal">{{ t('common.cancel') }}</button>
             <button class="save-btn" @click="saveItem" :disabled="saving">
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ saving ? t('productsPage.saving') : t('common.save') }}
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- View Modal -->
     <div v-if="showViewModal" class="modal-overlay" @click.self="closeViewModal">
       <div class="modal-card modal-card-lg">
         <div class="modal-header">
           <div>
-            <h2>Inventory Count Detail</h2>
-            <p>Review inventory count information and counted items.</p>
+            <h2>{{ t('inventoryCountsPage.inventoryCountDetailTitle') }}</h2>
+            <p>{{ t('inventoryCountsPage.inventoryCountDetailSubtitle') }}</p>
           </div>
 
           <button class="close-btn" @click="closeViewModal">×</button>
@@ -242,14 +236,14 @@
         <div class="modal-body" v-if="viewItem">
           <div class="detail-grid">
             <div class="detail-box">
-              <div class="detail-label">Reference</div>
+              <div class="detail-label">{{ t('inventoryCountsPage.reference') }}</div>
               <div class="detail-value">
                 IC{{ String(viewItem.id).padStart(10, '0') }}
               </div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Status</div>
+              <div class="detail-label">{{ t('common.status') }}</div>
               <div class="detail-value">
                 <span class="status-badge" :class="statusClass(viewItem.status)">
                   {{ formatStatus(viewItem.status) }}
@@ -258,35 +252,35 @@
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Title</div>
+              <div class="detail-label">{{ t('inventoryCountsPage.titleLabel') }}</div>
               <div class="detail-value">{{ viewItem.title || '-' }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Counted By</div>
+              <div class="detail-label">{{ t('inventoryCountsPage.countedBy') }}</div>
               <div class="detail-value">{{ getCountedByName(viewItem.counted_by) }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Counted At</div>
+              <div class="detail-label">{{ t('inventoryCountsPage.countedAt') }}</div>
               <div class="detail-value">{{ formatDateTime(viewItem.counted_at) }}</div>
             </div>
 
             <div class="detail-box">
-              <div class="detail-label">Items</div>
-              <div class="detail-value">{{ getItemCount(viewItem) }} item(s)</div>
+              <div class="detail-label">{{ t('inventoryCountsPage.items') }}</div>
+              <div class="detail-value">{{ getItemCount(viewItem) }}</div>
             </div>
 
             <div class="detail-box detail-box-full">
-              <div class="detail-label">Note</div>
+              <div class="detail-label">{{ t('common.note') }}</div>
               <div class="detail-value">{{ viewItem.note || '-' }}</div>
             </div>
           </div>
 
           <div class="items-table-card">
             <div class="items-table-header">
-              <h3>Counted Items</h3>
-              <p>{{ getItemCount(viewItem) }} line(s)</p>
+              <h3>{{ t('inventoryCountsPage.countedItems') }}</h3>
+              <p>{{ t('inventoryCountsPage.countedItemsLines', { count: getItemCount(viewItem) }) }}</p>
             </div>
 
             <div v-if="getItemCount(viewItem)" class="table-wrap">
@@ -294,11 +288,11 @@
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Product</th>
-                    <th>System Stock</th>
-                    <th>Physical Stock</th>
-                    <th>Difference</th>
-                    <th>Note</th>
+                    <th>{{ t('inventoryCountsPage.product') }}</th>
+                    <th>{{ t('inventoryCountsPage.systemStock') }}</th>
+                    <th>{{ t('inventoryCountsPage.physicalStock') }}</th>
+                    <th>{{ t('inventoryCountsPage.difference') }}</th>
+                    <th>{{ t('common.note') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,8 +309,8 @@
             </div>
 
             <div v-else class="empty-state small-empty">
-              <h3>No counted items</h3>
-              <p>This inventory count does not contain item rows yet.</p>
+              <h3>{{ t('inventoryCountsPage.noCountedItemsTitle') }}</h3>
+              <p>{{ t('inventoryCountsPage.noCountedItemsSubtitle') }}</p>
             </div>
           </div>
         </div>
@@ -327,6 +321,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -354,6 +349,8 @@ type InventoryCount = {
   counted_by: CountedBy
   items: InventoryCountItem[]
 }
+
+const { t, locale } = useI18n()
 
 const inventoryCounts = ref<InventoryCount[]>([])
 const loading = ref(false)
@@ -412,6 +409,17 @@ const completedCount = computed(
   () => filteredItems.value.filter((item) => item.status === 'COMPLETED').length
 )
 
+function getDateLocale() {
+  if (locale.value === 'id') return 'id-ID'
+  return 'en-US'
+}
+
+function getLocaleItemWord() {
+  if (locale.value === 'id') return 'item'
+  if (locale.value === 'tet') return 'item'
+  return 'item(s)'
+}
+
 async function fetchInventoryCounts() {
   loading.value = true
   error.value = ''
@@ -424,7 +432,7 @@ async function fetchInventoryCounts() {
     console.error('Failed to fetch inventory counts:', err)
     error.value =
       err?.response?.data?.detail ||
-      'Failed to load inventory counts. Please check your API and token.'
+      t('inventoryCountsPage.failedLoad')
     inventoryCounts.value = []
   } finally {
     loading.value = false
@@ -452,13 +460,13 @@ function normalizeStatus(value: any): InventoryCount['status'] {
 function formatStatus(status: string) {
   switch (status) {
     case 'DRAFT':
-      return 'Draft'
+      return t('inventoryCountsPage.draft')
     case 'SUBMITTED':
-      return 'Submitted'
+      return t('inventoryCountsPage.submitted')
     case 'APPROVED':
-      return 'Approved'
+      return t('inventoryCountsPage.approved')
     case 'COMPLETED':
-      return 'Completed'
+      return t('inventoryCountsPage.completed')
     default:
       return status || '-'
   }
@@ -519,7 +527,7 @@ function closeViewModal() {
 
 async function saveItem() {
   if (!form.title.trim()) {
-    alert('Title is required')
+    alert(t('inventoryCountsPage.titleRequired'))
     return
   }
 
@@ -546,7 +554,7 @@ async function saveItem() {
     alert(
       err?.response?.data?.detail ||
       JSON.stringify(err?.response?.data || {}) ||
-      'Failed to save inventory count.'
+      t('inventoryCountsPage.failedSave')
     )
   } finally {
     saving.value = false
@@ -554,7 +562,7 @@ async function saveItem() {
 }
 
 async function deleteItem(id: number) {
-  const confirmed = window.confirm('Delete this inventory count?')
+  const confirmed = window.confirm(t('inventoryCountsPage.deleteConfirm'))
   if (!confirmed) return
 
   try {
@@ -564,14 +572,14 @@ async function deleteItem(id: number) {
     console.error('Failed to delete inventory count:', err)
     alert(
       err?.response?.data?.detail ||
-      'Failed to delete inventory count.'
+      t('inventoryCountsPage.failedDelete')
     )
   }
 }
 
 async function finalizeItem(item: InventoryCount) {
   const confirmed = window.confirm(
-    `Finalize inventory count "${item.title}"?`
+    t('inventoryCountsPage.finalizeConfirm', { title: item.title })
   )
   if (!confirmed) return
 
@@ -592,7 +600,7 @@ async function finalizeItem(item: InventoryCount) {
     alert(
       err?.response?.data?.detail ||
       JSON.stringify(err?.response?.data || {}) ||
-      'Failed to finalize inventory count.'
+      t('inventoryCountsPage.failedFinalize')
     )
   }
 }
@@ -632,7 +640,7 @@ function formatDateTime(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getDateLocale(), {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
