@@ -3,44 +3,44 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Customers</h1>
+          <h1 class="page-title">{{ t('customersPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage customer data for your current shop.
+            {{ t('customersPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Customers</span>
+          <span class="current">{{ t('customersPage.title') }}</span>
         </nav>
       </div>
 
       <button class="btn btn-primary" @click="openCreateModal">
         <span class="btn-icon">＋</span>
-        Add Customer
+        {{ t('customersPage.addCustomer') }}
       </button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Total Customers</div>
+        <div class="stat-label">{{ t('customersPage.totalCustomers') }}</div>
         <div class="stat-value">{{ filteredCustomers.length }}</div>
-        <div class="stat-note">Current visible records</div>
+        <div class="stat-note">{{ t('customersPage.totalCustomersNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Members with Points</div>
+        <div class="stat-label">{{ t('customersPage.membersWithPoints') }}</div>
         <div class="stat-value">{{ customersWithPoints }}</div>
-        <div class="stat-note">Customers with points above 0</div>
+        <div class="stat-note">{{ t('customersPage.membersWithPointsNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Top Customer</div>
+        <div class="stat-label">{{ t('customersPage.topCustomer') }}</div>
         <div class="stat-value stat-truncate">{{ topCustomerName }}</div>
-        <div class="stat-note">Highest points holder</div>
+        <div class="stat-note">{{ t('customersPage.topCustomerNote') }}</div>
       </div>
     </div>
 
@@ -51,12 +51,12 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by name, phone, email, or address..."
+            :placeholder="t('customersPage.searchPlaceholder')"
           />
         </div>
 
         <button class="btn btn-light" @click="resetFilters">
-          Reset
+          {{ t('common.reset') }}
         </button>
       </div>
     </div>
@@ -64,13 +64,13 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Customer List</h2>
-          <p>{{ filteredCustomers.length }} customer(s) found</p>
+          <h2>{{ t('customersPage.customerList') }}</h2>
+          <p>{{ t('customersPage.customersFound', { count: filteredCustomers.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading customers...
+        {{ t('customersPage.loadingCustomers') }}
       </div>
 
       <div v-else-if="errorMessage" class="error-state">
@@ -81,20 +81,20 @@
         <table class="customer-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Cell</th>
-              <th>Email</th>
-              <th>Address</th>
-              <th>Points</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('customersPage.id') }}</th>
+              <th>{{ t('customersPage.name') }}</th>
+              <th>{{ t('customersPage.cell') }}</th>
+              <th>{{ t('customersPage.email') }}</th>
+              <th>{{ t('customersPage.address') }}</th>
+              <th>{{ t('customersPage.points') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="filteredCustomers.length === 0">
               <td colspan="7" class="empty-cell">
-                No customers found.
+                {{ t('customersPage.noCustomersFound') }}
               </td>
             </tr>
 
@@ -111,7 +111,7 @@
                   <div>
                     <div class="customer-name">{{ customer.name }}</div>
                     <div class="customer-meta">
-                      {{ customer.email || 'No email' }}
+                      {{ customer.email || t('customersPage.noEmail') }}
                     </div>
                   </div>
                 </div>
@@ -142,17 +142,17 @@
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(customer)">
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button class="btn btn-sm btn-warning" @click="openEditModal(customer)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
                     :disabled="deletingId === customer.id"
                     @click="removeCustomer(customer.id)"
                   >
-                    {{ deletingId === customer.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === customer.id ? t('customersPage.deleting') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -166,7 +166,7 @@
           v-if="filteredCustomers.length === 0"
           class="mobile-empty"
         >
-          No customers found.
+          {{ t('customersPage.noCustomersFound') }}
         </div>
 
         <div
@@ -185,39 +185,39 @@
               </div>
             </div>
 
-            <span class="points-badge">{{ customer.points }} pts</span>
+            <span class="points-badge">{{ customer.points }} {{ t('customersPage.pts') }}</span>
           </div>
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Cell</span>
+              <span class="label">{{ t('customersPage.cell') }}</span>
               <span class="cell-text">{{ customer.cell || '-' }}</span>
             </div>
 
             <div class="info-item">
-              <span class="label">Email</span>
+              <span class="label">{{ t('customersPage.email') }}</span>
               <span class="email-text">{{ customer.email || '-' }}</span>
             </div>
 
             <div class="info-item full">
-              <span class="label">Address</span>
+              <span class="label">{{ t('customersPage.address') }}</span>
               <span class="address-text">{{ customer.address || '-' }}</span>
             </div>
           </div>
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(customer)">
-              View
+              {{ t('common.view') }}
             </button>
             <button class="btn btn-sm btn-warning" @click="openEditModal(customer)">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button
               class="btn btn-sm btn-danger"
               :disabled="deletingId === customer.id"
               @click="removeCustomer(customer.id)"
             >
-              {{ deletingId === customer.id ? 'Deleting...' : 'Delete' }}
+              {{ deletingId === customer.id ? t('customersPage.deleting') : t('common.delete') }}
             </button>
           </div>
         </div>
@@ -232,17 +232,17 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Customer'
+                    ? t('customersPage.addCustomerTitle')
                     : modalMode === 'edit'
-                    ? 'Edit Customer'
-                    : 'Customer Detail'
+                    ? t('customersPage.editCustomerTitle')
+                    : t('customersPage.customerDetailTitle')
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View customer information'
-                    : 'Fill in the form below'
+                    ? t('customersPage.viewCustomerInformation')
+                    : t('customersPage.fillCustomerForm')
                 }}
               </p>
             </div>
@@ -254,52 +254,52 @@
             <form class="customer-form" @submit.prevent="saveCustomer">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Name <span>*</span></label>
+                  <label>{{ t('customersPage.name') }} <span>*</span></label>
                   <input
                     v-model="form.name"
                     type="text"
-                    placeholder="Enter customer name"
+                    :placeholder="t('customersPage.namePlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Cell</label>
+                  <label>{{ t('customersPage.cell') }}</label>
                   <input
                     v-model="form.cell"
                     type="text"
-                    placeholder="Enter phone number"
+                    :placeholder="t('customersPage.cellPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Email</label>
+                  <label>{{ t('customersPage.email') }}</label>
                   <input
                     v-model="form.email"
                     type="email"
-                    placeholder="Enter email address"
+                    :placeholder="t('customersPage.emailPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Points</label>
+                  <label>{{ t('customersPage.points') }}</label>
                   <input
                     v-model.number="form.points"
                     type="number"
                     min="0"
-                    placeholder="0"
+                    :placeholder="t('customersPage.pointsPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Address</label>
+                  <label>{{ t('customersPage.address') }}</label>
                   <textarea
                     v-model="form.address"
                     rows="5"
-                    placeholder="Enter customer address"
+                    :placeholder="t('customersPage.addressPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -311,20 +311,20 @@
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light" @click="closeModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary" :disabled="saving">
                   {{
                     saving
-                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
-                      : (modalMode === 'create' ? 'Save Customer' : 'Update Customer')
+                      ? (modalMode === 'create' ? t('customersPage.saving') : t('customersPage.updating'))
+                      : (modalMode === 'create' ? t('customersPage.saveCustomer') : t('customersPage.updateCustomer'))
                   }}
                 </button>
               </div>
 
               <div v-else class="modal-footer">
                 <button type="button" class="btn btn-primary" @click="closeModal">
-                  Close
+                  {{ t('common.close') }}
                 </button>
               </div>
             </form>
@@ -337,6 +337,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -350,6 +351,8 @@ type Customer = {
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
+
+const { t } = useI18n()
 
 const search = ref('')
 const showModal = ref(false)
@@ -487,17 +490,17 @@ function validateForm() {
   formError.value = ''
 
   if (!form.name.trim()) {
-    formError.value = 'Customer name is required.'
+    formError.value = t('customersPage.customerNameRequired')
     return false
   }
 
   if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    formError.value = 'Email format is invalid.'
+    formError.value = t('customersPage.invalidEmail')
     return false
   }
 
   if (Number(form.points) < 0) {
-    formError.value = 'Points cannot be negative.'
+    formError.value = t('customersPage.negativePoints')
     return false
   }
 
@@ -517,7 +520,7 @@ async function fetchCustomers() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to load customers.'
+      t('customersPage.failedLoad')
     customers.value = []
   } finally {
     loading.value = false
@@ -553,10 +556,10 @@ async function saveCustomer() {
         const firstValue = data[firstKey]
         formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
       } else {
-        formError.value = 'Failed to save customer.'
+        formError.value = t('customersPage.failedSave')
       }
     } else {
-      formError.value = error?.message || 'Failed to save customer.'
+      formError.value = error?.message || t('customersPage.failedSave')
     }
   } finally {
     saving.value = false
@@ -564,7 +567,7 @@ async function saveCustomer() {
 }
 
 async function removeCustomer(id: number) {
-  const ok = window.confirm('Delete this customer?')
+  const ok = window.confirm(t('customersPage.deleteConfirm'))
   if (!ok) return
 
   deletingId.value = id
@@ -576,7 +579,7 @@ async function removeCustomer(id: number) {
     alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to delete customer.'
+      t('customersPage.failedDelete')
     )
   } finally {
     deletingId.value = null

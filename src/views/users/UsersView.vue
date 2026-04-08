@@ -1,32 +1,30 @@
 <template>
   <div class="dashboard-page">
-    <!-- Header -->
     <section class="page-header">
       <div>
-        <h1 class="page-title">Users</h1>
+        <h1 class="page-title">{{ t('usersPage.title') }}</h1>
         <p class="page-subtitle">
-          Manage shop users and access roles for your current shop.
+          {{ t('usersPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>Users</span>
+          <span>{{ t('usersPage.title') }}</span>
           <span>/</span>
-          <span class="active">Users</span>
+          <span class="active">{{ t('usersPage.title') }}</span>
         </div>
       </div>
 
       <button class="add-btn" @click="openAddModal" :disabled="saving">
         <span>+</span>
-        Add User
+        {{ t('usersPage.addUser') }}
       </button>
     </section>
 
-    <!-- Alert -->
     <section v-if="errorMessage" class="alert-card alert-error">
       <div>
-        <strong>Request failed.</strong>
+        <strong>{{ t('usersPage.requestFailed') }}</strong>
         <p>{{ errorMessage }}</p>
       </div>
       <button class="alert-close" @click="errorMessage = ''">×</button>
@@ -34,34 +32,32 @@
 
     <section v-if="successMessage" class="alert-card alert-success">
       <div>
-        <strong>Success.</strong>
+        <strong>{{ t('usersPage.success') }}</strong>
         <p>{{ successMessage }}</p>
       </div>
       <button class="alert-close" @click="successMessage = ''">×</button>
     </section>
 
-    <!-- Summary -->
     <section class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Users</div>
+        <div class="stat-label">{{ t('usersPage.visibleUsers') }}</div>
         <div class="stat-value">{{ filteredUsers.length }}</div>
-        <div class="stat-note">Users shown in current filter</div>
+        <div class="stat-note">{{ t('usersPage.visibleUsersNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Active Users</div>
+        <div class="stat-label">{{ t('usersPage.activeUsers') }}</div>
         <div class="stat-value">{{ activeCount }}</div>
-        <div class="stat-note">Users currently active</div>
+        <div class="stat-note">{{ t('usersPage.activeUsersNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Managers & Owners</div>
+        <div class="stat-label">{{ t('usersPage.managersOwners') }}</div>
         <div class="stat-value">{{ adminCount }}</div>
-        <div class="stat-note">Higher access users</div>
+        <div class="stat-note">{{ t('usersPage.managersOwnersNote') }}</div>
       </div>
     </section>
 
-    <!-- Toolbar -->
     <section class="toolbar-card">
       <div class="toolbar-grid toolbar-grid-4">
         <div class="search-box">
@@ -69,59 +65,58 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by username, name, email..."
+            :placeholder="t('usersPage.searchPlaceholder')"
           />
         </div>
 
         <select v-model="roleFilter" class="filter-select">
-          <option value="">All roles</option>
-          <option value="owner">Owner</option>
-          <option value="manager">Manager</option>
-          <option value="cashier">Cashier</option>
+          <option value="">{{ t('usersPage.allRoles') }}</option>
+          <option value="owner">{{ t('usersPage.owner') }}</option>
+          <option value="manager">{{ t('usersPage.manager') }}</option>
+          <option value="cashier">{{ t('usersPage.cashier') }}</option>
         </select>
 
         <select v-model="activeFilter" class="filter-select">
-          <option value="">All status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
+          <option value="">{{ t('usersPage.allStatus') }}</option>
+          <option value="true">{{ t('usersPage.active') }}</option>
+          <option value="false">{{ t('usersPage.inactive') }}</option>
         </select>
 
         <div class="toolbar-actions">
-          <button class="reset-btn" @click="resetFilters">Reset</button>
+          <button class="reset-btn" @click="resetFilters">{{ t('common.reset') }}</button>
           <button class="refresh-btn" @click="fetchUsers" :disabled="loading">
-            {{ loading ? 'Loading...' : 'Refresh' }}
+            {{ loading ? t('common.loading') : t('usersPage.refresh') }}
           </button>
         </div>
       </div>
     </section>
 
-    <!-- Table -->
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>User List</h2>
-          <p v-if="loading">Loading users...</p>
-          <p v-else>{{ filteredUsers.length }} user(s) found</p>
+          <h2>{{ t('usersPage.userList') }}</h2>
+          <p v-if="loading">{{ t('usersPage.loadingUsers') }}</p>
+          <p v-else>{{ t('usersPage.usersFound', { count: filteredUsers.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
         <div class="loader"></div>
-        <p>Loading user data from API...</p>
+        <p>{{ t('usersPage.loadingUsersFromApi') }}</p>
       </div>
 
       <div v-else-if="filteredUsers.length" class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>First name</th>
-              <th>Last name</th>
-              <th>Email address</th>
-              <th>Role</th>
-              <th>Active</th>
-              <th>Date joined</th>
-              <th>Action</th>
+              <th>{{ t('usersPage.username') }}</th>
+              <th>{{ t('usersPage.firstName') }}</th>
+              <th>{{ t('usersPage.lastName') }}</th>
+              <th>{{ t('usersPage.emailAddress') }}</th>
+              <th>{{ t('usersPage.role') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('usersPage.dateJoined') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -156,7 +151,7 @@
                   class="status-badge"
                   :class="user.isActive ? 'paid' : 'cancelled'"
                 >
-                  {{ user.isActive ? 'Active' : 'Inactive' }}
+                  {{ user.isActive ? t('usersPage.active') : t('usersPage.inactive') }}
                 </span>
               </td>
 
@@ -164,14 +159,14 @@
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openViewModal(user)">View</button>
-                  <button class="btn-edit" @click="openEditModal(user)">Edit</button>
+                  <button class="btn-view" @click="openViewModal(user)">{{ t('common.view') }}</button>
+                  <button class="btn-edit" @click="openEditModal(user)">{{ t('common.edit') }}</button>
                   <button
                     class="btn-delete"
                     @click="deleteUser(user)"
                     :disabled="deletingId === user.id"
                   >
-                    {{ deletingId === user.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === user.id ? t('usersPage.deleting') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -181,12 +176,11 @@
       </div>
 
       <div v-else class="empty-state">
-        <h3>No users found</h3>
-        <p>Try another keyword or create a new user.</p>
+        <h3>{{ t('usersPage.noUsersFound') }}</h3>
+        <p>{{ t('usersPage.noUsersSubtitle') }}</p>
       </div>
     </section>
 
-    <!-- Modal -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-card modal-card-wide">
         <div class="modal-header">
@@ -194,17 +188,17 @@
             <h2>
               {{
                 viewOnly
-                  ? 'User Details'
+                  ? t('usersPage.userDetails')
                   : isEditMode
-                    ? 'Edit User'
-                    : 'Add User'
+                    ? t('usersPage.editUser')
+                    : t('usersPage.addUserTitle')
               }}
             </h2>
             <p>
               {{
                 viewOnly
-                  ? 'Read-only staff information for this shop.'
-                  : 'Fill in the form below to save user data.'
+                  ? t('usersPage.userDetailsSubtitle')
+                  : t('usersPage.userFormSubtitle')
               }}
             </p>
           </div>
@@ -214,100 +208,100 @@
         <div class="modal-body">
           <div class="form-grid two-col">
             <div class="form-group">
-              <label>Username</label>
+              <label>{{ t('usersPage.username') }}</label>
               <input
                 v-model="form.username"
                 type="text"
                 class="form-input"
-                placeholder="Enter username"
+                :placeholder="t('usersPage.usernamePlaceholder')"
                 :disabled="viewOnly || saving"
               />
             </div>
 
             <div class="form-group">
-              <label>Email address</label>
+              <label>{{ t('usersPage.emailAddress') }}</label>
               <input
                 v-model="form.email"
                 type="email"
                 class="form-input"
-                placeholder="Enter email address"
+                :placeholder="t('usersPage.emailAddressPlaceholder')"
                 :disabled="viewOnly || saving"
               />
             </div>
 
             <div class="form-group">
-              <label>First name</label>
+              <label>{{ t('usersPage.firstName') }}</label>
               <input
                 v-model="form.firstName"
                 type="text"
                 class="form-input"
-                placeholder="Enter first name"
+                :placeholder="t('usersPage.firstNamePlaceholder')"
                 :disabled="viewOnly || saving"
               />
             </div>
 
             <div class="form-group">
-              <label>Last name</label>
+              <label>{{ t('usersPage.lastName') }}</label>
               <input
                 v-model="form.lastName"
                 type="text"
                 class="form-input"
-                placeholder="Enter last name"
+                :placeholder="t('usersPage.lastNamePlaceholder')"
                 :disabled="viewOnly || saving"
               />
             </div>
 
             <div class="form-group">
-              <label>Role</label>
+              <label>{{ t('usersPage.role') }}</label>
               <select
                 v-model="form.role"
                 class="form-input"
                 :disabled="viewOnly || saving"
               >
-                <option value="owner">Owner</option>
-                <option value="manager">Manager</option>
-                <option value="cashier">Cashier</option>
+                <option value="owner">{{ t('usersPage.owner') }}</option>
+                <option value="manager">{{ t('usersPage.manager') }}</option>
+                <option value="cashier">{{ t('usersPage.cashier') }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label>Status</label>
+              <label>{{ t('common.status') }}</label>
               <select
                 v-model="form.isActive"
                 class="form-input"
                 :disabled="viewOnly || saving"
               >
-                <option :value="true">Active</option>
-                <option :value="false">Inactive</option>
+                <option :value="true">{{ t('usersPage.active') }}</option>
+                <option :value="false">{{ t('usersPage.inactive') }}</option>
               </select>
             </div>
 
             <div class="form-group" v-if="!viewOnly">
-              <label>{{ isEditMode ? 'New password (optional)' : 'Password' }}</label>
+              <label>{{ isEditMode ? t('usersPage.newPasswordOptional') : t('usersPage.password') }}</label>
               <input
                 v-model="form.password"
                 type="password"
                 class="form-input"
-                :placeholder="isEditMode ? 'Leave blank to keep current password' : 'Enter password'"
+                :placeholder="isEditMode ? t('usersPage.newPasswordPlaceholder') : t('usersPage.passwordPlaceholder')"
                 :disabled="saving"
               />
             </div>
 
             <div class="form-group" v-if="!viewOnly">
               <label>
-                {{ isEditMode ? 'Confirm new password' : 'Confirm password' }}
+                {{ isEditMode ? t('usersPage.confirmNewPassword') : t('usersPage.confirmPassword') }}
               </label>
               <input
                 v-model="form.confirmPassword"
                 type="password"
                 class="form-input"
-                :placeholder="isEditMode ? 'Confirm new password' : 'Confirm password'"
+                :placeholder="t('usersPage.confirmPasswordPlaceholder')"
                 :disabled="saving"
               />
             </div>
 
             <div class="form-group" v-if="viewOnly">
-              <label>Shop</label>
+              <label>{{ t('usersPage.shop') }}</label>
               <input
                 :value="selectedUser?.shopName || '-'"
                 type="text"
@@ -317,7 +311,7 @@
             </div>
 
             <div class="form-group" v-if="viewOnly">
-              <label>Shop code</label>
+              <label>{{ t('usersPage.shopCode') }}</label>
               <input
                 :value="selectedUser?.shopCode || '-'"
                 type="text"
@@ -327,7 +321,7 @@
             </div>
 
             <div class="form-group" v-if="viewOnly">
-              <label>Date joined</label>
+              <label>{{ t('usersPage.dateJoined') }}</label>
               <input
                 :value="formatDate(selectedUser?.dateJoined || '')"
                 type="text"
@@ -337,7 +331,7 @@
             </div>
 
             <div class="form-group" v-if="viewOnly">
-              <label>Full name</label>
+              <label>{{ t('usersPage.fullName') }}</label>
               <input
                 :value="selectedUser?.fullName || '-'"
                 type="text"
@@ -349,7 +343,7 @@
 
           <div class="modal-actions">
             <button class="secondary-btn" @click="closeModal">
-              {{ viewOnly ? 'Close' : 'Cancel' }}
+              {{ viewOnly ? t('common.close') : t('common.cancel') }}
             </button>
 
             <button
@@ -358,7 +352,7 @@
               @click="saveUser"
               :disabled="saving"
             >
-              {{ saving ? 'Saving...' : isEditMode ? 'Update' : 'Save' }}
+              {{ saving ? t('usersPage.saving') : isEditMode ? t('usersPage.update') : t('usersPage.save') }}
             </button>
           </div>
         </div>
@@ -370,6 +364,7 @@
 <script setup lang="ts">
 import api from '@/services/api'
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 type UserRoleApi = 'owner' | 'manager' | 'cashier'
 
@@ -404,6 +399,8 @@ type ShopUser = {
   isActive: boolean
   dateJoined: string
 }
+
+const { t, locale } = useI18n()
 
 const users = ref<ShopUser[]>([])
 const search = ref('')
@@ -498,13 +495,18 @@ function normalizeRole(role: unknown): UserRoleApi {
 
 function roleToLabel(role: unknown) {
   const value = normalizeRole(role)
-  if (value === 'owner') return 'Owner'
-  if (value === 'manager') return 'Manager'
-  return 'Cashier'
+  if (value === 'owner') return t('usersPage.owner')
+  if (value === 'manager') return t('usersPage.manager')
+  return t('usersPage.cashier')
 }
 
 function buildFullName(firstName?: string, lastName?: string) {
   return [firstName, lastName].filter(Boolean).join(' ').trim()
+}
+
+function getDateLocale() {
+  if (locale.value === 'id') return 'id-ID'
+  return 'en-US'
 }
 
 async function fetchUsers() {
@@ -516,7 +518,7 @@ async function fetchUsers() {
     const raw = Array.isArray(response.data) ? response.data : []
     users.value = raw.map(normalizeUser)
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, 'Failed to load staff list.')
+    errorMessage.value = extractErrorMessage(error, t('usersPage.failedLoad'))
     users.value = []
   } finally {
     loading.value = false
@@ -599,41 +601,40 @@ function closeModal() {
 
 function validateForm() {
   if (!form.username.trim()) {
-    errorMessage.value = 'Username is required.'
+    errorMessage.value = t('usersPage.usernameRequired')
     return false
   }
 
   if (!/^[\w.@+-]+$/.test(form.username.trim())) {
-    errorMessage.value =
-      'Username may contain only letters, numbers, and @/./+/-/_ characters.'
+    errorMessage.value = t('usersPage.usernameInvalid')
     return false
   }
 
   if (!form.role) {
-    errorMessage.value = 'Role is required.'
+    errorMessage.value = t('usersPage.roleRequired')
     return false
   }
 
   if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-    errorMessage.value = 'Email address format is invalid.'
+    errorMessage.value = t('usersPage.invalidEmail')
     return false
   }
 
   if (!isEditMode.value) {
     if (!form.password) {
-      errorMessage.value = 'Password is required.'
+      errorMessage.value = t('usersPage.passwordRequired')
       return false
     }
 
     if (form.password !== form.confirmPassword) {
-      errorMessage.value = 'Password confirmation does not match.'
+      errorMessage.value = t('usersPage.passwordMismatch')
       return false
     }
   }
 
   if (isEditMode.value && (form.password || form.confirmPassword)) {
     if (form.password !== form.confirmPassword) {
-      errorMessage.value = 'Password confirmation does not match.'
+      errorMessage.value = t('usersPage.passwordMismatch')
       return false
     }
   }
@@ -675,18 +676,18 @@ async function saveUser() {
       } else {
         users.value.unshift(normalized)
       }
-      successMessage.value = 'User updated successfully.'
+      successMessage.value = t('usersPage.userUpdated')
     } else {
       const response = await api.post('/api/staff/', buildPayload(false))
       const normalized = normalizeUser(response.data)
       users.value.unshift(normalized)
-      successMessage.value = 'User created successfully.'
+      successMessage.value = t('usersPage.userCreated')
     }
 
     closeModal()
     await fetchUsers()
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, 'Failed to save user.')
+    errorMessage.value = extractErrorMessage(error, t('usersPage.failedSave'))
   } finally {
     saving.value = false
   }
@@ -696,16 +697,16 @@ async function deleteUser(user: ShopUser) {
   errorMessage.value = ''
   successMessage.value = ''
 
-  const confirmed = window.confirm(`Delete user "${user.username}"?`)
+  const confirmed = window.confirm(t('usersPage.deleteConfirm', { username: user.username }))
   if (!confirmed) return
 
   deletingId.value = user.id
   try {
     await api.delete(`/api/staff/${user.id}/`)
     users.value = users.value.filter((item) => item.id !== user.id)
-    successMessage.value = 'User deleted successfully.'
+    successMessage.value = t('usersPage.userDeleted')
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, 'Failed to delete user.')
+    errorMessage.value = extractErrorMessage(error, t('usersPage.failedDelete'))
   } finally {
     deletingId.value = null
   }
@@ -761,7 +762,7 @@ function formatDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getDateLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

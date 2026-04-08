@@ -2,41 +2,41 @@
   <div class="dashboard-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Expenses</h1>
-        <p class="page-subtitle">Manage shop expenses for your current shop.</p>
+        <h1 class="page-title">{{ t('expensePage.title') }}</h1>
+        <p class="page-subtitle">{{ t('expensePage.subtitle') }}</p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span>/</span>
-          <span class="active">Expenses</span>
+          <span class="active">{{ t('expensePage.title') }}</span>
         </div>
       </div>
 
       <button class="add-btn" @click="openAddModal">
         <span>+</span>
-        Add Expense
+        {{ t('expensePage.addExpense') }}
       </button>
     </section>
 
     <section class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Visible Expenses</div>
+        <div class="stat-label">{{ t('expensePage.visibleExpenses') }}</div>
         <div class="stat-value">{{ filteredExpenses.length }}</div>
-        <div class="stat-note">Expenses shown in current filter</div>
+        <div class="stat-note">{{ t('expensePage.visibleExpensesNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Total Amount</div>
-        <div class="stat-value">${{ totalAmount.toFixed(2) }}</div>
-        <div class="stat-note">Total from visible expenses</div>
+        <div class="stat-label">{{ t('expensePage.totalAmount') }}</div>
+        <div class="stat-value">{{ formatCurrency(totalAmount) }}</div>
+        <div class="stat-note">{{ t('expensePage.totalAmountNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">This Month</div>
+        <div class="stat-label">{{ t('expensePage.thisMonth') }}</div>
         <div class="stat-value">{{ currentMonthCount }}</div>
-        <div class="stat-note">Expenses created this month</div>
+        <div class="stat-note">{{ t('expensePage.thisMonthNote') }}</div>
       </div>
     </section>
 
@@ -47,31 +47,33 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by name or note..."
+            :placeholder="t('expensePage.searchPlaceholder')"
           />
         </div>
 
         <input v-model="dateFilter" type="date" class="filter-select" />
 
-        <button class="reset-btn" @click="resetFilters">Reset</button>
+        <button class="reset-btn" @click="resetFilters">
+          {{ t('common.reset') }}
+        </button>
       </div>
     </section>
 
     <section class="table-card">
       <div class="table-header">
         <div>
-          <h2>Expense List</h2>
-          <p>{{ filteredExpenses.length }} expense(s) found</p>
+          <h2>{{ t('expensePage.expenseList') }}</h2>
+          <p>{{ t('expensePage.expensesFound', { count: filteredExpenses.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="empty-state">
-        <h3>Loading expenses...</h3>
-        <p>Please wait a moment.</p>
+        <h3>{{ t('expensePage.loadingTitle') }}</h3>
+        <p>{{ t('expensePage.loadingSubtitle') }}</p>
       </div>
 
       <div v-else-if="errorMessage" class="empty-state">
-        <h3>Failed to load expenses</h3>
+        <h3>{{ t('expensePage.failedTitle') }}</h3>
         <p>{{ errorMessage }}</p>
       </div>
 
@@ -80,12 +82,12 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
-              <th>Note</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Action</th>
+              <th>{{ t('common.name') }}</th>
+              <th>{{ t('common.note') }}</th>
+              <th>{{ t('common.amount') }}</th>
+              <th>{{ t('common.date') }}</th>
+              <th>{{ t('common.time') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
 
@@ -94,7 +96,7 @@
               <td>
                 <div class="ref-cell">
                   <div class="ref-main">EX{{ String(expense.id).padStart(10, '0') }}</div>
-                  <div class="ref-sub">Expense</div>
+                  <div class="ref-sub">{{ t('expensePage.expenseRef') }}</div>
                 </div>
               </td>
 
@@ -109,7 +111,7 @@
               </td>
 
               <td>
-                <span class="amount-text">${{ Number(expense.amount).toFixed(2) }}</span>
+                <span class="amount-text">{{ formatCurrency(expense.amount) }}</span>
               </td>
 
               <td>{{ formatDate(expense.date) }}</td>
@@ -117,14 +119,18 @@
 
               <td>
                 <div class="action-buttons">
-                  <button class="btn-view" @click="openEditModal(expense)">View</button>
-                  <button class="btn-edit" @click="openEditModal(expense)">Edit</button>
+                  <button class="btn-view" @click="openEditModal(expense)">
+                    {{ t('common.view') }}
+                  </button>
+                  <button class="btn-edit" @click="openEditModal(expense)">
+                    {{ t('common.edit') }}
+                  </button>
                   <button
                     class="btn-delete"
                     :disabled="deletingId === expense.id"
                     @click="deleteExpense(expense.id)"
                   >
-                    {{ deletingId === expense.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === expense.id ? t('common.deleting') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -134,8 +140,8 @@
       </div>
 
       <div v-else class="empty-state">
-        <h3>No expenses found</h3>
-        <p>Try another keyword or create a new expense.</p>
+        <h3>{{ t('expensePage.emptyTitle') }}</h3>
+        <p>{{ t('expensePage.emptySubtitle') }}</p>
       </div>
     </section>
 
@@ -143,8 +149,8 @@
       <div class="modal-card modal-card-wide">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditMode ? 'Edit Expense' : 'Add Expense' }}</h2>
-            <p>Fill in the form below to save expense data.</p>
+            <h2>{{ isEditMode ? t('expensePage.editExpense') : t('expensePage.addExpense') }}</h2>
+            <p>{{ t('expensePage.formSubtitle') }}</p>
           </div>
 
           <button class="close-btn" @click="closeModal">×</button>
@@ -155,31 +161,31 @@
             <div class="form-panel">
               <div class="form-grid two-col">
                 <div class="form-group">
-                  <label>Name</label>
+                  <label>{{ t('common.name') }}</label>
                   <input
                     v-model="form.name"
                     type="text"
                     class="form-input"
-                    placeholder="Enter expense name"
+                    :placeholder="t('expensePage.namePlaceholder')"
                     :disabled="saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Amount</label>
+                  <label>{{ t('common.amount') }}</label>
                   <input
                     v-model="form.amount"
                     type="number"
                     step="0.01"
                     min="0"
                     class="form-input"
-                    placeholder="0.00"
+                    :placeholder="t('expensePage.amountPlaceholder')"
                     :disabled="saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Date</label>
+                  <label>{{ t('common.date') }}</label>
                   <input
                     v-model="form.date"
                     type="date"
@@ -189,7 +195,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Time</label>
+                  <label>{{ t('common.time') }}</label>
                   <input
                     v-model="form.time"
                     type="time"
@@ -200,12 +206,12 @@
                 </div>
 
                 <div class="form-group form-group-full">
-                  <label>Note</label>
+                  <label>{{ t('common.note') }}</label>
                   <textarea
                     v-model="form.note"
                     class="form-input textarea"
                     rows="5"
-                    placeholder="Write note here..."
+                    :placeholder="t('expensePage.notePlaceholder')"
                     :disabled="saving"
                   ></textarea>
                 </div>
@@ -218,16 +224,16 @@
 
             <div class="side-actions">
               <button class="save-btn" :disabled="saving" @click="saveExpense">
-                {{ saving ? 'Saving...' : 'Save' }}
+                {{ saving ? t('common.saving') : t('common.save') }}
               </button>
               <button class="info-btn" :disabled="saving" @click="saveAndAddAnother">
-                Save and add another
+                {{ t('common.saveAndAddAnother') }}
               </button>
               <button class="info-btn" :disabled="saving" @click="saveAndContinueEditing">
-                Save and continue editing
+                {{ t('common.saveAndContinueEditing') }}
               </button>
               <button class="secondary-btn full-width" :disabled="saving" @click="closeModal">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
             </div>
           </div>
@@ -239,6 +245,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -250,6 +257,8 @@ type Expense = {
   date: string
   time: string
 }
+
+const { t, locale } = useI18n()
 
 const expenses = ref<Expense[]>([])
 const search = ref('')
@@ -373,22 +382,22 @@ function validateForm() {
   formError.value = ''
 
   if (!form.name.trim()) {
-    formError.value = 'Name is required.'
+    formError.value = t('expensePage.validation.nameRequired')
     return false
   }
 
   if (Number(form.amount) <= 0) {
-    formError.value = 'Amount must be greater than 0.'
+    formError.value = t('expensePage.validation.amountGreaterThanZero')
     return false
   }
 
   if (!form.date) {
-    formError.value = 'Date is required.'
+    formError.value = t('expensePage.validation.dateRequired')
     return false
   }
 
   if (!form.time) {
-    formError.value = 'Time is required.'
+    formError.value = t('expensePage.validation.timeRequired')
     return false
   }
 
@@ -439,7 +448,7 @@ async function fetchExpenses() {
     expenses.value = rows.map(normalizeExpense)
   } catch (error: any) {
     console.error('Failed to fetch expenses:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to load expenses.')
+    errorMessage.value = getErrorMessage(error, t('expensePage.messages.loadFailed'))
     expenses.value = []
   } finally {
     loading.value = false
@@ -469,7 +478,7 @@ async function saveExpense() {
     closeModal()
     resetForm()
   } catch (error: any) {
-    formError.value = getErrorMessage(error, 'Failed to save expense.')
+    formError.value = getErrorMessage(error, t('expensePage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -491,7 +500,7 @@ async function saveAndAddAnother() {
     await fetchExpenses()
     resetForm()
   } catch (error: any) {
-    formError.value = getErrorMessage(error, 'Failed to save expense.')
+    formError.value = getErrorMessage(error, t('expensePage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -520,14 +529,14 @@ async function saveAndContinueEditing() {
 
     await fetchExpenses()
   } catch (error: any) {
-    formError.value = getErrorMessage(error, 'Failed to save expense.')
+    formError.value = getErrorMessage(error, t('expensePage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
 }
 
 async function deleteExpense(id: number) {
-  if (!window.confirm('Delete this expense?')) return
+  if (!window.confirm(t('expensePage.messages.confirmDelete'))) return
 
   deletingId.value = id
 
@@ -535,10 +544,24 @@ async function deleteExpense(id: number) {
     await api.delete(`${ENDPOINTS.EXPENSES}${id}/`)
     expenses.value = expenses.value.filter((item) => item.id !== id)
   } catch (error: any) {
-    alert(getErrorMessage(error, 'Failed to delete expense.'))
+    alert(getErrorMessage(error, t('expensePage.messages.deleteFailed')))
   } finally {
     deletingId.value = null
   }
+}
+
+function getIntlLocale() {
+  if (locale.value === 'id') return 'id-ID'
+  if (locale.value === 'tet') return 'id-ID'
+  return 'en-US'
+}
+
+function formatCurrency(value: string | number) {
+  return new Intl.NumberFormat(getIntlLocale(), {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(Number(value || 0))
 }
 
 function formatDate(value: string) {
@@ -546,7 +569,7 @@ function formatDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getIntlLocale(), {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -563,7 +586,7 @@ function formatTime(value: string) {
   const date = new Date()
   date.setHours(hour, minute, second)
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getIntlLocale(), {
     hour: 'numeric',
     minute: '2-digit',
     second: '2-digit',

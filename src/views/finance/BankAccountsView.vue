@@ -1,5 +1,261 @@
+<template>
+  <div class="page">
+    <section class="hero-card">
+      <div class="hero-left">
+        <div class="hero-badge">{{ t('bankAccountsPage.heroBadge') }}</div>
+        <h1 class="page-title">{{ t('bankAccountsPage.title') }}</h1>
+        <p class="page-subtitle">
+          {{ t('bankAccountsPage.subtitle') }}
+        </p>
+      </div>
+
+      <div class="hero-actions">
+        <button class="secondary-btn" @click="fetchBankAccounts" :disabled="loading">
+          {{ loading ? t('common.refreshing') : t('common.refresh') }}
+        </button>
+        <button class="primary-btn" @click="openAddModal">
+          <span>＋</span>
+          {{ t('bankAccountsPage.addAccount') }}
+        </button>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card">
+        <p class="stat-label">{{ t('bankAccountsPage.totalAccounts') }}</p>
+        <h3 class="stat-value">{{ totalAccounts }}</h3>
+        <p class="stat-note">{{ t('bankAccountsPage.totalAccountsNote') }}</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-label">{{ t('bankAccountsPage.activeAccounts') }}</p>
+        <h3 class="stat-value">{{ activeAccounts }}</h3>
+        <p class="stat-note">{{ t('bankAccountsPage.activeAccountsNote') }}</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-label">{{ t('bankAccountsPage.openingBalance') }}</p>
+        <h3 class="stat-value">{{ formatCurrency(totalOpeningBalance) }}</h3>
+        <p class="stat-note">{{ t('bankAccountsPage.openingBalanceNote') }}</p>
+      </article>
+
+      <article class="stat-card">
+        <p class="stat-label">{{ t('bankAccountsPage.currentBalance') }}</p>
+        <h3 class="stat-value">{{ formatCurrency(totalCurrentBalance) }}</h3>
+        <p class="stat-note">{{ t('bankAccountsPage.currentBalanceNote') }}</p>
+      </article>
+    </section>
+
+    <section class="toolbar-card">
+      <div class="toolbar-left">
+        <div class="search-wrap">
+          <input
+            v-model="search"
+            type="text"
+            class="search-input"
+            :placeholder="t('bankAccountsPage.searchPlaceholder')"
+          />
+        </div>
+
+        <select v-model="typeFilter" class="filter-select">
+          <option value="">{{ t('bankAccountsPage.allTypes') }}</option>
+          <option value="BANK">{{ t('bankAccountsPage.typeBank') }}</option>
+          <option value="EWALLET">{{ t('bankAccountsPage.typeEwallet') }}</option>
+          <option value="QRIS">{{ t('bankAccountsPage.typeQris') }}</option>
+        </select>
+
+        <select v-model="statusFilter" class="filter-select">
+          <option value="">{{ t('bankAccountsPage.allStatus') }}</option>
+          <option value="active">{{ t('common.active') }}</option>
+          <option value="inactive">{{ t('common.inactive') }}</option>
+        </select>
+      </div>
+
+      <div class="toolbar-right">
+        <div class="result-chip">{{ t('common.resultsCount', { count: filteredAccounts.length }) }}</div>
+      </div>
+    </section>
+
+    <section v-if="errorMessage" class="alert error-alert">
+      {{ errorMessage }}
+    </section>
+
+    <section v-if="successMessage" class="alert success-alert">
+      {{ successMessage }}
+    </section>
+
+    <section class="table-card">
+      <div class="table-header">
+        <div>
+          <h2>{{ t('bankAccountsPage.accountList') }}</h2>
+          <p>{{ t('bankAccountsPage.accountListNote') }}</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ t('bankAccountsPage.account') }}</th>
+              <th>{{ t('bankAccountsPage.bankProvider') }}</th>
+              <th>{{ t('bankAccountsPage.number') }}</th>
+              <th>{{ t('bankAccountsPage.holder') }}</th>
+              <th>{{ t('common.type') }}</th>
+              <th>{{ t('bankAccountsPage.opening') }}</th>
+              <th>{{ t('bankAccountsPage.current') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('common.createdAt') }}</th>
+              <th class="action-col">{{ t('common.action') }}</th>
+            </tr>
+          </thead>
+
+          <tbody v-if="loading">
+            <tr>
+              <td colspan="10" class="empty-row">{{ t('bankAccountsPage.loading') }}</td>
+            </tr>
+          </tbody>
+
+          <tbody v-else-if="filteredAccounts.length === 0">
+            <tr>
+              <td colspan="10" class="empty-row">{{ t('bankAccountsPage.empty') }}</td>
+            </tr>
+          </tbody>
+
+          <tbody v-else>
+            <tr v-for="item in filteredAccounts" :key="item.id">
+              <td>
+                <div class="main-cell">
+                  <div class="cell-title">{{ item.name || '-' }}</div>
+                  <div class="cell-subtitle">
+                    {{ item.shop_name || t('bankAccountsPage.currentShop') }}
+                  </div>
+                </div>
+              </td>
+
+              <td>{{ item.bank_name || '-' }}</td>
+              <td>{{ item.account_number || '-' }}</td>
+              <td>{{ item.account_holder || '-' }}</td>
+
+              <td>
+                <span class="type-badge" :class="item.account_type.toLowerCase()">
+                  {{ getAccountTypeLabel(item.account_type) }}
+                </span>
+              </td>
+
+              <td>{{ formatCurrency(item.opening_balance) }}</td>
+              <td class="strong-money">{{ formatCurrency(item.current_balance) }}</td>
+
+              <td>
+                <span class="status-badge" :class="item.is_active ? 'active' : 'inactive'">
+                  {{ item.is_active ? t('common.active') : t('common.inactive') }}
+                </span>
+              </td>
+
+              <td>{{ formatDateTime(item.created_at) }}</td>
+
+              <td>
+                <div class="action-buttons">
+                  <button class="icon-btn edit" @click="openEditModal(item)">
+                    {{ t('common.edit') }}
+                  </button>
+                  <button
+                    class="icon-btn delete"
+                    @click="deleteBankAccount(item.id)"
+                    :disabled="deletingId === item.id"
+                  >
+                    {{ deletingId === item.id ? t('common.deleting') : t('common.delete') }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h3>{{ isEditMode ? t('bankAccountsPage.editBankAccount') : t('bankAccountsPage.addBankAccount') }}</h3>
+            <p>{{ t('bankAccountsPage.formSubtitle') }}</p>
+          </div>
+          <button class="close-btn" @click="closeModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>{{ t('bankAccountsPage.accountNameRequired') }}</label>
+              <input v-model="form.name" type="text" class="form-input" :placeholder="t('bankAccountsPage.accountNamePlaceholder')" />
+            </div>
+
+            <div class="field">
+              <label>{{ t('bankAccountsPage.bankProviderRequired') }}</label>
+              <input v-model="form.bank_name" type="text" class="form-input" :placeholder="t('bankAccountsPage.bankProviderPlaceholder')" />
+            </div>
+
+            <div class="field">
+              <label>{{ t('bankAccountsPage.accountNumber') }}</label>
+              <input v-model="form.account_number" type="text" class="form-input" :placeholder="t('bankAccountsPage.accountNumberPlaceholder')" />
+            </div>
+
+            <div class="field">
+              <label>{{ t('bankAccountsPage.accountHolder') }}</label>
+              <input v-model="form.account_holder" type="text" class="form-input" :placeholder="t('bankAccountsPage.accountHolderPlaceholder')" />
+            </div>
+
+            <div class="field">
+              <label>{{ t('bankAccountsPage.accountTypeRequired') }}</label>
+              <select v-model="form.account_type" class="form-select">
+                <option v-for="type in ACCOUNT_TYPE_OPTIONS" :key="type" :value="type">
+                  {{ getAccountTypeLabel(type) }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>{{ t('bankAccountsPage.openingBalanceField') }}</label>
+              <input v-model="form.opening_balance" type="number" step="0.01" class="form-input" :placeholder="t('bankAccountsPage.openingBalancePlaceholder')" />
+            </div>
+
+            <div class="field field-full">
+              <label>{{ t('common.note') }}</label>
+              <textarea
+                v-model="form.note"
+                class="form-textarea"
+                rows="4"
+                :placeholder="t('bankAccountsPage.notePlaceholder')"
+              />
+            </div>
+
+            <div class="field checkbox-field field-full">
+              <label class="checkbox-wrap">
+                <input v-model="form.is_active" type="checkbox" />
+                <span>{{ t('bankAccountsPage.activeAccount') }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="errorMessage" class="alert error-alert modal-alert">
+            {{ errorMessage }}
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="secondary-btn" @click="closeModal">{{ t('common.cancel') }}</button>
+          <button class="primary-btn" @click="saveBankAccount" :disabled="saving">
+            {{ saving ? t('common.saving') : isEditMode ? t('bankAccountsPage.updateAccount') : t('bankAccountsPage.saveAccount') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 
 type AccountType = 'BANK' | 'EWALLET' | 'QRIS'
@@ -31,6 +287,8 @@ type FormState = {
   is_active: boolean
   note: string
 }
+
+const { t, locale } = useI18n()
 
 const BANK_ACCOUNTS_ENDPOINT = '/api/bank-accounts/'
 
@@ -153,8 +411,14 @@ function toNumber(value: string | number | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function getIntlLocale() {
+  if (locale.value === 'id') return 'id-ID'
+  if (locale.value === 'tet') return 'id-ID'
+  return 'en-US'
+}
+
 function formatCurrency(value: string | number | null | undefined) {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(getIntlLocale(), {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -167,7 +431,7 @@ function formatDateTime(value: string | null | undefined) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getIntlLocale(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -177,9 +441,9 @@ function formatDateTime(value: string | null | undefined) {
 }
 
 function getAccountTypeLabel(type: AccountType | string) {
-  if (type === 'BANK') return 'Bank'
-  if (type === 'EWALLET') return 'E-Wallet'
-  if (type === 'QRIS') return 'QRIS'
+  if (type === 'BANK') return t('bankAccountsPage.typeBank')
+  if (type === 'EWALLET') return t('bankAccountsPage.typeEwallet')
+  if (type === 'QRIS') return t('bankAccountsPage.typeQris')
   return type || '-'
 }
 
@@ -226,22 +490,22 @@ function closeModal() {
 
 function validateForm() {
   if (!form.name.trim()) {
-    errorMessage.value = 'Account name is required.'
+    errorMessage.value = t('bankAccountsPage.validation.accountNameRequired')
     return false
   }
 
   if (!form.bank_name.trim()) {
-    errorMessage.value = 'Bank name is required.'
+    errorMessage.value = t('bankAccountsPage.validation.bankNameRequired')
     return false
   }
 
   if (!form.account_type) {
-    errorMessage.value = 'Account type is required.'
+    errorMessage.value = t('bankAccountsPage.validation.accountTypeRequired')
     return false
   }
 
   if (form.opening_balance && Number.isNaN(Number(form.opening_balance))) {
-    errorMessage.value = 'Opening balance must be a valid number.'
+    errorMessage.value = t('bankAccountsPage.validation.openingBalanceInvalid')
     return false
   }
 
@@ -271,7 +535,7 @@ async function fetchBankAccounts() {
     bankAccounts.value = rows.map(normalizeBankAccount)
   } catch (error: any) {
     console.error('Failed to load bank accounts:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to load bank accounts.')
+    errorMessage.value = getErrorMessage(error, t('bankAccountsPage.messages.loadFailed'))
     bankAccounts.value = []
   } finally {
     loading.value = false
@@ -291,24 +555,24 @@ async function saveBankAccount() {
 
     if (isEditMode.value && editingId.value) {
       await api.put(`${BANK_ACCOUNTS_ENDPOINT}${editingId.value}/`, payload)
-      successMessage.value = 'Bank account updated successfully.'
+      successMessage.value = t('bankAccountsPage.messages.updated')
     } else {
       await api.post(BANK_ACCOUNTS_ENDPOINT, payload)
-      successMessage.value = 'Bank account created successfully.'
+      successMessage.value = t('bankAccountsPage.messages.created')
     }
 
     await fetchBankAccounts()
     closeModal()
   } catch (error: any) {
     console.error('Failed to save bank account:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to save bank account.')
+    errorMessage.value = getErrorMessage(error, t('bankAccountsPage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
 }
 
 async function deleteBankAccount(id: number) {
-  const confirmed = window.confirm('Delete this bank account?')
+  const confirmed = window.confirm(t('bankAccountsPage.messages.confirmDelete'))
   if (!confirmed) return
 
   deletingId.value = id
@@ -317,11 +581,11 @@ async function deleteBankAccount(id: number) {
 
   try {
     await api.delete(`${BANK_ACCOUNTS_ENDPOINT}${id}/`)
-    successMessage.value = 'Bank account deleted successfully.'
+    successMessage.value = t('bankAccountsPage.messages.deleted')
     await fetchBankAccounts()
   } catch (error: any) {
     console.error('Failed to delete bank account:', error)
-    errorMessage.value = getErrorMessage(error, 'Failed to delete bank account.')
+    errorMessage.value = getErrorMessage(error, t('bankAccountsPage.messages.deleteFailed'))
   } finally {
     deletingId.value = null
   }
@@ -331,259 +595,6 @@ onMounted(() => {
   fetchBankAccounts()
 })
 </script>
-
-<template>
-  <div class="page">
-    <section class="hero-card">
-      <div class="hero-left">
-        <div class="hero-badge">Finance / Bank Accounts</div>
-        <h1 class="page-title">Bank Accounts</h1>
-        <p class="page-subtitle">
-          Manage bank, e-wallet, and QRIS accounts used by your shop.
-        </p>
-      </div>
-
-      <div class="hero-actions">
-        <button class="secondary-btn" @click="fetchBankAccounts" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
-        </button>
-        <button class="primary-btn" @click="openAddModal">
-          <span>＋</span>
-          Add Account
-        </button>
-      </div>
-    </section>
-
-    <section class="stats-grid">
-      <article class="stat-card">
-        <p class="stat-label">Total Accounts</p>
-        <h3 class="stat-value">{{ totalAccounts }}</h3>
-        <p class="stat-note">All payment destination accounts</p>
-      </article>
-
-      <article class="stat-card">
-        <p class="stat-label">Active Accounts</p>
-        <h3 class="stat-value">{{ activeAccounts }}</h3>
-        <p class="stat-note">Accounts currently enabled</p>
-      </article>
-
-      <article class="stat-card">
-        <p class="stat-label">Opening Balance</p>
-        <h3 class="stat-value">{{ formatCurrency(totalOpeningBalance) }}</h3>
-        <p class="stat-note">Total configured opening balance</p>
-      </article>
-
-      <article class="stat-card">
-        <p class="stat-label">Current Balance</p>
-        <h3 class="stat-value">{{ formatCurrency(totalCurrentBalance) }}</h3>
-        <p class="stat-note">Live combined balance</p>
-      </article>
-    </section>
-
-    <section class="toolbar-card">
-      <div class="toolbar-left">
-        <div class="search-wrap">
-          <input
-            v-model="search"
-            type="text"
-            class="search-input"
-            placeholder="Search account, bank, number, holder..."
-          />
-        </div>
-
-        <select v-model="typeFilter" class="filter-select">
-          <option value="">All Types</option>
-          <option value="BANK">Bank</option>
-          <option value="EWALLET">E-Wallet</option>
-          <option value="QRIS">QRIS</option>
-        </select>
-
-        <select v-model="statusFilter" class="filter-select">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      <div class="toolbar-right">
-        <div class="result-chip">{{ filteredAccounts.length }} result(s)</div>
-      </div>
-    </section>
-
-    <section v-if="errorMessage" class="alert error-alert">
-      {{ errorMessage }}
-    </section>
-
-    <section v-if="successMessage" class="alert success-alert">
-      {{ successMessage }}
-    </section>
-
-    <section class="table-card">
-      <div class="table-header">
-        <div>
-          <h2>Account List</h2>
-          <p>Monitor balances and account configuration.</p>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Bank / Provider</th>
-              <th>Number</th>
-              <th>Holder</th>
-              <th>Type</th>
-              <th>Opening</th>
-              <th>Current</th>
-              <th>Status</th>
-              <th>Created At</th>
-              <th class="action-col">Action</th>
-            </tr>
-          </thead>
-
-          <tbody v-if="loading">
-            <tr>
-              <td colspan="10" class="empty-row">Loading bank accounts...</td>
-            </tr>
-          </tbody>
-
-          <tbody v-else-if="filteredAccounts.length === 0">
-            <tr>
-              <td colspan="10" class="empty-row">No bank accounts found.</td>
-            </tr>
-          </tbody>
-
-          <tbody v-else>
-            <tr v-for="item in filteredAccounts" :key="item.id">
-              <td>
-                <div class="main-cell">
-                  <div class="cell-title">{{ item.name || '-' }}</div>
-                  <div class="cell-subtitle">
-                    {{ item.shop_name || 'Current Shop' }}
-                  </div>
-                </div>
-              </td>
-
-              <td>{{ item.bank_name || '-' }}</td>
-              <td>{{ item.account_number || '-' }}</td>
-              <td>{{ item.account_holder || '-' }}</td>
-
-              <td>
-                <span class="type-badge" :class="item.account_type.toLowerCase()">
-                  {{ getAccountTypeLabel(item.account_type) }}
-                </span>
-              </td>
-
-              <td>{{ formatCurrency(item.opening_balance) }}</td>
-              <td class="strong-money">{{ formatCurrency(item.current_balance) }}</td>
-
-              <td>
-                <span class="status-badge" :class="item.is_active ? 'active' : 'inactive'">
-                  {{ item.is_active ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-
-              <td>{{ formatDateTime(item.created_at) }}</td>
-
-              <td>
-                <div class="action-buttons">
-                  <button class="icon-btn edit" @click="openEditModal(item)">Edit</button>
-                  <button
-                    class="icon-btn delete"
-                    @click="deleteBankAccount(item.id)"
-                    :disabled="deletingId === item.id"
-                  >
-                    {{ deletingId === item.id ? 'Deleting...' : 'Delete' }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <h3>{{ isEditMode ? 'Edit Bank Account' : 'Add Bank Account' }}</h3>
-            <p>Complete the account information below.</p>
-          </div>
-          <button class="close-btn" @click="closeModal">×</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>Account Name *</label>
-              <input v-model="form.name" type="text" class="form-input" placeholder="Main Bank Account" />
-            </div>
-
-            <div class="field">
-              <label>Bank / Provider *</label>
-              <input v-model="form.bank_name" type="text" class="form-input" placeholder="BNU / BNCTL / Mandiri / GoPay" />
-            </div>
-
-            <div class="field">
-              <label>Account Number</label>
-              <input v-model="form.account_number" type="text" class="form-input" placeholder="1234567890" />
-            </div>
-
-            <div class="field">
-              <label>Account Holder</label>
-              <input v-model="form.account_holder" type="text" class="form-input" placeholder="Store Name / Owner Name" />
-            </div>
-
-            <div class="field">
-              <label>Account Type *</label>
-              <select v-model="form.account_type" class="form-select">
-                <option v-for="type in ACCOUNT_TYPE_OPTIONS" :key="type" :value="type">
-                  {{ getAccountTypeLabel(type) }}
-                </option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label>Opening Balance</label>
-              <input v-model="form.opening_balance" type="number" step="0.01" class="form-input" placeholder="0.00" />
-            </div>
-
-            <div class="field field-full">
-              <label>Note</label>
-              <textarea
-                v-model="form.note"
-                class="form-textarea"
-                rows="4"
-                placeholder="Optional note for this account..."
-              />
-            </div>
-
-            <div class="field checkbox-field field-full">
-              <label class="checkbox-wrap">
-                <input v-model="form.is_active" type="checkbox" />
-                <span>Active account</span>
-              </label>
-            </div>
-          </div>
-
-          <div v-if="errorMessage" class="alert error-alert modal-alert">
-            {{ errorMessage }}
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="secondary-btn" @click="closeModal">Cancel</button>
-          <button class="primary-btn" @click="saveBankAccount" :disabled="saving">
-            {{ saving ? 'Saving...' : isEditMode ? 'Update Account' : 'Save Account' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style scoped>
 .page {

@@ -3,44 +3,44 @@
     <div class="page-header">
       <div class="page-title-wrap">
         <div>
-          <h1 class="page-title">Suppliers</h1>
+          <h1 class="page-title">{{ t('suppliersPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage supplier data for your current shop.
+            {{ t('suppliersPage.subtitle') }}
           </p>
         </div>
 
         <nav class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span class="sep">/</span>
-          <span>POS</span>
+          <span>{{ t('common.pos') }}</span>
           <span class="sep">/</span>
-          <span class="current">Suppliers</span>
+          <span class="current">{{ t('suppliersPage.title') }}</span>
         </nav>
       </div>
 
       <button class="btn btn-primary" @click="openCreateModal">
         <span class="btn-icon">＋</span>
-        Add Supplier
+        {{ t('suppliersPage.addSupplier') }}
       </button>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Total Suppliers</div>
+        <div class="stat-label">{{ t('suppliersPage.totalSuppliers') }}</div>
         <div class="stat-value">{{ filteredSuppliers.length }}</div>
-        <div class="stat-note">Current visible records</div>
+        <div class="stat-note">{{ t('suppliersPage.totalSuppliersNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">With Contact Person</div>
+        <div class="stat-label">{{ t('suppliersPage.withContactPerson') }}</div>
         <div class="stat-value">{{ suppliersWithContact }}</div>
-        <div class="stat-note">Suppliers with contact person filled</div>
+        <div class="stat-note">{{ t('suppliersPage.withContactPersonNote') }}</div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-label">Top Visible Supplier</div>
+        <div class="stat-label">{{ t('suppliersPage.topVisibleSupplier') }}</div>
         <div class="stat-value stat-truncate">{{ firstSupplierName }}</div>
-        <div class="stat-note">First match in current filtered list</div>
+        <div class="stat-note">{{ t('suppliersPage.topVisibleSupplierNote') }}</div>
       </div>
     </div>
 
@@ -51,12 +51,12 @@
           <input
             v-model="search"
             type="text"
-            placeholder="Search by name, contact person, cell, email, or address..."
+            :placeholder="t('suppliersPage.searchPlaceholder')"
           />
         </div>
 
         <button class="btn btn-light" @click="resetFilters">
-          Reset
+          {{ t('common.reset') }}
         </button>
       </div>
     </div>
@@ -64,13 +64,13 @@
     <div class="table-card">
       <div class="table-header">
         <div>
-          <h2>Supplier List</h2>
-          <p>{{ filteredSuppliers.length }} supplier(s) found</p>
+          <h2>{{ t('suppliersPage.supplierList') }}</h2>
+          <p>{{ t('suppliersPage.suppliersFound', { count: filteredSuppliers.length }) }}</p>
         </div>
       </div>
 
       <div v-if="loading" class="loading-state">
-        Loading suppliers...
+        {{ t('suppliersPage.loadingSuppliers') }}
       </div>
 
       <div v-else-if="errorMessage" class="error-state">
@@ -81,20 +81,20 @@
         <table class="supplier-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Contact Person</th>
-              <th>Cell</th>
-              <th>Email</th>
-              <th>Address</th>
-              <th class="text-right">Action</th>
+              <th>{{ t('suppliersPage.id') }}</th>
+              <th>{{ t('suppliersPage.name') }}</th>
+              <th>{{ t('suppliersPage.contactPerson') }}</th>
+              <th>{{ t('suppliersPage.cell') }}</th>
+              <th>{{ t('suppliersPage.email') }}</th>
+              <th>{{ t('suppliersPage.address') }}</th>
+              <th class="text-right">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="filteredSuppliers.length === 0">
               <td colspan="7" class="empty-cell">
-                No suppliers found.
+                {{ t('suppliersPage.noSuppliersFound') }}
               </td>
             </tr>
 
@@ -111,7 +111,7 @@
                   <div>
                     <div class="supplier-name">{{ supplier.name }}</div>
                     <div class="supplier-meta">
-                      {{ supplier.email || 'No email' }}
+                      {{ supplier.email || t('suppliersPage.noEmail') }}
                     </div>
                   </div>
                 </div>
@@ -144,17 +144,17 @@
               <td class="text-right">
                 <div class="row-actions">
                   <button class="btn btn-sm btn-outline" @click="openViewModal(supplier)">
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button class="btn btn-sm btn-warning" @click="openEditModal(supplier)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
                     :disabled="deletingId === supplier.id"
                     @click="removeSupplier(supplier.id)"
                   >
-                    {{ deletingId === supplier.id ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === supplier.id ? t('suppliersPage.deleting') : t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -165,7 +165,7 @@
 
       <div v-if="!loading && !errorMessage" class="mobile-list">
         <div v-if="filteredSuppliers.length === 0" class="mobile-empty">
-          No suppliers found.
+          {{ t('suppliersPage.noSuppliersFound') }}
         </div>
 
         <div
@@ -187,39 +187,39 @@
 
           <div class="mobile-info-grid">
             <div class="info-item">
-              <span class="label">Contact Person</span>
+              <span class="label">{{ t('suppliersPage.contactPerson') }}</span>
               <span class="contact-text">{{ supplier.contact_person || '-' }}</span>
             </div>
 
             <div class="info-item">
-              <span class="label">Cell</span>
+              <span class="label">{{ t('suppliersPage.cell') }}</span>
               <span class="cell-text">{{ supplier.cell || '-' }}</span>
             </div>
 
             <div class="info-item">
-              <span class="label">Email</span>
+              <span class="label">{{ t('suppliersPage.email') }}</span>
               <span class="email-text">{{ supplier.email || '-' }}</span>
             </div>
 
             <div class="info-item full">
-              <span class="label">Address</span>
+              <span class="label">{{ t('suppliersPage.address') }}</span>
               <span class="address-text">{{ supplier.address || '-' }}</span>
             </div>
           </div>
 
           <div class="mobile-actions">
             <button class="btn btn-sm btn-outline" @click="openViewModal(supplier)">
-              View
+              {{ t('common.view') }}
             </button>
             <button class="btn btn-sm btn-warning" @click="openEditModal(supplier)">
-              Edit
+              {{ t('common.edit') }}
             </button>
             <button
               class="btn btn-sm btn-danger"
               :disabled="deletingId === supplier.id"
               @click="removeSupplier(supplier.id)"
             >
-              {{ deletingId === supplier.id ? 'Deleting...' : 'Delete' }}
+              {{ deletingId === supplier.id ? t('suppliersPage.deleting') : t('common.delete') }}
             </button>
           </div>
         </div>
@@ -234,17 +234,17 @@
               <h3>
                 {{
                   modalMode === 'create'
-                    ? 'Add Supplier'
+                    ? t('suppliersPage.addSupplierTitle')
                     : modalMode === 'edit'
-                    ? 'Edit Supplier'
-                    : 'Supplier Detail'
+                    ? t('suppliersPage.editSupplierTitle')
+                    : t('suppliersPage.supplierDetailTitle')
                 }}
               </h3>
               <p>
                 {{
                   modalMode === 'view'
-                    ? 'View supplier information'
-                    : 'Fill in the form below'
+                    ? t('suppliersPage.viewSupplierInformation')
+                    : t('suppliersPage.fillSupplierForm')
                 }}
               </p>
             </div>
@@ -256,51 +256,51 @@
             <form class="supplier-form" @submit.prevent="saveSupplier">
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Name <span>*</span></label>
+                  <label>{{ t('suppliersPage.name') }} <span>*</span></label>
                   <input
                     v-model="form.name"
                     type="text"
-                    placeholder="Enter supplier name"
+                    :placeholder="t('suppliersPage.namePlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Contact Person</label>
+                  <label>{{ t('suppliersPage.contactPerson') }}</label>
                   <input
                     v-model="form.contact_person"
                     type="text"
-                    placeholder="Enter contact person"
+                    :placeholder="t('suppliersPage.contactPersonPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Cell</label>
+                  <label>{{ t('suppliersPage.cell') }}</label>
                   <input
                     v-model="form.cell"
                     type="text"
-                    placeholder="Enter phone number"
+                    :placeholder="t('suppliersPage.cellPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Email</label>
+                  <label>{{ t('suppliersPage.email') }}</label>
                   <input
                     v-model="form.email"
                     type="email"
-                    placeholder="Enter email address"
+                    :placeholder="t('suppliersPage.emailPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
 
                 <div class="form-group full">
-                  <label>Address</label>
+                  <label>{{ t('suppliersPage.address') }}</label>
                   <textarea
                     v-model="form.address"
                     rows="5"
-                    placeholder="Enter supplier address"
+                    :placeholder="t('suppliersPage.addressPlaceholder')"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -312,20 +312,20 @@
 
               <div v-if="modalMode !== 'view'" class="modal-footer">
                 <button type="button" class="btn btn-light" @click="closeModal">
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button type="submit" class="btn btn-primary" :disabled="saving">
                   {{
                     saving
-                      ? (modalMode === 'create' ? 'Saving...' : 'Updating...')
-                      : (modalMode === 'create' ? 'Save Supplier' : 'Update Supplier')
+                      ? (modalMode === 'create' ? t('suppliersPage.saving') : t('suppliersPage.updating'))
+                      : (modalMode === 'create' ? t('suppliersPage.saveSupplier') : t('suppliersPage.updateSupplier'))
                   }}
                 </button>
               </div>
 
               <div v-else class="modal-footer">
                 <button type="button" class="btn btn-primary" @click="closeModal">
-                  Close
+                  {{ t('common.close') }}
                 </button>
               </div>
             </form>
@@ -338,6 +338,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -351,6 +352,8 @@ type Supplier = {
 }
 
 type ModalMode = 'create' | 'edit' | 'view'
+
+const { t } = useI18n()
 
 const search = ref('')
 const showModal = ref(false)
@@ -477,12 +480,12 @@ function validateForm() {
   formError.value = ''
 
   if (!form.name.trim()) {
-    formError.value = 'Supplier name is required.'
+    formError.value = t('suppliersPage.supplierNameRequired')
     return false
   }
 
   if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    formError.value = 'Email format is invalid.'
+    formError.value = t('suppliersPage.invalidEmail')
     return false
   }
 
@@ -512,7 +515,7 @@ async function fetchSuppliers() {
     errorMessage.value =
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to load suppliers.'
+      t('suppliersPage.failedLoad')
     suppliers.value = []
   } finally {
     loading.value = false
@@ -548,10 +551,10 @@ async function saveSupplier() {
         const firstValue = data[firstKey]
         formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
       } else {
-        formError.value = 'Failed to save supplier.'
+        formError.value = t('suppliersPage.failedSave')
       }
     } else {
-      formError.value = error?.message || 'Failed to save supplier.'
+      formError.value = error?.message || t('suppliersPage.failedSave')
     }
   } finally {
     saving.value = false
@@ -559,7 +562,7 @@ async function saveSupplier() {
 }
 
 async function removeSupplier(id: number) {
-  const ok = window.confirm('Delete this supplier?')
+  const ok = window.confirm(t('suppliersPage.deleteConfirm'))
   if (!ok) return
 
   deletingId.value = id
@@ -571,7 +574,7 @@ async function removeSupplier(id: number) {
     alert(
       error?.response?.data?.detail ||
       error?.message ||
-      'Failed to delete supplier.'
+      t('suppliersPage.failedDelete')
     )
   } finally {
     deletingId.value = null
