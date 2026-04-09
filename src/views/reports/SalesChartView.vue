@@ -2,42 +2,42 @@
   <div class="chart-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Sales Chart</h1>
+        <h1 class="page-title">{{ t('salesChartPage.title') }}</h1>
         <p class="page-subtitle">
-          Visual sales and profit summary from monthly P/L report and sale payment breakdown.
+          {{ t('salesChartPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>›</span>
-          <span>Reports</span>
+          <span>{{ t('salesChartPage.breadcrumbReports') }}</span>
           <span>›</span>
-          <span class="active">Sales Chart</span>
+          <span class="active">{{ t('salesChartPage.title') }}</span>
         </div>
       </div>
 
       <div class="page-actions">
         <button class="btn btn-light" @click="loadAll" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('salesChartPage.refreshing') : t('salesChartPage.refresh') }}
         </button>
       </div>
     </section>
 
     <section class="summary-grid">
       <article class="summary-card emerald">
-        <p>Total Sales</p>
+        <p>{{ t('salesChartPage.totalSales') }}</p>
         <h3>{{ currency(summary.sales) }}</h3>
         <span>{{ rangeLabel }}</span>
       </article>
 
       <article class="summary-card blue">
-        <p>Total Profit</p>
+        <p>{{ t('salesChartPage.totalProfit') }}</p>
         <h3>{{ currency(summary.profit) }}</h3>
-        <span>From monthly report</span>
+        <span>{{ t('salesChartPage.totalProfitMeta') }}</span>
       </article>
 
       <article class="summary-card violet">
-        <p>Best Sales Day</p>
+        <p>{{ t('salesChartPage.bestSalesDay') }}</p>
         <h3>{{ bestSalesDayLabel }}</h3>
         <span>{{ bestSalesDayAmount }}</span>
       </article>
@@ -50,13 +50,17 @@
     <section class="chart-card">
       <div class="card-header">
         <div>
-          <h2>Sales per Day</h2>
-          <p>Line chart built from /api/reports/monthly-pl/ rows.</p>
+          <h2>{{ t('salesChartPage.salesPerDay') }}</h2>
+          <p>{{ t('salesChartPage.salesPerDaySubtitle') }}</p>
         </div>
       </div>
 
-      <div v-if="loading" class="chart-empty">Loading chart data...</div>
-      <div v-else-if="chartRows.length === 0" class="chart-empty">No chart data found.</div>
+      <div v-if="loading" class="chart-empty">
+        {{ t('salesChartPage.loadingData') }}
+      </div>
+      <div v-else-if="chartRows.length === 0" class="chart-empty">
+        {{ t('salesChartPage.empty') }}
+      </div>
 
       <div v-else class="line-chart-wrap">
         <div class="line-chart-y">
@@ -93,7 +97,9 @@
           </svg>
 
           <div class="x-labels">
-            <span v-for="row in chartRows" :key="row.date">{{ shortDate(row.date) }}</span>
+            <span v-for="row in chartRows" :key="row.date">
+              {{ shortDate(row.date) }}
+            </span>
           </div>
         </div>
       </div>
@@ -102,13 +108,13 @@
     <section class="payment-card">
       <div class="card-header">
         <div>
-          <h2>Payment Method Breakdown</h2>
-          <p>Aggregated from /api/sale-payments/</p>
+          <h2>{{ t('salesChartPage.paymentMethodBreakdown') }}</h2>
+          <p>{{ t('salesChartPage.paymentMethodBreakdownSubtitle') }}</p>
         </div>
       </div>
 
       <div v-if="paymentRows.length === 0" class="chart-empty">
-        No payment breakdown data found.
+        {{ t('salesChartPage.emptyPayments') }}
       </div>
 
       <div v-else class="payment-list">
@@ -130,6 +136,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -176,8 +183,10 @@ type SalePaymentItem = {
   amount?: number | string
 }
 
-const loading = ref<boolean>(false)
-const errorMessage = ref<string>('')
+const { t, locale } = useI18n()
+
+const loading = ref(false)
+const errorMessage = ref('')
 const chartRows = ref<MonthlyRow[]>([])
 const paymentRows = ref<PaymentBreakdown[]>([])
 const summary = ref<{ sales: number; expense: number; profit: number }>({
@@ -188,6 +197,12 @@ const summary = ref<{ sales: number; expense: number; profit: number }>({
 const range = ref<{ start: string; end: string }>({
   start: '',
   end: '',
+})
+
+const intlLocale = computed(() => {
+  if (locale.value === 'id') return 'id-ID'
+  if (locale.value === 'tet') return 'id-ID'
+  return 'en-US'
 })
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -231,7 +246,7 @@ async function fetchMonthlyPL(): Promise<void> {
 async function fetchSalePayments(): Promise<void> {
   try {
     const response = await api.get<SalePaymentItem[] | { results?: SalePaymentItem[] }>(
-      ENDPOINTS.SALE_PAYMENTS
+      ENDPOINTS.SALE_PAYMENTS,
     )
     const list = normalizeArray<SalePaymentItem>(response.data)
 
@@ -246,7 +261,7 @@ async function fetchSalePayments(): Promise<void> {
       return acc
     }, {})
 
-    const entries: [string, number][] = Object.entries(totalsMap) as [string, number][]
+    const entries = Object.entries(totalsMap) as [string, number][]
     const total = entries.reduce((sum, [, value]) => sum + value, 0)
 
     paymentRows.value = entries
@@ -279,17 +294,17 @@ async function loadAll(): Promise<void> {
           ? String((error.response.data as { detail?: unknown }).detail ?? '')
           : ''
 
-      errorMessage.value = detail || 'Failed to load sales chart data.'
+      errorMessage.value = detail || t('salesChartPage.failedLoad')
     } else {
-      errorMessage.value = 'Failed to load sales chart data.'
+      errorMessage.value = t('salesChartPage.failedLoad')
     }
   } finally {
     loading.value = false
   }
 }
 
-const rangeLabel = computed<string>(() => {
-  if (!range.value.start || !range.value.end) return 'Current range'
+const rangeLabel = computed(() => {
+  if (!range.value.start || !range.value.end) return t('salesChartPage.currentRange')
   return `${range.value.start} → ${range.value.end}`
 })
 
@@ -298,15 +313,15 @@ const bestSalesRow = computed<MonthlyRow | null>(() => {
   return [...chartRows.value].sort((a, b) => b.sales - a.sales)[0] ?? null
 })
 
-const bestSalesDayLabel = computed<string>(() => {
+const bestSalesDayLabel = computed(() => {
   return bestSalesRow.value ? formatDate(bestSalesRow.value.date) : '-'
 })
 
-const bestSalesDayAmount = computed<string>(() => {
+const bestSalesDayAmount = computed(() => {
   return bestSalesRow.value ? currency(bestSalesRow.value.sales) : '-'
 })
 
-const chartMax = computed<number>(() => {
+const chartMax = computed(() => {
   const candidates: number[] = []
   chartRows.value.forEach((row) => {
     candidates.push(row.sales)
@@ -316,8 +331,8 @@ const chartMax = computed<number>(() => {
   return max <= 0 ? 1 : max
 })
 
-const yAxisMaxLabel = computed<string>(() => currency(chartMax.value))
-const yAxisMidLabel = computed<string>(() => currency(chartMax.value / 2))
+const yAxisMaxLabel = computed(() => currency(chartMax.value))
+const yAxisMidLabel = computed(() => currency(chartMax.value / 2))
 
 function buildPoints(values: number[]): { text: string; objects: ChartPoint[] } {
   if (values.length === 0) {
@@ -338,21 +353,21 @@ function buildPoints(values: number[]): { text: string; objects: ChartPoint[] } 
   }
 }
 
-const salesPointsComputed = computed<{ text: string; objects: ChartPoint[] }>(() =>
+const salesPointsComputed = computed(() =>
   buildPoints(chartRows.value.map((row) => row.sales)),
 )
 
-const profitPointsComputed = computed<{ text: string; objects: ChartPoint[] }>(() =>
+const profitPointsComputed = computed(() =>
   buildPoints(chartRows.value.map((row) => row.profit)),
 )
 
-const salesPoints = computed<string>(() => salesPointsComputed.value.text)
-const profitPoints = computed<string>(() => profitPointsComputed.value.text)
-const salesPointObjects = computed<ChartPoint[]>(() => salesPointsComputed.value.objects)
-const profitPointObjects = computed<ChartPoint[]>(() => profitPointsComputed.value.objects)
+const salesPoints = computed(() => salesPointsComputed.value.text)
+const profitPoints = computed(() => profitPointsComputed.value.text)
+const salesPointObjects = computed(() => salesPointsComputed.value.objects)
+const profitPointObjects = computed(() => profitPointsComputed.value.objects)
 
 function currency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(intlLocale.value, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -364,7 +379,7 @@ function formatDate(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -376,7 +391,7 @@ function shortDate(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     month: 'short',
     day: 'numeric',
   }).format(date)

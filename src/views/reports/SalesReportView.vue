@@ -2,23 +2,23 @@
   <div class="report-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Sales Report</h1>
+        <h1 class="page-title">{{ t('salesReportPage.title') }}</h1>
         <p class="page-subtitle">
-          Monitor detailed sales rows from order transactions, invoices, quantities, and totals.
+          {{ t('salesReportPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>›</span>
-          <span>Reports</span>
+          <span>{{ t('salesReportPage.breadcrumbReports') }}</span>
           <span>›</span>
-          <span class="active">Sales Report</span>
+          <span class="active">{{ t('salesReportPage.title') }}</span>
         </div>
       </div>
 
       <div class="page-actions">
         <button class="btn btn-light" @click="fetchOrders" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('salesReportPage.refreshing') : t('salesReportPage.refresh') }}
         </button>
       </div>
     </section>
@@ -27,36 +27,38 @@
       <article class="stat-card emerald">
         <div class="stat-icon">💰</div>
         <div>
-          <p class="stat-label">Total Sales</p>
+          <p class="stat-label">{{ t('salesReportPage.totalSales') }}</p>
           <h3 class="stat-value">{{ currency(totalSalesAmount) }}</h3>
-          <p class="stat-meta">From {{ filteredRows.length }} sales rows</p>
+          <p class="stat-meta">
+            {{ t('salesReportPage.totalSalesMeta', { count: filteredRows.length }) }}
+          </p>
         </div>
       </article>
 
       <article class="stat-card blue">
         <div class="stat-icon">🧾</div>
         <div>
-          <p class="stat-label">Invoices</p>
+          <p class="stat-label">{{ t('salesReportPage.invoices') }}</p>
           <h3 class="stat-value">{{ uniqueInvoices }}</h3>
-          <p class="stat-meta">Unique invoice count</p>
+          <p class="stat-meta">{{ t('salesReportPage.invoicesMeta') }}</p>
         </div>
       </article>
 
       <article class="stat-card amber">
         <div class="stat-icon">📦</div>
         <div>
-          <p class="stat-label">Quantity Sold</p>
+          <p class="stat-label">{{ t('salesReportPage.quantitySold') }}</p>
           <h3 class="stat-value">{{ totalQuantity }}</h3>
-          <p class="stat-meta">Total units sold</p>
+          <p class="stat-meta">{{ t('salesReportPage.quantitySoldMeta') }}</p>
         </div>
       </article>
 
       <article class="stat-card violet">
         <div class="stat-icon">⚖️</div>
         <div>
-          <p class="stat-label">Weight</p>
+          <p class="stat-label">{{ t('salesReportPage.weight') }}</p>
           <h3 class="stat-value">{{ totalWeightDisplay }}</h3>
-          <p class="stat-meta">Accumulated product weight</p>
+          <p class="stat-meta">{{ t('salesReportPage.weightMeta') }}</p>
         </div>
       </article>
     </section>
@@ -64,24 +66,28 @@
     <section class="toolbar-card">
       <div class="toolbar-left">
         <div class="toolbar-field">
-          <label>Filter by Month</label>
+          <label>{{ t('salesReportPage.filterByMonth') }}</label>
           <input v-model="selectedMonth" type="month" class="form-input" />
         </div>
 
         <div class="toolbar-field search-field">
-          <label>Search</label>
+          <label>{{ t('salesReportPage.searchLabel') }}</label>
           <input
             v-model="search"
             type="text"
             class="form-input"
-            placeholder="Search product or invoice..."
+            :placeholder="t('salesReportPage.searchPlaceholder')"
           />
         </div>
       </div>
 
       <div class="toolbar-right">
-        <button class="btn btn-primary" @click="applyFilter">Filter</button>
-        <button class="btn btn-light" @click="resetFilter">Reset</button>
+        <button class="btn btn-primary" @click="applyFilter">
+          {{ t('salesReportPage.filter') }}
+        </button>
+        <button class="btn btn-light" @click="resetFilter">
+          {{ t('common.reset') }}
+        </button>
       </div>
     </section>
 
@@ -92,12 +98,12 @@
     <section class="table-card">
       <div class="card-header">
         <div>
-          <h2>Sales transaction details</h2>
-          <p>Detailed list of order item rows grouped from order transactions.</p>
+          <h2>{{ t('salesReportPage.salesTransactionDetails') }}</h2>
+          <p>{{ t('salesReportPage.salesTransactionDetailsSubtitle') }}</p>
         </div>
 
         <div class="table-summary">
-          Showing <strong>{{ filteredRows.length }}</strong> rows
+          {{ t('salesReportPage.showingRows', { count: filteredRows.length }) }}
         </div>
       </div>
 
@@ -105,23 +111,27 @@
         <table class="modern-table">
           <thead>
             <tr>
-              <th>Product</th>
-              <th>Invoice</th>
-              <th>Qty</th>
-              <th>Weight</th>
-              <th>Total</th>
-              <th>Payment</th>
-              <th>Order Type</th>
-              <th>Order Date</th>
+              <th>{{ t('salesReportPage.product') }}</th>
+              <th>{{ t('salesReportPage.invoice') }}</th>
+              <th>{{ t('salesReportPage.qty') }}</th>
+              <th>{{ t('salesReportPage.weightColumn') }}</th>
+              <th>{{ t('salesReportPage.total') }}</th>
+              <th>{{ t('salesReportPage.payment') }}</th>
+              <th>{{ t('salesReportPage.orderType') }}</th>
+              <th>{{ t('salesReportPage.orderDate') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="8" class="empty-state">Loading sales data...</td>
+              <td colspan="8" class="empty-state">
+                {{ t('salesReportPage.loadingData') }}
+              </td>
             </tr>
 
             <tr v-else-if="filteredRows.length === 0">
-              <td colspan="8" class="empty-state">No sales data found.</td>
+              <td colspan="8" class="empty-state">
+                {{ t('salesReportPage.empty') }}
+              </td>
             </tr>
 
             <tr v-for="item in filteredRows" :key="item.rowKey">
@@ -159,6 +169,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -226,14 +237,22 @@ type OrderPayload = {
 
 type OrderListResponse = OrderPayload[] | { results?: OrderPayload[] }
 
-const flashMessage = ref<string>('')
-const loading = ref<boolean>(false)
-const errorMessage = ref<string>('')
+const { t, locale } = useI18n()
+
+const flashMessage = ref('')
+const loading = ref(false)
+const errorMessage = ref('')
 const rows = ref<SalesRow[]>([])
 
-const selectedMonth = ref<string>(currentMonth())
-const appliedMonth = ref<string>(currentMonth())
-const search = ref<string>('')
+const selectedMonth = ref(currentMonth())
+const appliedMonth = ref(currentMonth())
+const search = ref('')
+
+const intlLocale = computed(() => {
+  if (locale.value === 'id') return 'id-ID'
+  if (locale.value === 'tet') return 'id-ID'
+  return 'en-US'
+})
 
 function currentMonth(): string {
   const now = new Date()
@@ -291,7 +310,7 @@ function getOrderType(order: OrderPayload, item: OrderItemPayload): string {
     item.item_type ||
     order.default_order_type ||
     order.order_type ||
-    'SALE'
+    t('salesReportPage.sale')
   )
 }
 
@@ -322,13 +341,7 @@ function normalizeItemCode(item: OrderItemPayload): string {
     return item.product.sku || ''
   }
 
-  return (
-    item.product_code ||
-    item.product_sku ||
-    item.sku ||
-    item.barcode ||
-    ''
-  )
+  return item.product_code || item.product_sku || item.sku || item.barcode || ''
 }
 
 function normalizePayment(order: OrderPayload): string {
@@ -336,7 +349,7 @@ function normalizePayment(order: OrderPayload): string {
     order.payment_method ||
     order.payment_method_name ||
     order.payment_type ||
-    'UNKNOWN'
+    t('salesReportPage.unknown')
   )
 }
 
@@ -390,7 +403,7 @@ async function fetchOrders(): Promise<void> {
   try {
     const response = await api.get<OrderListResponse>(ENDPOINTS.ORDERS)
     rows.value = buildRows(normalizeArray<OrderPayload>(response.data))
-    showFlash('Sales report loaded.')
+    showFlash(t('salesReportPage.loaded'))
   } catch (error: unknown) {
     rows.value = []
 
@@ -402,16 +415,16 @@ async function fetchOrders(): Promise<void> {
           ? String((error.response.data as { detail?: unknown }).detail ?? '')
           : ''
 
-      errorMessage.value = detail || 'Failed to load sales report.'
+      errorMessage.value = detail || t('salesReportPage.failedLoad')
     } else {
-      errorMessage.value = 'Failed to load sales report.'
+      errorMessage.value = t('salesReportPage.failedLoad')
     }
   } finally {
     loading.value = false
   }
 }
 
-const filteredRows = computed<SalesRow[]>(() => {
+const filteredRows = computed(() => {
   let result = [...rows.value]
 
   if (appliedMonth.value) {
@@ -432,41 +445,41 @@ const filteredRows = computed<SalesRow[]>(() => {
   return result
 })
 
-const totalSalesAmount = computed<number>(() =>
+const totalSalesAmount = computed(() =>
   filteredRows.value.reduce((sum, item) => sum + item.total, 0),
 )
 
-const totalQuantity = computed<number>(() =>
+const totalQuantity = computed(() =>
   filteredRows.value.reduce((sum, item) => sum + item.quantity, 0),
 )
 
-const uniqueInvoices = computed<number>(() => {
+const uniqueInvoices = computed(() => {
   const invoices = new Set(filteredRows.value.map((item) => item.invoice))
   return invoices.size
 })
 
-const totalWeight = computed<number>(() =>
+const totalWeight = computed(() =>
   filteredRows.value.reduce((sum, item) => sum + (item.weight ?? 0), 0),
 )
 
-const totalWeightDisplay = computed<string>(() => {
+const totalWeightDisplay = computed(() => {
   return totalWeight.value > 0 ? String(totalWeight.value) : '-'
 })
 
 function applyFilter(): void {
   appliedMonth.value = selectedMonth.value
-  showFlash('Filter applied.')
+  showFlash(t('salesReportPage.filterApplied'))
 }
 
 function resetFilter(): void {
   selectedMonth.value = currentMonth()
   appliedMonth.value = currentMonth()
   search.value = ''
-  showFlash('Filter reset.')
+  showFlash(t('salesReportPage.filterReset'))
 }
 
 function currency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(intlLocale.value, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -478,7 +491,7 @@ function formatDateTime(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

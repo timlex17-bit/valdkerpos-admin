@@ -1079,6 +1079,169 @@ stockMovementsPage: {
       adjustment: 'Adjustment',
     },
   },
+  reportsPage: {
+    title: 'Reports',
+    subtitle: 'Monitor sales, expenses, and performance summaries for your current shop.',
+    salesReportTitle: 'Sales Report',
+    salesReportSubtitle: 'Detailed sales rows from orders, invoices, quantities, and totals.',
+    expenseReportTitle: 'Expense Report',
+    expenseReportSubtitle: 'Review expense entries, operational notes, amounts, and spending activity.',
+    salesChartTitle: 'Sales Chart',
+    salesChartSubtitle: 'Visual sales and profit summary from monthly P/L report and sale payment breakdown.',
+    expenseChartTitle: 'Expense Chart',
+    expenseChartSubtitle: 'Visual summary of expense trends and spending performance from monthly P/L report.',
+    openReport: 'Open Report',
+    viewChart: 'View Chart',
+    quickAccess: 'Quick Access',
+    overview: 'Overview',
+  },
+  
+  salesReportPage: {
+    title: 'Sales Report',
+    subtitle: 'Monitor detailed sales rows from order transactions, invoices, quantities, and totals.',
+    breadcrumbReports: 'Reports',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing...',
+  
+    totalSales: 'Total Sales',
+    totalSalesMeta: 'From {count} sales rows',
+    invoices: 'Invoices',
+    invoicesMeta: 'Unique invoice count',
+    quantitySold: 'Quantity Sold',
+    quantitySoldMeta: 'Total units sold',
+    weight: 'Weight',
+    weightMeta: 'Accumulated product weight',
+  
+    filterByMonth: 'Filter by Month',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search product or invoice...',
+    filter: 'Filter',
+    filterApplied: 'Filter applied.',
+    filterReset: 'Filter reset.',
+  
+    salesTransactionDetails: 'Sales transaction details',
+    salesTransactionDetailsSubtitle: 'Detailed list of order item rows grouped from order transactions.',
+    showingRows: 'Showing {count} rows',
+  
+    product: 'Product',
+    invoice: 'Invoice',
+    qty: 'Qty',
+    weightColumn: 'Weight',
+    total: 'Total',
+    payment: 'Payment',
+    orderType: 'Order Type',
+    orderDate: 'Order Date',
+  
+    loadingData: 'Loading sales data...',
+    empty: 'No sales data found.',
+    loaded: 'Sales report loaded.',
+    failedLoad: 'Failed to load sales report.',
+  
+    currentRange: 'Current range',
+    unknown: 'UNKNOWN',
+    sale: 'SALE',
+    pos: 'POS',
+    dineIn: 'DINE_IN',
+    takeaway: 'TAKEAWAY',
+    pickup: 'PICKUP',
+    delivery: 'DELIVERY',
+  },
+  
+  expenseReportPage: {
+    title: 'Expense Report',
+    subtitle: 'Review expense entries, operational notes, amounts, and spending activity.',
+    breadcrumbReports: 'Reports',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing...',
+  
+    totalExpense: 'Total Expense',
+    totalExpenseMeta: 'Current filtered results',
+    entries: 'Entries',
+    entriesMeta: 'Expense records count',
+    latestExpense: 'Latest Expense',
+    latestExpenseMeta: 'Most recent expense date',
+    topNote: 'Top Note',
+    topNoteMeta: 'First visible note',
+  
+    month: 'Month',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search name or note...',
+    applyFilter: 'Apply Filter',
+    filterApplied: 'Expense filter applied.',
+    reset: 'Reset',
+    filterReset: 'Expense filter reset.',
+  
+    expenseList: 'Expense list',
+    expenseListSubtitle: 'Operational and daily spending entries from your backend expense API.',
+  
+    name: 'Name',
+    note: 'Note',
+    amount: 'Amount',
+    date: 'Date',
+    time: 'Time',
+  
+    loadingData: 'Loading expense data...',
+    empty: 'No expense data found.',
+    loaded: 'Expense report loaded.',
+    failedLoad: 'Failed to load expense report.',
+  },
+  
+  salesChartPage: {
+    title: 'Sales Chart',
+    subtitle: 'Visual sales and profit summary from monthly P/L report and sale payment breakdown.',
+    breadcrumbReports: 'Reports',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing...',
+  
+    totalSales: 'Total Sales',
+    totalProfit: 'Total Profit',
+    totalProfitMeta: 'From monthly report',
+    bestSalesDay: 'Best Sales Day',
+  
+    currentRange: 'Current range',
+  
+    salesPerDay: 'Sales per Day',
+    salesPerDaySubtitle: 'Line chart built from /api/reports/monthly-pl/ rows.',
+    loadingData: 'Loading chart data...',
+    empty: 'No chart data found.',
+  
+    paymentMethodBreakdown: 'Payment Method Breakdown',
+    paymentMethodBreakdownSubtitle: 'Aggregated from /api/sale-payments/',
+    emptyPayments: 'No payment breakdown data found.',
+  
+    failedLoad: 'Failed to load sales chart data.',
+  },
+  
+  expenseChartPage: {
+    title: 'Expense Chart',
+    subtitle: 'Visual summary of expense trends and spending performance from monthly P/L report.',
+    breadcrumbReports: 'Reports',
+    refresh: 'Refresh',
+    refreshing: 'Refreshing...',
+  
+    totalExpense: 'Total Expense',
+    averageDailyExpense: 'Average Daily Expense',
+    averageDailyExpenseMeta: 'Based on available rows',
+    highestExpenseDay: 'Highest Expense Day',
+  
+    currentRange: 'Current range',
+  
+    totalExpensePerDay: 'Total Expense per Day',
+    totalExpensePerDaySubtitle: 'Bar chart built from /api/reports/monthly-pl/ rows.',
+    loadingData: 'Loading chart data...',
+    empty: 'No expense data found.',
+  
+    expenseSummaryRows: 'Expense Summary Rows',
+    expenseSummaryRowsSubtitle: 'Daily rows from monthly P/L endpoint.',
+  
+    date: 'Date',
+    sales: 'Sales',
+    expense: 'Expense',
+    profit: 'Profit',
+  
+    emptyRows: 'No summary rows found.',
+    failedLoad: 'Failed to load expense chart data.',
+  },
 }
 
 export default en

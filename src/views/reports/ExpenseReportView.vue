@@ -2,23 +2,23 @@
   <div class="report-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Expense Report</h1>
+        <h1 class="page-title">{{ t('expenseReportPage.title') }}</h1>
         <p class="page-subtitle">
-          Review expense entries, operational notes, amounts, and spending activity.
+          {{ t('expenseReportPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>›</span>
-          <span>Reports</span>
+          <span>{{ t('expenseReportPage.breadcrumbReports') }}</span>
           <span>›</span>
-          <span class="active">Expense Report</span>
+          <span class="active">{{ t('expenseReportPage.title') }}</span>
         </div>
       </div>
 
       <div class="page-actions">
         <button class="btn btn-light" @click="fetchExpenses" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('expenseReportPage.refreshing') : t('expenseReportPage.refresh') }}
         </button>
       </div>
     </section>
@@ -27,36 +27,36 @@
       <article class="stat-card red">
         <div class="stat-icon">💸</div>
         <div>
-          <p class="stat-label">Total Expense</p>
+          <p class="stat-label">{{ t('expenseReportPage.totalExpense') }}</p>
           <h3 class="stat-value">{{ currency(totalExpense) }}</h3>
-          <p class="stat-meta">Current filtered results</p>
+          <p class="stat-meta">{{ t('expenseReportPage.totalExpenseMeta') }}</p>
         </div>
       </article>
 
       <article class="stat-card blue">
         <div class="stat-icon">📋</div>
         <div>
-          <p class="stat-label">Entries</p>
+          <p class="stat-label">{{ t('expenseReportPage.entries') }}</p>
           <h3 class="stat-value">{{ filteredRows.length }}</h3>
-          <p class="stat-meta">Expense records count</p>
+          <p class="stat-meta">{{ t('expenseReportPage.entriesMeta') }}</p>
         </div>
       </article>
 
       <article class="stat-card emerald">
         <div class="stat-icon">📅</div>
         <div>
-          <p class="stat-label">Latest Expense</p>
+          <p class="stat-label">{{ t('expenseReportPage.latestExpense') }}</p>
           <h3 class="stat-value">{{ latestExpenseDate }}</h3>
-          <p class="stat-meta">Most recent expense date</p>
+          <p class="stat-meta">{{ t('expenseReportPage.latestExpenseMeta') }}</p>
         </div>
       </article>
 
       <article class="stat-card amber">
         <div class="stat-icon">📝</div>
         <div>
-          <p class="stat-label">Top Note</p>
+          <p class="stat-label">{{ t('expenseReportPage.topNote') }}</p>
           <h3 class="stat-value note-preview">{{ topNote }}</h3>
-          <p class="stat-meta">First visible note</p>
+          <p class="stat-meta">{{ t('expenseReportPage.topNoteMeta') }}</p>
         </div>
       </article>
     </section>
@@ -64,24 +64,28 @@
     <section class="toolbar-card">
       <div class="toolbar-left">
         <div class="toolbar-field">
-          <label>Month</label>
+          <label>{{ t('expenseReportPage.month') }}</label>
           <input v-model="selectedMonth" type="month" class="form-input" />
         </div>
 
         <div class="toolbar-field search-field">
-          <label>Search</label>
+          <label>{{ t('expenseReportPage.searchLabel') }}</label>
           <input
             v-model="search"
             type="text"
             class="form-input"
-            placeholder="Search name or note..."
+            :placeholder="t('expenseReportPage.searchPlaceholder')"
           />
         </div>
       </div>
 
       <div class="toolbar-right">
-        <button class="btn btn-primary" @click="applyFilter">Apply Filter</button>
-        <button class="btn btn-light" @click="resetFilter">Reset</button>
+        <button class="btn btn-primary" @click="applyFilter">
+          {{ t('expenseReportPage.applyFilter') }}
+        </button>
+        <button class="btn btn-light" @click="resetFilter">
+          {{ t('expenseReportPage.reset') }}
+        </button>
       </div>
     </section>
 
@@ -92,8 +96,8 @@
     <section class="table-card">
       <div class="card-header">
         <div>
-          <h2>Expense list</h2>
-          <p>Operational and daily spending entries from your backend expense API.</p>
+          <h2>{{ t('expenseReportPage.expenseList') }}</h2>
+          <p>{{ t('expenseReportPage.expenseListSubtitle') }}</p>
         </div>
       </div>
 
@@ -101,20 +105,24 @@
         <table class="modern-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Note</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Time</th>
+              <th>{{ t('expenseReportPage.name') }}</th>
+              <th>{{ t('expenseReportPage.note') }}</th>
+              <th>{{ t('expenseReportPage.amount') }}</th>
+              <th>{{ t('expenseReportPage.date') }}</th>
+              <th>{{ t('expenseReportPage.time') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="empty-state">Loading expense data...</td>
+              <td colspan="5" class="empty-state">
+                {{ t('expenseReportPage.loadingData') }}
+              </td>
             </tr>
 
             <tr v-else-if="filteredRows.length === 0">
-              <td colspan="5" class="empty-state">No expense data found.</td>
+              <td colspan="5" class="empty-state">
+                {{ t('expenseReportPage.empty') }}
+              </td>
             </tr>
 
             <tr v-for="item in filteredRows" :key="item.id">
@@ -142,6 +150,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -173,13 +182,21 @@ type ExpensePayload = {
 
 type ExpenseListResponse = ExpensePayload[] | { results?: ExpensePayload[] }
 
-const flashMessage = ref<string>('')
-const selectedMonth = ref<string>(currentMonth())
-const appliedMonth = ref<string>(currentMonth())
-const search = ref<string>('')
-const loading = ref<boolean>(false)
-const errorMessage = ref<string>('')
+const { t, locale } = useI18n()
+
+const flashMessage = ref('')
+const selectedMonth = ref(currentMonth())
+const appliedMonth = ref(currentMonth())
+const search = ref('')
+const loading = ref(false)
+const errorMessage = ref('')
 const rows = ref<ExpenseRow[]>([])
+
+const intlLocale = computed(() => {
+  if (locale.value === 'id') return 'id-ID'
+  if (locale.value === 'tet') return 'id-ID'
+  return 'en-US'
+})
 
 function currentMonth(): string {
   const now = new Date()
@@ -204,7 +221,7 @@ function formatDate(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -216,7 +233,7 @@ function formatTime(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date)
@@ -257,7 +274,7 @@ async function fetchExpenses(): Promise<void> {
   try {
     const response = await api.get<ExpenseListResponse>(ENDPOINTS.EXPENSES)
     rows.value = normalizeRows(normalizeArray<ExpensePayload>(response.data))
-    showFlash('Expense report loaded.')
+    showFlash(t('expenseReportPage.loaded'))
   } catch (error: unknown) {
     rows.value = []
 
@@ -269,16 +286,16 @@ async function fetchExpenses(): Promise<void> {
           ? String((error.response.data as { detail?: unknown }).detail ?? '')
           : ''
 
-      errorMessage.value = detail || 'Failed to load expense report.'
+      errorMessage.value = detail || t('expenseReportPage.failedLoad')
     } else {
-      errorMessage.value = 'Failed to load expense report.'
+      errorMessage.value = t('expenseReportPage.failedLoad')
     }
   } finally {
     loading.value = false
   }
 }
 
-const filteredRows = computed<ExpenseRow[]>(() => {
+const filteredRows = computed(() => {
   let result = [...rows.value]
 
   if (appliedMonth.value) {
@@ -297,32 +314,28 @@ const filteredRows = computed<ExpenseRow[]>(() => {
   return result
 })
 
-const totalExpense = computed<number>(() =>
+const totalExpense = computed(() =>
   filteredRows.value.reduce((sum, item) => sum + item.amount, 0),
 )
 
-const latestExpenseDate = computed<string>(() => {
-  return filteredRows.value[0]?.dateDisplay || '-'
-})
+const latestExpenseDate = computed(() => filteredRows.value[0]?.dateDisplay || '-')
 
-const topNote = computed<string>(() => {
-  return filteredRows.value[0]?.note || '-'
-})
+const topNote = computed(() => filteredRows.value[0]?.note || '-')
 
 function applyFilter(): void {
   appliedMonth.value = selectedMonth.value
-  showFlash('Expense filter applied.')
+  showFlash(t('expenseReportPage.filterApplied'))
 }
 
 function resetFilter(): void {
   selectedMonth.value = currentMonth()
   appliedMonth.value = currentMonth()
   search.value = ''
-  showFlash('Expense filter reset.')
+  showFlash(t('expenseReportPage.filterReset'))
 }
 
 function currency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(intlLocale.value, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,

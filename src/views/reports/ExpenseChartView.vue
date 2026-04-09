@@ -2,42 +2,42 @@
   <div class="chart-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Expense Chart</h1>
+        <h1 class="page-title">{{ t('expenseChartPage.title') }}</h1>
         <p class="page-subtitle">
-          Visual summary of expense trends and spending performance from monthly P/L report.
+          {{ t('expenseChartPage.subtitle') }}
         </p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>›</span>
-          <span>Reports</span>
+          <span>{{ t('expenseChartPage.breadcrumbReports') }}</span>
           <span>›</span>
-          <span class="active">Expense Chart</span>
+          <span class="active">{{ t('expenseChartPage.title') }}</span>
         </div>
       </div>
 
       <div class="page-actions">
         <button class="btn btn-light" @click="fetchChart" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('expenseChartPage.refreshing') : t('expenseChartPage.refresh') }}
         </button>
       </div>
     </section>
 
     <section class="summary-grid">
       <article class="summary-card cyan">
-        <p>Total Expense</p>
+        <p>{{ t('expenseChartPage.totalExpense') }}</p>
         <h3>{{ currency(summary.expense) }}</h3>
         <span>{{ rangeLabel }}</span>
       </article>
 
       <article class="summary-card orange">
-        <p>Average Daily Expense</p>
+        <p>{{ t('expenseChartPage.averageDailyExpense') }}</p>
         <h3>{{ currency(avgDailyExpense) }}</h3>
-        <span>Based on available rows</span>
+        <span>{{ t('expenseChartPage.averageDailyExpenseMeta') }}</span>
       </article>
 
       <article class="summary-card purple">
-        <p>Highest Expense Day</p>
+        <p>{{ t('expenseChartPage.highestExpenseDay') }}</p>
         <h3>{{ highestExpenseDay }}</h3>
         <span>{{ highestExpenseAmount }}</span>
       </article>
@@ -50,13 +50,13 @@
     <section class="chart-card">
       <div class="card-header">
         <div>
-          <h2>Total Expense per Day</h2>
-          <p>Bar chart built from /api/reports/monthly-pl/ rows.</p>
+          <h2>{{ t('expenseChartPage.totalExpensePerDay') }}</h2>
+          <p>{{ t('expenseChartPage.totalExpensePerDaySubtitle') }}</p>
         </div>
       </div>
 
-      <div v-if="loading" class="chart-empty">Loading chart data...</div>
-      <div v-else-if="rows.length === 0" class="chart-empty">No expense data found.</div>
+      <div v-if="loading" class="chart-empty">{{ t('expenseChartPage.loadingData') }}</div>
+      <div v-else-if="rows.length === 0" class="chart-empty">{{ t('expenseChartPage.empty') }}</div>
 
       <div v-else class="expense-chart-area">
         <div class="y-guides">
@@ -91,8 +91,8 @@
     <section class="table-card">
       <div class="card-header">
         <div>
-          <h2>Expense Summary Rows</h2>
-          <p>Daily rows from monthly P/L endpoint.</p>
+          <h2>{{ t('expenseChartPage.expenseSummaryRows') }}</h2>
+          <p>{{ t('expenseChartPage.expenseSummaryRowsSubtitle') }}</p>
         </div>
       </div>
 
@@ -100,15 +100,15 @@
         <table class="modern-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Sales</th>
-              <th>Expense</th>
-              <th>Profit</th>
+              <th>{{ t('expenseChartPage.date') }}</th>
+              <th>{{ t('expenseChartPage.sales') }}</th>
+              <th>{{ t('expenseChartPage.expense') }}</th>
+              <th>{{ t('expenseChartPage.profit') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="rows.length === 0">
-              <td colspan="4" class="empty-state">No summary rows found.</td>
+              <td colspan="4" class="empty-state">{{ t('expenseChartPage.emptyRows') }}</td>
             </tr>
             <tr v-for="item in rows" :key="item.date">
               <td>{{ formatDate(item.date) }}</td>
@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -161,8 +162,10 @@ type MonthlyPLResponse = {
   }>
 }
 
-const loading = ref<boolean>(false)
-const errorMessage = ref<string>('')
+const { t, locale } = useI18n()
+
+const loading = ref(false)
+const errorMessage = ref('')
 const rows = ref<MonthlyRow[]>([])
 const summary = ref<{ sales: number; expense: number; profit: number }>({
   sales: 0,
@@ -172,6 +175,12 @@ const summary = ref<{ sales: number; expense: number; profit: number }>({
 const range = ref<{ start: string; end: string }>({
   start: '',
   end: '',
+})
+
+const intlLocale = computed(() => {
+  if (locale.value === 'id') return 'id-ID'
+  if (locale.value === 'tet') return 'id-ID'
+  return 'en-US'
 })
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -225,21 +234,21 @@ async function fetchChart(): Promise<void> {
           ? String((error.response.data as { detail?: unknown }).detail ?? '')
           : ''
 
-      errorMessage.value = detail || 'Failed to load expense chart data.'
+      errorMessage.value = detail || t('expenseChartPage.failedLoad')
     } else {
-      errorMessage.value = 'Failed to load expense chart data.'
+      errorMessage.value = t('expenseChartPage.failedLoad')
     }
   } finally {
     loading.value = false
   }
 }
 
-const rangeLabel = computed<string>(() => {
-  if (!range.value.start || !range.value.end) return 'Current range'
+const rangeLabel = computed(() => {
+  if (!range.value.start || !range.value.end) return t('expenseChartPage.currentRange')
   return `${range.value.start} → ${range.value.end}`
 })
 
-const avgDailyExpense = computed<number>(() => {
+const avgDailyExpense = computed(() => {
   if (rows.value.length === 0) return 0
   return summary.value.expense / rows.value.length
 })
@@ -249,21 +258,21 @@ const highestExpenseRow = computed<MonthlyRow | null>(() => {
   return [...rows.value].sort((a, b) => b.expense - a.expense)[0] ?? null
 })
 
-const highestExpenseDay = computed<string>(() => {
+const highestExpenseDay = computed(() => {
   return highestExpenseRow.value ? formatDate(highestExpenseRow.value.date) : '-'
 })
 
-const highestExpenseAmount = computed<string>(() => {
+const highestExpenseAmount = computed(() => {
   return highestExpenseRow.value ? currency(highestExpenseRow.value.expense) : '-'
 })
 
-const maxExpense = computed<number>(() => {
+const maxExpense = computed(() => {
   const max = Math.max(...rows.value.map((item) => item.expense), 0)
   return max <= 0 ? 1 : max
 })
 
-const yAxisMax = computed<string>(() => currency(maxExpense.value))
-const yAxisMid = computed<string>(() => currency(maxExpense.value / 2))
+const yAxisMax = computed(() => currency(maxExpense.value))
+const yAxisMid = computed(() => currency(maxExpense.value / 2))
 
 const barRows = computed<BarRow[]>(() => {
   const highestDate = highestExpenseRow.value?.date || ''
@@ -276,7 +285,7 @@ const barRows = computed<BarRow[]>(() => {
 })
 
 function currency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(intlLocale.value, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -288,7 +297,7 @@ function formatDate(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -300,7 +309,7 @@ function shortDate(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(intlLocale.value, {
     month: 'short',
     day: 'numeric',
   }).format(date)

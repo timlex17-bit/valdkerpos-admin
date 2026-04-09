@@ -1078,6 +1078,169 @@ stockMovementsPage: {
       adjustment: 'Ajustamentu',
     },
   },
+  reportsPage: {
+    title: 'Relatoriu',
+    subtitle: 'Monitoriza rezumu venda, despeza, no performa ba loja nebee ativu.',
+    salesReportTitle: 'Relatoriu Venda',
+    salesReportSubtitle: 'Liña venda detalhadu hosi order, invoice, kuantidade, no total.',
+    expenseReportTitle: 'Relatoriu Despeza',
+    expenseReportSubtitle: 'Haree rejistu despeza, nota operasional, montante, no atividade gastu.',
+    salesChartTitle: 'Grafiku Venda',
+    salesChartSubtitle: 'Rezumu vizual venda no lukru hosi relatoriu mensal laba-laduun no detalhamentu pagamentu.',
+    expenseChartTitle: 'Grafiku Despeza',
+    expenseChartSubtitle: 'Rezumu vizual tendénsia despeza no performa gastu hosi relatoriu mensal laba-laduun.',
+    openReport: 'Loke Relatoriu',
+    viewChart: 'Haree Grafiku',
+    quickAccess: 'Asesu Lalais',
+    overview: 'Rezumu',
+  },
+  
+  salesReportPage: {
+    title: 'Relatoriu Venda',
+    subtitle: 'Monitoriza liña venda detalhadu hosi tranzasaun order, invoice, kuantidade, no total.',
+    breadcrumbReports: 'Relatoriu',
+    refresh: 'Atualiza',
+    refreshing: 'Atualiza hela...',
+  
+    totalSales: 'Total Venda',
+    totalSalesMeta: 'Hosi {count} liña venda',
+    invoices: 'Invoice',
+    invoicesMeta: 'Total invoice úniku',
+    quantitySold: 'Kuantidade Fa’an',
+    quantitySoldMeta: 'Total unidade nebee fa’an',
+    weight: 'Pesu',
+    weightMeta: 'Akumulasaun pesu produtu',
+  
+    filterByMonth: 'Filtra tuir Fulan',
+    searchLabel: 'Buka',
+    searchPlaceholder: 'Buka produtu ka invoice...',
+    filter: 'Filtra',
+    filterApplied: 'Filtru aplika ona.',
+    filterReset: 'Filtru reset ona.',
+  
+    salesTransactionDetails: 'Detallu tranzasaun venda',
+    salesTransactionDetailsSubtitle: 'Lista detalhadu liña item order nebee grupu hosi tranzasaun order.',
+    showingRows: 'Hatudu {count} liña',
+  
+    product: 'Produtu',
+    invoice: 'Invoice',
+    qty: 'Qty',
+    weightColumn: 'Pesu',
+    total: 'Total',
+    payment: 'Pagamentu',
+    orderType: 'Tipu Order',
+    orderDate: 'Data Order',
+  
+    loadingData: 'Karrega dadus venda...',
+    empty: 'La iha dadus venda nebee hetan.',
+    loaded: 'Relatoriu venda karrega ho susesu.',
+    failedLoad: 'Labele karrega relatoriu venda.',
+  
+    currentRange: 'Intervalu agora',
+    unknown: 'DESKONHECIDU',
+    sale: 'VENDA',
+    pos: 'POS',
+    dineIn: 'HAN_IHA_FATIN',
+    takeaway: 'LORI_BA_LIUR',
+    pickup: 'FOTI_RASIK',
+    delivery: 'ENTREGA',
+  },
+  
+  expenseReportPage: {
+    title: 'Relatoriu Despeza',
+    subtitle: 'Haree rejistu despeza, nota operasional, montante, no atividade gastu.',
+    breadcrumbReports: 'Relatoriu',
+    refresh: 'Atualiza',
+    refreshing: 'Atualiza hela...',
+  
+    totalExpense: 'Total Despeza',
+    totalExpenseMeta: 'Rezultadu filtru agora',
+    entries: 'Entrada',
+    entriesMeta: 'Total rejistu despeza',
+    latestExpense: 'Despeza Ikus',
+    latestExpenseMeta: 'Data despeza ikus liu',
+    topNote: 'Nota Prinsipal',
+    topNoteMeta: 'Nota dahuluk nebee haree',
+  
+    month: 'Fulan',
+    searchLabel: 'Buka',
+    searchPlaceholder: 'Buka naran ka nota...',
+    applyFilter: 'Aplika Filtru',
+    filterApplied: 'Filtru despeza aplika ona.',
+    reset: 'Reset',
+    filterReset: 'Filtru despeza reset ona.',
+  
+    expenseList: 'Lista despeza',
+    expenseListSubtitle: 'Rejistu despeza operasional no loroloron hosi API backend ita nian.',
+  
+    name: 'Naran',
+    note: 'Nota',
+    amount: 'Montante',
+    date: 'Data',
+    time: 'Oras',
+  
+    loadingData: 'Karrega dadus despeza...',
+    empty: 'La iha dadus despeza nebee hetan.',
+    loaded: 'Relatoriu despeza karrega ho susesu.',
+    failedLoad: 'Labele karrega relatoriu despeza.',
+  },
+  
+  salesChartPage: {
+    title: 'Grafiku Venda',
+    subtitle: 'Rezumu vizual venda no lukru hosi relatoriu mensal laba-laduun no detalhamentu pagamentu.',
+    breadcrumbReports: 'Relatoriu',
+    refresh: 'Atualiza',
+    refreshing: 'Atualiza hela...',
+  
+    totalSales: 'Total Venda',
+    totalProfit: 'Total Lukru',
+    totalProfitMeta: 'Hosi relatoriu mensal',
+    bestSalesDay: 'Loron Venda Diak Liu',
+  
+    currentRange: 'Intervalu agora',
+  
+    salesPerDay: 'Venda kada Loron',
+    salesPerDaySubtitle: 'Grafiku liña nebee harii hosi liña /api/reports/monthly-pl/.',
+    loadingData: 'Karrega dadus grafiku...',
+    empty: 'La iha dadus grafiku nebee hetan.',
+  
+    paymentMethodBreakdown: 'Detallamentu Metodu Pagamentu',
+    paymentMethodBreakdownSubtitle: 'Akumula hosi /api/sale-payments/',
+    emptyPayments: 'La iha dadus detallamentu pagamentu nebee hetan.',
+  
+    failedLoad: 'Labele karrega dadus grafiku venda.',
+  },
+  
+  expenseChartPage: {
+    title: 'Grafiku Despeza',
+    subtitle: 'Rezumu vizual tendénsia despeza no performa gastu hosi relatoriu mensal laba-laduun.',
+    breadcrumbReports: 'Relatoriu',
+    refresh: 'Atualiza',
+    refreshing: 'Atualiza hela...',
+  
+    totalExpense: 'Total Despeza',
+    averageDailyExpense: 'Média Despeza Loroloron',
+    averageDailyExpenseMeta: 'Bazeia ba liña dadus disponivel',
+    highestExpenseDay: 'Loron Despeza Aas Liu',
+  
+    currentRange: 'Intervalu agora',
+  
+    totalExpensePerDay: 'Total Despeza kada Loron',
+    totalExpensePerDaySubtitle: 'Grafiku barra nebee harii hosi liña /api/reports/monthly-pl/.',
+    loadingData: 'Karrega dadus grafiku...',
+    empty: 'La iha dadus despeza nebee hetan.',
+  
+    expenseSummaryRows: 'Liña Rezumu Despeza',
+    expenseSummaryRowsSubtitle: 'Liña loroloron hosi endpoint laba-laduun mensal.',
+  
+    date: 'Data',
+    sales: 'Venda',
+    expense: 'Despeza',
+    profit: 'Lukru',
+  
+    emptyRows: 'La iha liña rezumu nebee hetan.',
+    failedLoad: 'Labele karrega dadus grafiku despeza.',
+  },
 }
 
 export default tet

@@ -1078,6 +1078,169 @@ stockMovementsPage: {
       adjustment: 'Penyesuaian',
     },
   },
+  reportsPage: {
+    title: 'Laporan',
+    subtitle: 'Pantau ringkasan penjualan, pengeluaran, dan performa untuk toko aktif Anda.',
+    salesReportTitle: 'Laporan Penjualan',
+    salesReportSubtitle: 'Baris penjualan detail dari order, invoice, jumlah, dan total.',
+    expenseReportTitle: 'Laporan Pengeluaran',
+    expenseReportSubtitle: 'Tinjau data pengeluaran, catatan operasional, jumlah, dan aktivitas belanja.',
+    salesChartTitle: 'Grafik Penjualan',
+    salesChartSubtitle: 'Ringkasan visual penjualan dan laba dari laporan laba rugi bulanan dan breakdown pembayaran.',
+    expenseChartTitle: 'Grafik Pengeluaran',
+    expenseChartSubtitle: 'Ringkasan visual tren pengeluaran dan performa belanja dari laporan laba rugi bulanan.',
+    openReport: 'Buka Laporan',
+    viewChart: 'Lihat Grafik',
+    quickAccess: 'Akses Cepat',
+    overview: 'Ringkasan',
+  },
+  
+  salesReportPage: {
+    title: 'Laporan Penjualan',
+    subtitle: 'Pantau baris penjualan detail dari transaksi order, invoice, kuantitas, dan total.',
+    breadcrumbReports: 'Laporan',
+    refresh: 'Refresh',
+    refreshing: 'Memuat ulang...',
+  
+    totalSales: 'Total Penjualan',
+    totalSalesMeta: 'Dari {count} baris penjualan',
+    invoices: 'Invoice',
+    invoicesMeta: 'Jumlah invoice unik',
+    quantitySold: 'Jumlah Terjual',
+    quantitySoldMeta: 'Total unit terjual',
+    weight: 'Berat',
+    weightMeta: 'Akumulasi berat produk',
+  
+    filterByMonth: 'Filter per Bulan',
+    searchLabel: 'Cari',
+    searchPlaceholder: 'Cari produk atau invoice...',
+    filter: 'Filter',
+    filterApplied: 'Filter diterapkan.',
+    filterReset: 'Filter direset.',
+  
+    salesTransactionDetails: 'Detail transaksi penjualan',
+    salesTransactionDetailsSubtitle: 'Daftar detail item order yang dikelompokkan dari transaksi order.',
+    showingRows: 'Menampilkan {count} baris',
+  
+    product: 'Produk',
+    invoice: 'Invoice',
+    qty: 'Qty',
+    weightColumn: 'Berat',
+    total: 'Total',
+    payment: 'Pembayaran',
+    orderType: 'Tipe Pesanan',
+    orderDate: 'Tanggal Pesanan',
+  
+    loadingData: 'Memuat data penjualan...',
+    empty: 'Tidak ada data penjualan ditemukan.',
+    loaded: 'Laporan penjualan berhasil dimuat.',
+    failedLoad: 'Gagal memuat laporan penjualan.',
+  
+    currentRange: 'Rentang saat ini',
+    unknown: 'TIDAK DIKETAHUI',
+    sale: 'PENJUALAN',
+    pos: 'POS',
+    dineIn: 'MAKAN_DI_TEMPAT',
+    takeaway: 'BAWA_PULANG',
+    pickup: 'AMBIL_SENDIRI',
+    delivery: 'ANTAR',
+  },
+  
+  expenseReportPage: {
+    title: 'Laporan Pengeluaran',
+    subtitle: 'Tinjau data pengeluaran, catatan operasional, jumlah, dan aktivitas belanja.',
+    breadcrumbReports: 'Laporan',
+    refresh: 'Refresh',
+    refreshing: 'Memuat ulang...',
+  
+    totalExpense: 'Total Pengeluaran',
+    totalExpenseMeta: 'Hasil filter saat ini',
+    entries: 'Entri',
+    entriesMeta: 'Jumlah data pengeluaran',
+    latestExpense: 'Pengeluaran Terbaru',
+    latestExpenseMeta: 'Tanggal pengeluaran terbaru',
+    topNote: 'Catatan Utama',
+    topNoteMeta: 'Catatan pertama yang terlihat',
+  
+    month: 'Bulan',
+    searchLabel: 'Cari',
+    searchPlaceholder: 'Cari nama atau catatan...',
+    applyFilter: 'Terapkan Filter',
+    filterApplied: 'Filter pengeluaran diterapkan.',
+    reset: 'Reset',
+    filterReset: 'Filter pengeluaran direset.',
+  
+    expenseList: 'Daftar pengeluaran',
+    expenseListSubtitle: 'Data pengeluaran operasional dan harian dari API backend Anda.',
+  
+    name: 'Nama',
+    note: 'Catatan',
+    amount: 'Jumlah',
+    date: 'Tanggal',
+    time: 'Waktu',
+  
+    loadingData: 'Memuat data pengeluaran...',
+    empty: 'Tidak ada data pengeluaran ditemukan.',
+    loaded: 'Laporan pengeluaran berhasil dimuat.',
+    failedLoad: 'Gagal memuat laporan pengeluaran.',
+  },
+  
+  salesChartPage: {
+    title: 'Grafik Penjualan',
+    subtitle: 'Ringkasan visual penjualan dan laba dari laporan laba rugi bulanan dan breakdown pembayaran.',
+    breadcrumbReports: 'Laporan',
+    refresh: 'Refresh',
+    refreshing: 'Memuat ulang...',
+  
+    totalSales: 'Total Penjualan',
+    totalProfit: 'Total Laba',
+    totalProfitMeta: 'Dari laporan bulanan',
+    bestSalesDay: 'Hari Penjualan Terbaik',
+  
+    currentRange: 'Rentang saat ini',
+  
+    salesPerDay: 'Penjualan per Hari',
+    salesPerDaySubtitle: 'Grafik garis yang dibangun dari baris /api/reports/monthly-pl/.',
+    loadingData: 'Memuat data grafik...',
+    empty: 'Tidak ada data grafik ditemukan.',
+  
+    paymentMethodBreakdown: 'Rincian Metode Pembayaran',
+    paymentMethodBreakdownSubtitle: 'Diakumulasi dari /api/sale-payments/',
+    emptyPayments: 'Tidak ada data rincian pembayaran ditemukan.',
+  
+    failedLoad: 'Gagal memuat data grafik penjualan.',
+  },
+  
+  expenseChartPage: {
+    title: 'Grafik Pengeluaran',
+    subtitle: 'Ringkasan visual tren pengeluaran dan performa belanja dari laporan laba rugi bulanan.',
+    breadcrumbReports: 'Laporan',
+    refresh: 'Refresh',
+    refreshing: 'Memuat ulang...',
+  
+    totalExpense: 'Total Pengeluaran',
+    averageDailyExpense: 'Rata-rata Pengeluaran Harian',
+    averageDailyExpenseMeta: 'Berdasarkan baris data yang tersedia',
+    highestExpenseDay: 'Hari Pengeluaran Tertinggi',
+  
+    currentRange: 'Rentang saat ini',
+  
+    totalExpensePerDay: 'Total Pengeluaran per Hari',
+    totalExpensePerDaySubtitle: 'Grafik batang yang dibangun dari baris /api/reports/monthly-pl/.',
+    loadingData: 'Memuat data grafik...',
+    empty: 'Tidak ada data pengeluaran ditemukan.',
+  
+    expenseSummaryRows: 'Baris Ringkasan Pengeluaran',
+    expenseSummaryRowsSubtitle: 'Baris harian dari endpoint laba rugi bulanan.',
+  
+    date: 'Tanggal',
+    sales: 'Penjualan',
+    expense: 'Pengeluaran',
+    profit: 'Laba',
+  
+    emptyRows: 'Tidak ada baris ringkasan ditemukan.',
+    failedLoad: 'Gagal memuat data grafik pengeluaran.',
+  },
 }
 
 export default id

@@ -71,7 +71,7 @@ const logout = () => {
           <option value="id">Indonesia</option>
           <option value="tet">Tetun</option>
         </select>
-      </div>
+    </div>
 
       <button class="icon-btn" type="button" @click="emit('toggle-dark')">
         {{ props.isDark ? '☀' : '🌙' }}
@@ -165,15 +165,24 @@ const logout = () => {
 .language-select {
   min-width: 120px;
   height: 40px;
-  padding: 0 12px;
+  padding: 0 40px 0 12px;
   border: 1px solid #e5e7eb;
-  background: #ffffff;
+  background-color: #ffffff;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   color: #111827;
   cursor: pointer;
   outline: none;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'><path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
 }
 
 .language-select:focus {
@@ -182,9 +191,13 @@ const logout = () => {
 }
 
 .topbar.dark .language-select {
-  background: #111827;
+  background-color: #111827;
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+.topbar.dark .language-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23cbd5e1'><path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/></svg>");
 }
 
 .profile-wrap {
@@ -280,7 +293,9 @@ const logout = () => {
   .language-select {
     min-width: 96px;
     font-size: 13px;
-    padding: 0 10px;
+    padding: 0 34px 0 10px;
+    background-position: right 10px center;
+    background-size: 14px;
   }
 }
 </style>
