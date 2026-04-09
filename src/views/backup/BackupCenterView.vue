@@ -766,11 +766,19 @@ async function runBackupNow() {
       include_settings: backupSettings.includeSettings,
     }
 
+    console.log('RUN BACKUP PAYLOAD:', payload)
+
     const response = await api.post(BACKUP_ENDPOINTS.RUN, payload)
+
+    console.log('RUN BACKUP RESPONSE:', response.status, response.data)
 
     showFlash(response.data?.message || 'Manual backup completed successfully.')
     await Promise.all([fetchSummary(), fetchBackupHistory()])
-  } catch (error) {
+  } catch (error: any) {
+    console.error('RUN BACKUP ERROR:', error)
+    console.error('RUN BACKUP STATUS:', error?.response?.status)
+    console.error('RUN BACKUP DATA:', error?.response?.data)
+
     showFlash(getErrorMessage(error, 'Failed to run backup.'))
   } finally {
     runningBackup.value = false
