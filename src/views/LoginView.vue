@@ -165,7 +165,7 @@ onMounted(() => {
     <div class="login-shell">
       <div class="login-brand-panel">
         <div class="brand-top">
-          <div class="brand-badge">ValdKerPOS</div>
+          <div class="brand-badge">ValoraPOS</div>
 
           <button class="theme-toggle" type="button" @click="toggleDark">
             {{ isDark ? '☀ Klaru' : '🌙 Lakan' }}
@@ -174,9 +174,9 @@ onMounted(() => {
 
         <div class="brand-content">
           <p class="eyebrow">POS Negósiu Multi-Tipu Modernu</p>
-          <h1>Jere ita-nia loja ho login ne’ebé seguru no simples.</h1>
+          <h1>Solusaun kompletu ba jere ita-nia negósiu.</h1>
           <p class="brand-description">
-            Hatama Shop Code, Naran Uzuáriu, no Password atu tama ba dashboard ita-nia loja.
+            Jere venda, stok, no relatóriu iha sistema ida de’it.
           </p>
 
           <div class="brand-cards">
@@ -192,7 +192,7 @@ onMounted(() => {
 
             <div class="mini-card">
               <span class="mini-card-label">Workshop</span>
-              <strong>Ordem servisu, pessa sobresalente, no kliente</strong>
+              <strong>Ordem servisu, pessa sobresalente, kliente</strong>
             </div>
           </div>
         </div>
@@ -215,7 +215,7 @@ onMounted(() => {
                 id="shopCode"
                 v-model="shopCode"
                 type="text"
-                placeholder="Ezemplu: WFOURMART"
+                placeholder="Hatama Shop Code"
                 autocomplete="organization"
               />
             </div>
@@ -226,7 +226,7 @@ onMounted(() => {
                 id="username"
                 v-model="username"
                 type="text"
-                placeholder="Hatama naran uzuáriu"
+                placeholder="Hatama Naran Uzuáriu"
                 autocomplete="username"
               />
             </div>
@@ -239,7 +239,7 @@ onMounted(() => {
                   id="password"
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Hatama password"
+                  placeholder="Hatama Password"
                   autocomplete="current-password"
                 />
                 <button
@@ -252,14 +252,14 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- <div class="form-options">
+            <div class="form-options">
               <label class="remember-box">
                 <input v-model="rememberMe" type="checkbox" />
                 <span>Hatudu nafatin hau-nia konta</span>
               </label>
 
               <a href="#" class="forgot-link">Haluha password?</a>
-            </div> -->
+            </div>
 
             <p v-if="errorMessage" class="error-message">
               {{ errorMessage }}
@@ -276,7 +276,7 @@ onMounted(() => {
           </form>
 
           <div class="login-footer">
-            <p>Asesu seguru ba Owner, Manager, no Cashier.</p>
+            <p>Asesu seguru ba Owner no Manager.</p>
           </div>
         </div>
       </div>
