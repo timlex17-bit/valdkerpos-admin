@@ -59,7 +59,6 @@ const logout = () => {
       </button>
 
       <div class="topbar-title-wrap">
-        <h1>{{ t('adminPanel') }}</h1>
         <p>{{ props.currentShopName }}</p>
       </div>
     </div>
@@ -119,21 +118,15 @@ const logout = () => {
   gap: 12px;
 }
 
-.topbar-title-wrap h1 {
-  margin: 0;
+.topbar-title-wrap p {
+  margin: 2px 0 0;
   font-size: 20px;
   font-weight: 700;
   color: #059814;
 }
 
-.topbar-title-wrap p {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: #6b7280;
-}
-
 .topbar.dark .topbar-title-wrap p {
-  color: #cbd5e1;
+  color: #059814;
 }
 
 .mobile-menu-btn,

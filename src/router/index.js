@@ -19,12 +19,10 @@ import PurchasesView from '@/views/purchases/PurchasesView.vue'
 import ShiftsView from '@/views/shifts/ShiftsView.vue'
 import StockAdjustmentsView from '@/views/stock/StockAdjustmentsView.vue'
 import StockMovementsView from '@/views/stock/StockMovementsView.vue'
-
 import SalesReportView from '@/views/reports/SalesReportView.vue'
 import ExpenseReportView from '@/views/reports/ExpenseReportView.vue'
 import SalesChartView from '@/views/reports/SalesChartView.vue'
 import ExpenseChartView from '@/views/reports/ExpenseChartView.vue'
-
 import SettingsView from '@/views/settings/SettingsView.vue'
 
 const routes = [
@@ -145,6 +143,20 @@ const routes = [
         component: StockMovementsView,
         meta: { title: 'Stock Movements', section: 'inventory' },
       },
+
+      {
+        path: 'warehouses',
+        name: 'warehouses',
+        component: () => import('@/views/warehouses/WarehousesView.vue'),
+        meta: { title: 'Warehouses', section: 'inventory' },
+      },
+      {
+        path: 'transfer-stocks',
+        name: 'transfer-stocks',
+        component: () => import('@/views/transfers/TransferStocksView.vue'),
+        meta: { title: 'Transfer Stocks', section: 'inventory' },
+      },
+
       {
         path: 'sales-report',
         name: 'sales-report',
