@@ -72,7 +72,7 @@ const handleShopChange = (event: Event) => {
         <div class="brand-icon">V</div>
 
         <div v-if="!isCollapsed" class="brand-text">
-          <h2 class="logo">ValoraPOS</h2>
+          <h2 class="logo">ValdKerPOS</h2>
           <p class="brand-subtitle">{{ t('adminPanel') }}</p>
         </div>
       </div>
@@ -243,29 +243,41 @@ const handleShopChange = (event: Event) => {
             </span>
             <span>{{ t('menu.stockMovements') }}</span>
           </RouterLink>
-        </div>
-        <RouterLink to="/warehouses" class="menu-link" @click="emit('close-mobile')">
-          <span class="menu-icon warehouses">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 21h18" />
-              <path d="M5 21V7l7-4 7 4v14" />
-              <path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01" />
-            </svg>
-          </span>
-          <span>{{ t('menu.warehouses') }}</span>
-        </RouterLink>
 
-        <RouterLink to="/transfer-stocks" class="menu-link" @click="emit('close-mobile')">
-          <span class="menu-icon transfer-stocks">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 3l4 4-4 4" />
-              <path d="M21 7H9" />
-              <path d="M7 21l-4-4 4-4" />
-              <path d="M3 17h12" />
-            </svg>
-          </span>
-          <span>{{ t('menu.transferStocks') }}</span>
-        </RouterLink>
+          <RouterLink to="/warehouses" class="menu-link" @click="emit('close-mobile')">
+            <span class="menu-icon warehouses">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 21h18" />
+                <path d="M5 21V7l7-4 7 4v14" />
+                <path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01" />
+              </svg>
+            </span>
+            <span>{{ t('menu.warehouses') }}</span>
+          </RouterLink>
+
+          <RouterLink to="/warehouse-stocks" class="menu-link" @click="emit('close-mobile')">
+            <span class="menu-icon warehouse-stocks">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 7l9-4 9 4-9 4-9-4z" />
+                <path d="M3 7v10l9 4 9-4V7" />
+                <path d="M12 11v10" />
+              </svg>
+            </span>
+            <span>{{ t('menu.warehouseStocks') }}</span>
+          </RouterLink>
+
+          <RouterLink to="/transfer-stocks" class="menu-link" @click="emit('close-mobile')">
+            <span class="menu-icon transfer-stocks">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 3l4 4-4 4" />
+                <path d="M21 7H9" />
+                <path d="M7 21l-4-4 4-4" />
+                <path d="M3 17h12" />
+              </svg>
+            </span>
+            <span>{{ t('menu.transferStocks') }}</span>
+          </RouterLink>
+        </div>
       </div>
 
       <div class="menu-section">
@@ -690,6 +702,7 @@ const handleShopChange = (event: Event) => {
 .menu-icon.adjustments { color: #f97316; }
 .menu-icon.movements { color: #06b6d4; }
 .menu-icon.warehouses { color: #8b5cf6; }
+.menu-icon.warehouse-stocks { color: #22c55e; }
 .menu-icon.transfer-stocks { color: #f59e0b; }
 .menu-icon.customers { color: #ec4899; }
 .menu-icon.suppliers { color: #3b82f6; }

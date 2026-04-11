@@ -15,6 +15,8 @@ import UnitsView from '@/views/units/UnitsView.vue'
 import UsersView from '@/views/users/UsersView.vue'
 import InventoryCountsView from '@/views/inventory/InventoryCountsView.vue'
 import ProductReturnsView from '@/views/returns/ProductReturnsView.vue'
+import TransferStocksView from '@/views/transfers/TransferStocksView.vue'
+import WarehouseStocksView from '@/views/warehouses/WarehouseStocksView.vue'
 import PurchasesView from '@/views/purchases/PurchasesView.vue'
 import ShiftsView from '@/views/shifts/ShiftsView.vue'
 import StockAdjustmentsView from '@/views/stock/StockAdjustmentsView.vue'
@@ -143,7 +145,6 @@ const routes = [
         component: StockMovementsView,
         meta: { title: 'Stock Movements', section: 'inventory' },
       },
-
       {
         path: 'warehouses',
         name: 'warehouses',
@@ -153,10 +154,15 @@ const routes = [
       {
         path: 'transfer-stocks',
         name: 'transfer-stocks',
-        component: () => import('@/views/transfers/TransferStocksView.vue'),
+        component: TransferStocksView,
         meta: { title: 'Transfer Stocks', section: 'inventory' },
       },
-
+      {
+        path: 'warehouse-stocks',
+        name: 'warehouse-stocks',
+        component: WarehouseStocksView,
+        meta: { title: 'Warehouse Stocks', section: 'inventory' },
+      },
       {
         path: 'sales-report',
         name: 'sales-report',
@@ -181,7 +187,6 @@ const routes = [
         component: ExpenseChartView,
         meta: { title: 'Expense Chart', section: 'reports' },
       },
-
       {
         path: 'bank-accounts',
         name: 'bank-accounts',
@@ -194,14 +199,12 @@ const routes = [
         component: BankLedgersView,
         meta: { title: 'Bank Ledgers', section: 'finance' },
       },
-
       {
         path: 'settings',
         name: 'settings',
         component: SettingsView,
         meta: { title: 'Settings', section: 'settings' },
       },
-
       {
         path: 'backup-center',
         name: 'backup-center',

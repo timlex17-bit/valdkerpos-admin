@@ -1,30 +1,28 @@
 <template>
-  <div class="warehouse-page">
+  <div class="stock-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">{{ t('warehousesPage.title') }}</h1>
-        <p class="page-subtitle">
-          {{ t('warehousesPage.subtitle') }}
-        </p>
+        <h1 class="page-title">{{ t('warehouseStocksPage.title') }}</h1>
+        <p class="page-subtitle">{{ t('warehouseStocksPage.subtitle') }}</p>
 
         <div class="breadcrumb">
-          <span>{{ t('warehousesPage.breadcrumbHome') }}</span>
+          <span>{{ t('warehouseStocksPage.breadcrumbHome') }}</span>
           <span>›</span>
-          <span>{{ t('warehousesPage.breadcrumbInventory') }}</span>
+          <span>{{ t('warehouseStocksPage.breadcrumbInventory') }}</span>
           <span>›</span>
-          <span class="active">{{ t('warehousesPage.title') }}</span>
+          <span class="active">{{ t('warehouseStocksPage.title') }}</span>
         </div>
       </div>
 
       <div class="page-actions">
         <button class="btn btn-light" @click="resetFilters" :disabled="loading">
-          {{ t('warehousesPage.resetButton') }}
+          {{ t('warehouseStocksPage.resetButton') }}
         </button>
-        <button class="btn btn-light" @click="fetchWarehouses" :disabled="loading">
-          {{ loading ? t('warehousesPage.refreshingButton') : t('warehousesPage.refreshButton') }}
+        <button class="btn btn-light" @click="loadData" :disabled="loading">
+          {{ loading ? t('warehouseStocksPage.refreshingButton') : t('warehouseStocksPage.refreshButton') }}
         </button>
         <button class="btn btn-primary" @click="openAddModal">
-          + {{ t('warehousesPage.addWarehouse') }}
+          + {{ t('warehouseStocksPage.addStock') }}
         </button>
       </div>
     </section>
@@ -35,21 +33,21 @@
 
     <section class="summary-grid">
       <article class="summary-card emerald">
-        <p>{{ t('warehousesPage.totalWarehouses') }}</p>
-        <h3>{{ warehouses.length }}</h3>
-        <span>{{ t('warehousesPage.summaryWarehouseText') }}</span>
+        <p>{{ t('warehouseStocksPage.totalRows') }}</p>
+        <h3>{{ stocks.length }}</h3>
+        <span>{{ t('warehouseStocksPage.summaryRowsText') }}</span>
       </article>
 
       <article class="summary-card blue">
-        <p>{{ t('warehousesPage.activeWarehouses') }}</p>
-        <h3>{{ activeCount }}</h3>
-        <span>{{ t('warehousesPage.summaryActiveText') }}</span>
+        <p>{{ t('warehouseStocksPage.totalQuantity') }}</p>
+        <h3>{{ totalQuantity }}</h3>
+        <span>{{ t('warehouseStocksPage.summaryQuantityText') }}</span>
       </article>
 
       <article class="summary-card amber">
-        <p>{{ t('warehousesPage.inactiveWarehouses') }}</p>
-        <h3>{{ inactiveCount }}</h3>
-        <span>{{ t('warehousesPage.summaryInactiveText') }}</span>
+        <p>{{ t('warehouseStocksPage.lowStockCount') }}</p>
+        <h3>{{ lowStockCount }}</h3>
+        <span>{{ t('warehouseStocksPage.summaryLowStockText') }}</span>
       </article>
     </section>
 
@@ -59,20 +57,26 @@
           v-model="search"
           type="text"
           class="search-input"
-          :placeholder="t('warehousesPage.searchPlaceholder')"
+          :placeholder="t('warehouseStocksPage.searchPlaceholder')"
         />
 
-        <select v-model="statusFilter" class="filter-select">
-          <option value="">{{ t('warehousesPage.allStatus') }}</option>
-          <option value="active">{{ t('warehousesPage.activeLabel') }}</option>
-          <option value="inactive">{{ t('warehousesPage.inactiveLabel') }}</option>
-          <option value="default">{{ t('warehousesPage.defaultLabel') }}</option>
+        <select v-model="warehouseFilter" class="filter-select">
+          <option value="">{{ t('warehouseStocksPage.allWarehouses') }}</option>
+          <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">
+            {{ warehouse.name }}
+          </option>
+        </select>
+
+        <select v-model="stockFilter" class="filter-select">
+          <option value="">{{ t('warehouseStocksPage.allStockStatus') }}</option>
+          <option value="low">{{ t('warehouseStocksPage.lowStockLabel') }}</option>
+          <option value="normal">{{ t('warehouseStocksPage.normalStockLabel') }}</option>
         </select>
       </div>
 
       <div class="toolbar-right">
         <span class="results-count">
-          {{ t('warehousesPage.resultsCount', { count: filteredWarehouses.length }) }}
+          {{ t('warehouseStocksPage.resultsCount', { count: filteredStocks.length }) }}
         </span>
       </div>
     </section>
@@ -83,81 +87,68 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>{{ t('warehousesPage.nameLabel') }}</th>
-              <th>{{ t('warehousesPage.codeLabel') }}</th>
-              <th>{{ t('warehousesPage.locationLabel') }}</th>
-              <th>{{ t('warehousesPage.defaultLabel') }}</th>
-              <th>{{ t('warehousesPage.activeLabel') }}</th>
-              <th>{{ t('warehousesPage.createdAtLabel') }}</th>
-              <th>{{ t('warehousesPage.actionsLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.warehouseLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.productLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.skuLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.quantityLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.minStockLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.statusLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.createdAtLabel') }}</th>
+              <th>{{ t('warehouseStocksPage.actionsLabel') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="8" class="empty-state">
+              <td colspan="9" class="empty-state">
                 <div class="empty-wrap">
-                  <h3>{{ t('warehousesPage.loadingTitle') }}</h3>
-                  <p>{{ t('warehousesPage.loadingSubtitle') }}</p>
+                  <h3>{{ t('warehouseStocksPage.loadingTitle') }}</h3>
+                  <p>{{ t('warehouseStocksPage.loadingSubtitle') }}</p>
                 </div>
               </td>
             </tr>
 
-            <tr v-else-if="filteredWarehouses.length === 0">
-              <td colspan="8" class="empty-state">
+            <tr v-else-if="filteredStocks.length === 0">
+              <td colspan="9" class="empty-state">
                 <div class="empty-wrap">
-                  <h3>{{ t('warehousesPage.emptyTitle') }}</h3>
-                  <p>{{ t('warehousesPage.emptySubtitle') }}</p>
+                  <h3>{{ t('warehouseStocksPage.emptyTitle') }}</h3>
+                  <p>{{ t('warehouseStocksPage.emptySubtitle') }}</p>
                 </div>
               </td>
             </tr>
 
-            <tr v-for="warehouse in filteredWarehouses" :key="warehouse.id">
-              <td class="id-cell">#{{ warehouse.id }}</td>
+            <tr v-for="item in filteredStocks" :key="item.id">
+              <td class="id-cell">#{{ item.id }}</td>
+              <td>{{ item.warehouse_name }}</td>
               <td>
                 <div class="primary-cell">
-                  <strong>{{ warehouse.name }}</strong>
-                  <span>{{ warehouse.shop_name || warehouse.shop_code || '-' }}</span>
+                  <strong>{{ item.product_name }}</strong>
+                  <span>{{ item.product_code || '-' }}</span>
                 </div>
               </td>
-              <td>{{ warehouse.code || '-' }}</td>
-              <td>{{ warehouse.location || '-' }}</td>
+              <td>{{ item.product_sku || '-' }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.min_stock }}</td>
               <td>
                 <span
                   class="status-badge"
-                  :class="warehouse.is_default ? 'status-default' : 'status-neutral'"
+                  :class="item.is_low_stock ? 'status-low' : 'status-normal'"
                 >
                   {{
-                    warehouse.is_default
-                      ? t('warehousesPage.defaultYes')
-                      : t('warehousesPage.defaultNo')
+                    item.is_low_stock
+                      ? t('warehouseStocksPage.lowStockLabel')
+                      : t('warehouseStocksPage.normalStockLabel')
                   }}
                 </span>
               </td>
-              <td>
-                <span
-                  class="status-badge"
-                  :class="warehouse.is_active ? 'status-active' : 'status-inactive'"
-                >
-                  {{
-                    warehouse.is_active
-                      ? t('warehousesPage.activeLabel')
-                      : t('warehousesPage.inactiveLabel')
-                  }}
-                </span>
-              </td>
-              <td>{{ formatDate(warehouse.created_at) }}</td>
+              <td>{{ formatDate(item.created_at) }}</td>
               <td>
                 <div class="table-actions">
-                  <button class="action-btn edit" @click="openEditModal(warehouse)">
-                    {{ t('warehousesPage.editButton') }}
+                  <button class="action-btn edit" @click="openEditModal(item)">
+                    {{ t('warehouseStocksPage.editButton') }}
                   </button>
-                  <button
-                    class="action-btn delete"
-                    @click="removeWarehouse(warehouse)"
-                    :disabled="submitting"
-                  >
-                    {{ t('warehousesPage.deleteButton') }}
+                  <button class="action-btn delete" @click="removeStock(item)" :disabled="submitting">
+                    {{ t('warehouseStocksPage.deleteButton') }}
                   </button>
                 </div>
               </td>
@@ -172,72 +163,70 @@
         <div class="modal-header">
           <div>
             <h2>
-              {{ isEditing ? t('warehousesPage.editWarehouse') : t('warehousesPage.addWarehouse') }}
+              {{ isEditing ? t('warehouseStocksPage.editStock') : t('warehouseStocksPage.addStock') }}
             </h2>
-            <p>{{ t('warehousesPage.formSubtitle') }}</p>
+            <p>{{ t('warehouseStocksPage.formSubtitle') }}</p>
           </div>
 
           <button class="close-btn" @click="closeModal">×</button>
         </div>
 
-        <form class="modal-body" @submit.prevent="saveWarehouse">
+        <form class="modal-body" @submit.prevent="saveStock">
           <div class="form-grid">
             <div class="form-group">
-              <label>{{ t('warehousesPage.nameLabel') }}</label>
+              <label>{{ t('warehouseStocksPage.warehouseLabel') }}</label>
+              <select v-model.number="form.warehouse" class="form-input">
+                <option :value="0">{{ t('warehouseStocksPage.selectWarehouse') }}</option>
+                <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">
+                  {{ warehouse.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>{{ t('warehouseStocksPage.productLabel') }}</label>
+              <select v-model.number="form.product" class="form-input">
+                <option :value="0">{{ t('warehouseStocksPage.selectProduct') }}</option>
+                <option v-for="product in products" :key="product.id" :value="product.id">
+                  {{ product.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>{{ t('warehouseStocksPage.quantityLabel') }}</label>
               <input
-                v-model="form.name"
-                type="text"
+                v-model.number="form.quantity"
+                type="number"
+                min="0"
                 class="form-input"
-                :placeholder="t('warehousesPage.namePlaceholder')"
+                :placeholder="t('warehouseStocksPage.quantityPlaceholder')"
               />
             </div>
 
             <div class="form-group">
-              <label>{{ t('warehousesPage.codeLabel') }}</label>
+              <label>{{ t('warehouseStocksPage.minStockLabel') }}</label>
               <input
-                v-model="form.code"
-                type="text"
+                v-model.number="form.min_stock"
+                type="number"
+                min="0"
                 class="form-input"
-                :placeholder="t('warehousesPage.codePlaceholder')"
+                :placeholder="t('warehouseStocksPage.minStockPlaceholder')"
               />
-            </div>
-
-            <div class="form-group full-width">
-              <label>{{ t('warehousesPage.locationLabel') }}</label>
-              <textarea
-                v-model="form.location"
-                class="form-textarea"
-                rows="3"
-                :placeholder="t('warehousesPage.locationPlaceholder')"
-              />
-            </div>
-
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input v-model="form.is_active" type="checkbox" />
-                <span>{{ t('warehousesPage.activeWarehouseLabel') }}</span>
-              </label>
-            </div>
-
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input v-model="form.is_default" type="checkbox" />
-                <span>{{ t('warehousesPage.defaultWarehouseLabel') }}</span>
-              </label>
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn btn-light" @click="closeModal">
-              {{ t('warehousesPage.cancelButton') }}
+              {{ t('warehouseStocksPage.cancelButton') }}
             </button>
             <button type="submit" class="btn btn-primary" :disabled="submitting">
               {{
                 submitting
-                  ? t('warehousesPage.savingButton')
+                  ? t('warehouseStocksPage.savingButton')
                   : isEditing
-                    ? t('warehousesPage.updateButton')
-                    : t('warehousesPage.saveButton')
+                    ? t('warehouseStocksPage.updateButton')
+                    : t('warehouseStocksPage.saveButton')
               }}
             </button>
           </div>
@@ -254,97 +243,84 @@ import api from '@/services/api'
 
 type Warehouse = {
   id: number
-  shop_id: number
-  shop_name: string
-  shop_code: string
   name: string
-  code: string
-  location: string
-  is_active: boolean
-  is_default: boolean
+}
+
+type Product = {
+  id: number
+  name: string
+}
+
+type WarehouseStock = {
+  id: number
+  warehouse: number
+  warehouse_name: string
+  warehouse_code: string
+  product: number
+  product_name: string
+  product_code: string
+  product_sku: string
+  product_track_stock: boolean
+  quantity: number
+  min_stock: number
+  is_low_stock: boolean
   created_at: string
   updated_at: string
 }
 
-type WarehousePayload = {
-  name: string
-  code: string
-  location: string
-  is_active: boolean
-  is_default: boolean
+type StockForm = {
+  warehouse: number
+  product: number
+  quantity: number
+  min_stock: number
 }
 
 const { t, locale } = useI18n()
 
 const search = ref('')
-const statusFilter = ref('')
-const showModal = ref(false)
-const isEditing = ref(false)
-const editingId = ref<number | null>(null)
+const warehouseFilter = ref('')
+const stockFilter = ref('')
 const loading = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
+const showModal = ref(false)
+const isEditing = ref(false)
+const editingId = ref<number | null>(null)
 
 const warehouses = ref<Warehouse[]>([])
+const products = ref<Product[]>([])
+const stocks = ref<WarehouseStock[]>([])
 
-const form = reactive<WarehousePayload>({
-  name: '',
-  code: '',
-  location: '',
-  is_active: true,
-  is_default: false,
+const form = reactive<StockForm>({
+  warehouse: 0,
+  product: 0,
+  quantity: 0,
+  min_stock: 0,
 })
-
-const filteredWarehouses = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
-
-  return warehouses.value.filter((item) => {
-    const matchesSearch =
-      !keyword ||
-      item.name.toLowerCase().includes(keyword) ||
-      item.code.toLowerCase().includes(keyword) ||
-      (item.location || '').toLowerCase().includes(keyword) ||
-      (item.shop_name || '').toLowerCase().includes(keyword)
-
-    const matchesStatus =
-      statusFilter.value === ''
-        ? true
-        : statusFilter.value === 'active'
-          ? item.is_active
-          : statusFilter.value === 'inactive'
-            ? !item.is_active
-            : item.is_default
-
-    return matchesSearch && matchesStatus
-  })
-})
-
-const activeCount = computed(() => warehouses.value.filter((item) => item.is_active).length)
-const inactiveCount = computed(() => warehouses.value.filter((item) => !item.is_active).length)
-
-const resetForm = () => {
-  form.name = ''
-  form.code = ''
-  form.location = ''
-  form.is_active = true
-  form.is_default = false
-}
-
-const resetFilters = () => {
-  search.value = ''
-  statusFilter.value = ''
-}
 
 const normalizeWarehouse = (item: any): Warehouse => ({
   id: Number(item.id),
-  shop_id: Number(item.shop_id ?? 0),
-  shop_name: item.shop_name ?? '',
-  shop_code: item.shop_code ?? '',
   name: item.name ?? '',
-  code: item.code ?? '',
-  location: item.location ?? '',
-  is_active: Boolean(item.is_active),
-  is_default: Boolean(item.is_default),
+})
+
+const normalizeProduct = (item: any): Product => ({
+  id: Number(item.id),
+  name: item.name ?? '',
+})
+
+const normalizeStock = (item: any): WarehouseStock => ({
+  id: Number(item.id),
+  warehouse: Number(item.warehouse ?? 0),
+  warehouse_name: item.warehouse_name ?? '',
+  warehouse_code: item.warehouse_code ?? '',
+  product: Number(item.product ?? 0),
+  product_name: item.product_name ?? '',
+  product_code: item.product_code ?? '',
+  product_sku: item.product_sku ?? '',
+  product_track_stock: Boolean(item.product_track_stock),
+  quantity: Number(item.quantity ?? 0),
+  min_stock: Number(item.min_stock ?? 0),
+  is_low_stock: Boolean(item.is_low_stock),
   created_at: item.created_at ?? '',
   updated_at: item.updated_at ?? '',
 })
@@ -367,15 +343,75 @@ const getErrorMessage = (error: any, fallback: string) => {
   return fallback
 }
 
+const filteredStocks = computed(() => {
+  const q = search.value.trim().toLowerCase()
+
+  return stocks.value.filter((item) => {
+    const matchesSearch =
+      !q ||
+      item.warehouse_name.toLowerCase().includes(q) ||
+      item.product_name.toLowerCase().includes(q) ||
+      (item.product_sku || '').toLowerCase().includes(q) ||
+      (item.product_code || '').toLowerCase().includes(q)
+
+    const matchesWarehouse =
+      warehouseFilter.value === '' ? true : String(item.warehouse) === String(warehouseFilter.value)
+
+    const matchesStatus =
+      stockFilter.value === ''
+        ? true
+        : stockFilter.value === 'low'
+          ? item.is_low_stock
+          : !item.is_low_stock
+
+    return matchesSearch && matchesWarehouse && matchesStatus
+  })
+})
+
+const totalQuantity = computed(() =>
+  stocks.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+)
+
+const lowStockCount = computed(() =>
+  stocks.value.filter((item) => item.is_low_stock).length,
+)
+
+const resetFilters = () => {
+  search.value = ''
+  warehouseFilter.value = ''
+  stockFilter.value = ''
+}
+
+const resetForm = () => {
+  form.warehouse = 0
+  form.product = 0
+  form.quantity = 0
+  form.min_stock = 0
+}
+
 const fetchWarehouses = async () => {
+  const { data } = await api.get('/api/warehouses/')
+  warehouses.value = Array.isArray(data) ? data.map(normalizeWarehouse) : []
+}
+
+const fetchProducts = async () => {
+  const { data } = await api.get('/api/products/')
+  products.value = Array.isArray(data) ? data.map(normalizeProduct) : []
+}
+
+const fetchStocks = async () => {
+  const { data } = await api.get('/api/warehouse-stocks/')
+  stocks.value = Array.isArray(data) ? data.map(normalizeStock) : []
+}
+
+const loadData = async () => {
   loading.value = true
   errorMessage.value = ''
 
   try {
-    const { data } = await api.get('/api/warehouses/')
-    warehouses.value = Array.isArray(data) ? data.map(normalizeWarehouse) : []
+    await Promise.all([fetchWarehouses(), fetchProducts(), fetchStocks()])
   } catch (error: any) {
-    errorMessage.value = getErrorMessage(error, t('warehousesPage.fetchError'))
+    errorMessage.value = getErrorMessage(error, t('warehouseStocksPage.fetchError'))
   } finally {
     loading.value = false
   }
@@ -388,15 +424,14 @@ const openAddModal = () => {
   showModal.value = true
 }
 
-const openEditModal = (warehouse: Warehouse) => {
-  form.name = warehouse.name
-  form.code = warehouse.code
-  form.location = warehouse.location || ''
-  form.is_active = warehouse.is_active
-  form.is_default = warehouse.is_default
+const openEditModal = (item: WarehouseStock) => {
+  form.warehouse = item.warehouse
+  form.product = item.product
+  form.quantity = item.quantity
+  form.min_stock = item.min_stock
 
   isEditing.value = true
-  editingId.value = warehouse.id
+  editingId.value = item.id
   showModal.value = true
 }
 
@@ -404,45 +439,54 @@ const closeModal = () => {
   showModal.value = false
 }
 
-const saveWarehouse = async () => {
-  if (!form.name.trim()) {
-    window.alert(t('warehousesPage.validationNameRequired'))
+const saveStock = async () => {
+  if (!form.warehouse) {
+    window.alert(t('warehouseStocksPage.validationWarehouseRequired'))
     return
   }
 
-  if (!form.code.trim()) {
-    window.alert(t('warehousesPage.validationCodeRequired'))
+  if (!form.product) {
+    window.alert(t('warehouseStocksPage.validationProductRequired'))
+    return
+  }
+
+  if (Number(form.quantity) < 0) {
+    window.alert(t('warehouseStocksPage.validationQuantityInvalid'))
+    return
+  }
+
+  if (Number(form.min_stock) < 0) {
+    window.alert(t('warehouseStocksPage.validationMinStockInvalid'))
     return
   }
 
   submitting.value = true
   errorMessage.value = ''
 
-  const payload: WarehousePayload = {
-    name: form.name.trim(),
-    code: form.code.trim(),
-    location: form.location.trim(),
-    is_active: form.is_active,
-    is_default: form.is_default,
-  }
-
   try {
+    const payload = {
+      warehouse: Number(form.warehouse),
+      product: Number(form.product),
+      quantity: Number(form.quantity),
+      min_stock: Number(form.min_stock),
+    }
+
     if (isEditing.value && editingId.value !== null) {
-      await api.put(`/api/warehouses/${editingId.value}/`, payload)
+      await api.put(`/api/warehouse-stocks/${editingId.value}/`, payload)
     } else {
-      await api.post('/api/warehouses/', payload)
+      await api.post('/api/warehouse-stocks/', payload)
     }
 
     closeModal()
     resetForm()
-    await fetchWarehouses()
+    await loadData()
   } catch (error: any) {
     window.alert(
       getErrorMessage(
         error,
         isEditing.value
-          ? t('warehousesPage.updateError')
-          : t('warehousesPage.createError'),
+          ? t('warehouseStocksPage.updateError')
+          : t('warehouseStocksPage.createError'),
       ),
     )
   } finally {
@@ -450,9 +494,11 @@ const saveWarehouse = async () => {
   }
 }
 
-const removeWarehouse = async (warehouse: Warehouse) => {
+const removeStock = async (item: WarehouseStock) => {
   const confirmed = window.confirm(
-    t('warehousesPage.deleteConfirmWithName', { name: warehouse.name }),
+    t('warehouseStocksPage.deleteConfirmWithName', {
+      name: `${item.warehouse_name} - ${item.product_name}`,
+    }),
   )
   if (!confirmed) return
 
@@ -460,10 +506,10 @@ const removeWarehouse = async (warehouse: Warehouse) => {
   errorMessage.value = ''
 
   try {
-    await api.delete(`/api/warehouses/${warehouse.id}/`)
-    await fetchWarehouses()
+    await api.delete(`/api/warehouse-stocks/${item.id}/`)
+    await loadData()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, t('warehousesPage.deleteError')))
+    window.alert(getErrorMessage(error, t('warehouseStocksPage.deleteError')))
   } finally {
     submitting.value = false
   }
@@ -487,12 +533,12 @@ const formatDate = (value: string) => {
 }
 
 onMounted(() => {
-  fetchWarehouses()
+  loadData()
 })
 </script>
 
 <style scoped>
-.warehouse-page {
+.stock-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -651,12 +697,6 @@ onMounted(() => {
   min-width: 180px;
 }
 
-.form-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  resize: vertical;
-}
-
 .search-input:focus,
 .filter-select:focus,
 .form-input:focus,
@@ -682,7 +722,7 @@ onMounted(() => {
 
 .data-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1100px;
   border-collapse: collapse;
 }
 
@@ -733,31 +773,21 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 88px;
+  min-width: 95px;
   padding: 7px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
 }
 
-.status-active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.status-inactive {
+.status-low {
   background: #fee2e2;
   color: #991b1b;
 }
 
-.status-default {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.status-neutral {
-  background: #f1f5f9;
-  color: #475569;
+.status-normal {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .table-actions {
@@ -775,12 +805,6 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.action-btn:disabled,
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .action-btn.edit {
   background: #e0f2fe;
   color: #0369a1;
@@ -789,6 +813,12 @@ onMounted(() => {
 .action-btn.delete {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.action-btn:disabled,
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .empty-state {
@@ -882,22 +912,6 @@ onMounted(() => {
   color: #334155;
 }
 
-.full-width {
-  grid-column: 1 / -1;
-}
-
-.checkbox-group {
-  padding-top: 4px;
-}
-
-.checkbox-label {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-  font-weight: 700;
-  color: #334155;
-}
-
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -936,10 +950,7 @@ onMounted(() => {
 }
 
 @media (max-width: 992px) {
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .summary-grid,
   .form-grid {
     grid-template-columns: 1fr;
   }

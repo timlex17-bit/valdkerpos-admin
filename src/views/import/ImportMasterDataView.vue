@@ -447,6 +447,7 @@ type ImportJobResponse = {
 
 type ImportValidateResponse = {
   import_job_id: number
+  status?: string
   total_rows: number
   valid_rows: number
   invalid_rows: number
@@ -496,7 +497,13 @@ const validationSummary = ref({
 const validationErrors = ref<ValidationErrorRow[]>([])
 
 const canImport = computed(() => {
-  return !!importJobId.value && validationSummary.value.validRows > 0 && !importing.value
+  return (
+    !!importJobId.value &&
+    validationSummary.value.totalRows > 0 &&
+    validationSummary.value.validRows > 0 &&
+    validationSummary.value.invalidRows === 0 &&
+    !importing.value
+  )
 })
 
 function extractFilenameFromHeaders(headers: any, fallback = 'valdker_master_import_template.xlsx') {
@@ -532,6 +539,19 @@ function applyUploadOrDetailResponse(data: ImportJobResponse) {
 
 function applyValidateResponse(data: ImportValidateResponse) {
   importJobId.value = Number(data.import_job_id)
+
+  if (uploadMeta.value) {
+    uploadMeta.value = {
+      ...uploadMeta.value,
+      id: Number(data.import_job_id),
+      status: data.status || uploadMeta.value.status,
+    }
+  } else {
+    uploadMeta.value = {
+      id: Number(data.import_job_id),
+      status: data.status,
+    }
+  }
 
   validationSummary.value = {
     totalRows: Number(data.total_rows || 0),
@@ -671,6 +691,7 @@ async function validatePreview() {
   try {
     const response = await api.post(IMPORT_ENDPOINTS.validate(importJobId.value), {})
     applyValidateResponse(response.data)
+    await refreshImportJob()
     showFlash('Validation preview generated.')
   } catch (error) {
     showFlash(getErrorMessage(error, 'Failed to validate uploaded file.'))
