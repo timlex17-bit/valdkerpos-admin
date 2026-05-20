@@ -365,6 +365,7 @@
 import api from '@/services/api'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { normalizeApiList } from '@/utils/apiData'
 
 type UserRoleApi = 'owner' | 'manager' | 'cashier'
 
@@ -515,7 +516,7 @@ async function fetchUsers() {
 
   try {
     const response = await api.get('/api/staff/')
-    const raw = Array.isArray(response.data) ? response.data : []
+    const raw = normalizeApiList(response.data)
     users.value = raw.map(normalizeUser)
   } catch (error: any) {
     errorMessage.value = extractErrorMessage(error, t('usersPage.failedLoad'))

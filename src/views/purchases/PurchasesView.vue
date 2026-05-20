@@ -610,6 +610,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { normalizeApiList } from '@/utils/apiData'
 
 type SupplierOption = {
   id: number
@@ -898,7 +899,7 @@ function buildUpdatePayload() {
 async function fetchSuppliers() {
   try {
     const response = await api.get(ENDPOINTS.SUPPLIERS)
-    const rows = Array.isArray(response.data) ? response.data : []
+    const rows = normalizeApiList(response.data)
     supplierOptions.value = rows.map((row: any) => ({
       id: row.id,
       name: row.name,
@@ -914,7 +915,7 @@ async function fetchPurchases() {
 
   try {
     const response = await api.get(ENDPOINTS.PURCHASES)
-    purchases.value = Array.isArray(response.data) ? response.data : []
+    purchases.value = normalizeApiList(response.data)
   } catch (error: any) {
     errorMessage.value =
       error?.response?.data?.detail ||

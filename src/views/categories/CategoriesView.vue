@@ -204,6 +204,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { normalizeApiList } from '@/utils/apiData'
 
 type Category = {
   id: number
@@ -312,7 +313,7 @@ async function fetchCategories() {
 
   try {
     const response = await api.get(ENDPOINTS.CATEGORIES)
-    categories.value = Array.isArray(response.data) ? response.data : []
+    categories.value = normalizeApiList<Category>(response.data)
   } catch (error: any) {
     errorMessage.value =
       error?.response?.data?.detail ||

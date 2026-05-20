@@ -251,6 +251,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { normalizeApiList } from '@/utils/apiData'
 
 type Warehouse = {
   id: number
@@ -373,7 +374,7 @@ const fetchWarehouses = async () => {
 
   try {
     const { data } = await api.get('/api/warehouses/')
-    warehouses.value = Array.isArray(data) ? data.map(normalizeWarehouse) : []
+    warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
   } catch (error: any) {
     errorMessage.value = getErrorMessage(error, t('warehousesPage.fetchError'))
   } finally {

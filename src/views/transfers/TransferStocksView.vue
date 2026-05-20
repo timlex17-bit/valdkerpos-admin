@@ -306,6 +306,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { normalizeApiList } from '@/utils/apiData'
 
 type TransferStatus = 'DRAFT' | 'COMPLETED' | 'CANCELLED'
 
@@ -501,12 +502,12 @@ const removeItemRow = (index: number) => {
 
 const fetchWarehouses = async () => {
   const { data } = await api.get('/api/warehouses/')
-  warehouses.value = Array.isArray(data) ? data.map(normalizeWarehouse) : []
+  warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
 }
 
 const fetchProductOptions = async () => {
   const { data } = await api.get('/api/warehouse-stocks/')
-  const normalized = Array.isArray(data) ? data.map(normalizeProductOption) : []
+  const normalized = normalizeApiList(data).map(normalizeProductOption)
 
   const seen = new Set<number>()
   productOptions.value = normalized.filter((item) => {
@@ -518,7 +519,7 @@ const fetchProductOptions = async () => {
 
 const fetchTransfers = async () => {
   const { data } = await api.get('/api/stock-transfers/')
-  transfers.value = Array.isArray(data) ? data.map(normalizeTransfer) : []
+  transfers.value = normalizeApiList(data).map(normalizeTransfer)
 }
 
 const loadData = async () => {

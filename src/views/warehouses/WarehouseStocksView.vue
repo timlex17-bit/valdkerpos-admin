@@ -240,6 +240,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { normalizeApiList } from '@/utils/apiData'
 
 type Warehouse = {
   id: number
@@ -391,17 +392,17 @@ const resetForm = () => {
 
 const fetchWarehouses = async () => {
   const { data } = await api.get('/api/warehouses/')
-  warehouses.value = Array.isArray(data) ? data.map(normalizeWarehouse) : []
+  warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
 }
 
 const fetchProducts = async () => {
   const { data } = await api.get('/api/products/')
-  products.value = Array.isArray(data) ? data.map(normalizeProduct) : []
+  products.value = normalizeApiList(data).map(normalizeProduct)
 }
 
 const fetchStocks = async () => {
   const { data } = await api.get('/api/warehouse-stocks/')
-  stocks.value = Array.isArray(data) ? data.map(normalizeStock) : []
+  stocks.value = normalizeApiList(data).map(normalizeStock)
 }
 
 const loadData = async () => {

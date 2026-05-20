@@ -495,6 +495,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { normalizeApiList } from '@/utils/apiData'
 
 type ModalMode = 'create' | 'edit' | 'view'
 
@@ -926,9 +927,7 @@ async function fetchReturns() {
 
   try {
     const { data } = await api.get(ENDPOINTS.PRODUCT_RETURNS)
-    productReturns.value = Array.isArray(data)
-      ? data.map(normalizeReturn)
-      : []
+    productReturns.value = normalizeApiList(data).map(normalizeReturn)
   } catch (error: any) {
     console.error('Failed to fetch product returns:', error)
     errorMessage.value =

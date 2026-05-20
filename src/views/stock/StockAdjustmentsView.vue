@@ -303,6 +303,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { normalizeApiList } from '@/utils/apiData'
 
 type ReasonType = 'LOST' | 'DAMAGED' | 'OTHER' | string
 
@@ -456,7 +457,7 @@ async function fetchStockAdjustments() {
 
   try {
     const response = await api.get(ENDPOINTS.STOCK_ADJUSTMENTS)
-    const rows = Array.isArray(response.data) ? response.data : []
+    const rows = normalizeApiList(response.data)
     stockAdjustments.value = rows.map(normalizeStockAdjustment)
   } catch (err: any) {
     console.error('Failed to fetch stock adjustments:', err)

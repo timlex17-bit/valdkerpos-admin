@@ -3,11 +3,11 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
-    vueDevTools(),
-  ],
+    mode === 'development' && vueDevTools(),
+  ].filter(Boolean),
 
   resolve: {
     alias: {
@@ -21,6 +21,9 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: [
       'app.valdker.web.id',
+      'api.valdker.web.id',
+      'valdker.web.id',
+      'valdker.biz.id',
       'localhost',
       '127.0.0.1',
     ],
@@ -32,8 +35,11 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: [
       'app.valdker.web.id',
+      'api.valdker.web.id',
+      'valdker.web.id',
+      'valdker.biz.id',
       'localhost',
       '127.0.0.1',
     ],
   },
-})
+}))

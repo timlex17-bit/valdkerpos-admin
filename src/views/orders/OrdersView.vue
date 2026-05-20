@@ -83,7 +83,7 @@
       </div>
     </div>
 
-    <div class="table-card">
+    <div class="table-card" @click.capture="handleOrderActionClick">
       <div class="table-header">
         <div>
           <h2>{{ t('ordersPage.orderList') }}</h2>
@@ -175,16 +175,28 @@
 
               <td class="text-right">
                 <div class="row-actions">
-                  <button class="btn btn-sm btn-outline" @click="openViewModal(order)">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline"
+                    data-order-action="view"
+                    :data-order-id="String(order.id)"
+                  >
                     {{ t('common.view') }}
                   </button>
-                  <button class="btn btn-sm btn-warning" @click="openEditModal(order)">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-warning"
+                    data-order-action="edit"
+                    :data-order-id="String(order.id)"
+                  >
                     {{ t('common.edit') }}
                   </button>
                   <button
+                    type="button"
                     class="btn btn-sm btn-danger"
                     :disabled="deletingId === order.id"
-                    @click="removeOrder(order.id)"
+                    data-order-action="delete"
+                    :data-order-id="String(order.id)"
                   >
                     {{ deletingId === order.id ? t('ordersPage.deleting') : t('common.delete') }}
                   </button>
@@ -280,16 +292,28 @@
           </div>
 
           <div class="mobile-actions">
-            <button class="btn btn-sm btn-outline" @click="openViewModal(order)">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline"
+              data-order-action="view"
+              :data-order-id="String(order.id)"
+            >
               {{ t('common.view') }}
             </button>
-            <button class="btn btn-sm btn-warning" @click="openEditModal(order)">
+            <button
+              type="button"
+              class="btn btn-sm btn-warning"
+              data-order-action="edit"
+              :data-order-id="String(order.id)"
+            >
               {{ t('common.edit') }}
             </button>
             <button
+              type="button"
               class="btn btn-sm btn-danger"
               :disabled="deletingId === order.id"
-              @click="removeOrder(order.id)"
+              data-order-action="delete"
+              :data-order-id="String(order.id)"
             >
               {{ deletingId === order.id ? t('ordersPage.deleting') : t('common.delete') }}
             </button>
@@ -539,7 +563,7 @@ import { ENDPOINTS } from '@/services/endpoints'
 type OrderType = 'GENERAL' | 'DINE_IN' | 'TAKE_OUT' | 'DELIVERY'
 
 type Order = {
-  id: number
+  id: number | string
   invoice_number: string
   customer: number | null
   created_at: string
@@ -569,10 +593,10 @@ const paymentFilter = ref('')
 const paidFilter = ref('')
 const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
-const editingId = ref<number | null>(null)
+const editingId = ref<number | string | null>(null)
 const loading = ref(false)
 const saving = ref(false)
-const deletingId = ref<number | null>(null)
+const deletingId = ref<number | string | null>(null)
 const errorMessage = ref('')
 const formError = ref('')
 const selectedOrder = ref<Order | null>(null)
@@ -655,6 +679,14 @@ function resetForm() {
   formError.value = ''
 }
 
+function safeStringifyArray(value: unknown) {
+  try {
+    return JSON.stringify(Array.isArray(value) ? value : [], null, 2)
+  } catch {
+    return '[]'
+  }
+}
+
 function fillForm(order: Order) {
   form.customer = order.customer ?? ''
   form.payment_method = String(order.payment_method || 'CASH')
@@ -667,8 +699,8 @@ function fillForm(order: Order) {
   form.table_number = order.table_number || ''
   form.delivery_address = order.delivery_address || ''
   form.delivery_fee = normalizeDecimalInput(order.delivery_fee, '0.00')
-  itemsJson.value = JSON.stringify(order.items || [], null, 2)
-  paymentsJson.value = JSON.stringify(order.payments || [], null, 2)
+  itemsJson.value = safeStringifyArray(order.items)
+  paymentsJson.value = safeStringifyArray(order.payments)
 }
 
 function openCreateModal() {
@@ -680,20 +712,62 @@ function openCreateModal() {
 }
 
 function openEditModal(order: Order) {
-  modalMode.value = 'edit'
-  editingId.value = order.id
-  selectedOrder.value = order
-  resetForm()
-  fillForm(order)
-  showModal.value = true
+  openOrderModal('edit', order)
 }
 
 function openViewModal(order: Order) {
-  modalMode.value = 'view'
+  openOrderModal('view', order)
+}
+
+function findOrderById(id: string) {
+  return orders.value.find((order) => String(order.id) === id) ?? null
+}
+
+function handleOrderActionClick(event: MouseEvent) {
+  const actionButton = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>(
+    '[data-order-action]'
+  )
+
+  if (!actionButton) return
+
+  const action = actionButton.dataset.orderAction
+  const orderId = actionButton.dataset.orderId
+  const order = orderId ? findOrderById(orderId) : null
+
+  if (!action || !order || actionButton.disabled) return
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (action === 'view') {
+    openViewModal(order)
+    return
+  }
+
+  if (action === 'edit') {
+    openEditModal(order)
+    return
+  }
+
+  if (action === 'delete') {
+    removeOrder(order.id)
+  }
+}
+
+function openOrderModal(mode: Extract<ModalMode, 'edit' | 'view'>, order: Order) {
+  modalMode.value = mode
   editingId.value = order.id
   selectedOrder.value = order
   resetForm()
-  fillForm(order)
+
+  try {
+    fillForm(order)
+  } catch (error: any) {
+    formError.value =
+      error?.message ||
+      t('ordersPage.failedLoad')
+  }
+
   showModal.value = true
 }
 
@@ -816,6 +890,8 @@ function buildPayload() {
 }
 
 function normalizeOrder(order: any): Order {
+  const rawId = order?.id ?? order?.uuid ?? order?.pk ?? ''
+  const numericId = Number(rawId)
   const paymentMethod = String(order?.payment_method ?? '-').trim() || '-'
   const createdAt = String(order?.created_at ?? '').trim()
   const defaultOrderType =
@@ -827,7 +903,7 @@ function normalizeOrder(order: any): Order {
     ).trim() || '-'
 
   return {
-    id: Number(order?.id ?? 0),
+    id: rawId === '' ? 0 : Number.isFinite(numericId) ? numericId : String(rawId),
     invoice_number: String(order?.invoice_number ?? '-'),
     customer: order?.customer ?? null,
     created_at: createdAt,
@@ -900,7 +976,11 @@ async function fetchOrders() {
 
   try {
     const response = await api.get(ENDPOINTS.ORDERS)
-    const rawOrders = Array.isArray(response.data) ? response.data : []
+    const rawOrders = Array.isArray(response.data)
+      ? response.data
+      : Array.isArray(response.data?.results)
+        ? response.data.results
+        : []
     orders.value = rawOrders.map(normalizeOrder)
   } catch (error: any) {
     errorMessage.value =
@@ -948,7 +1028,7 @@ async function saveOrder() {
   }
 }
 
-async function removeOrder(id: number) {
+async function removeOrder(id: number | string) {
   const ok = window.confirm(t('ordersPage.deleteConfirm'))
   if (!ok) return
 
@@ -1340,6 +1420,13 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.row-actions .btn,
+.mobile-actions .btn {
+  pointer-events: auto;
 }
 
 .text-right {

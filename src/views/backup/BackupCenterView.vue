@@ -158,8 +158,8 @@
             <div class="field-col">
               <label class="field-label">Default restore mode</label>
               <select v-model="backupSettings.defaultRestoreMode" class="form-select">
-                <option value="full">Full Restore</option>
-                <option value="master">Master Data Only</option>
+                <option value="master">Restore Master Data</option>
+                <option value="full">Restore Full Data</option>
               </select>
             </div>
           </div>
@@ -199,8 +199,8 @@
       <article class="panel-card side-panel">
         <div class="card-header">
           <div>
-            <h2>Restore backup</h2>
-            <p>Restore store data from a selected backup file.</p>
+            <h2>Restore Data</h2>
+            <p>Restore master data or full tenant data from a backup.</p>
           </div>
         </div>
 
@@ -219,7 +219,8 @@
           </p>
 
           <ul class="info-list">
-            <li>Recommended mode: <strong>{{ restoreModeLabel(backupSettings.defaultRestoreMode) }}</strong></li>
+            <li>Available modes: <strong>Restore Master Data</strong> and <strong>Restore Full Data</strong></li>
+            <li>Restore Full Data includes database records and mapped media files</li>
             <li>Always verify the selected backup date and time</li>
             <li>Make a fresh backup before restore</li>
           </ul>
@@ -229,7 +230,7 @@
             @click="openRestoreModal"
             :disabled="successfulBackups.length === 0"
           >
-            Open restore wizard
+            Restore Data
           </button>
         </div>
       </article>
@@ -400,8 +401,8 @@
       <div class="modal-container">
         <div class="modal-header">
           <div>
-            <h2>Restore backup</h2>
-            <p>Choose backup and confirm restore mode before starting.</p>
+            <h2>Restore Data</h2>
+            <p>Choose a backup and restore mode.</p>
           </div>
           <button class="close-btn" @click="closeRestoreModal">×</button>
         </div>
@@ -421,16 +422,16 @@
             <div class="field-col">
               <label class="field-label">Restore mode</label>
               <select v-model="restoreForm.mode" class="form-select">
-                <option value="full">Full Restore</option>
-                <option value="master">Master Data Only</option>
+                <option value="master">Restore Master Data</option>
+                <option value="full">Restore Full Data</option>
               </select>
             </div>
 
             <div class="warning-box">
               <strong>Warning</strong>
               <p>
-                Restore can overwrite current data. Make sure you selected the correct backup
-                before proceeding.
+                Restore overwrites data for this shop only. Full restore also restores mapped
+                media files when they are available in the backup package.
               </p>
             </div>
 
@@ -439,7 +440,7 @@
                 Cancel
               </button>
               <button class="btn btn-success" @click="confirmRestore" :disabled="restoring">
-                {{ restoring ? 'Restoring...' : 'Confirm restore' }}
+                {{ restoring ? 'Restoring...' : restoreModeLabel(restoreForm.mode) }}
               </button>
             </div>
           </div>
@@ -499,7 +500,7 @@ const backupSettings = reactive({
   includeMedia: true,
   includeUsers: true,
   includeSettings: true,
-  defaultRestoreMode: 'full',
+  defaultRestoreMode: 'master',
 })
 
 const initialBackupSettings = reactive({
@@ -510,7 +511,7 @@ const initialBackupSettings = reactive({
   includeMedia: true,
   includeUsers: true,
   includeSettings: true,
-  defaultRestoreMode: 'full',
+  defaultRestoreMode: 'master',
 })
 
 const summaryRaw = ref<Record<string, any> | null>(null)
@@ -530,7 +531,7 @@ const restoring = ref(false)
 
 const restoreForm = reactive({
   backupId: '',
-  mode: 'full',
+  mode: 'master',
 })
 
 const nextScheduledBackup = computed(() => {
@@ -576,7 +577,8 @@ function normalizeRestoreMode(value: any): string {
   if (raw === 'master') return 'master'
   if (raw === 'full') return 'full'
   if (raw.includes('master')) return 'master'
-  return 'full'
+  if (raw.includes('full')) return 'full'
+  return 'master'
 }
 
 function toArrayStrings(value: any): string[] {
@@ -591,7 +593,7 @@ function frequencyLabel(value: string): string {
 }
 
 function restoreModeLabel(value: string): string {
-  return value === 'master' ? 'Master Data Only' : 'Full Restore'
+  return value === 'master' ? 'Restore Master Data' : 'Restore Full Data'
 }
 
 function statusClass(status: BackupStatus) {
@@ -766,19 +768,11 @@ async function runBackupNow() {
       include_settings: backupSettings.includeSettings,
     }
 
-    console.log('RUN BACKUP PAYLOAD:', payload)
-
     const response = await api.post(BACKUP_ENDPOINTS.RUN, payload)
-
-    console.log('RUN BACKUP RESPONSE:', response.status, response.data)
 
     showFlash(response.data?.message || 'Manual backup completed successfully.')
     await Promise.all([fetchSummary(), fetchBackupHistory()])
   } catch (error: any) {
-    console.error('RUN BACKUP ERROR:', error)
-    console.error('RUN BACKUP STATUS:', error?.response?.status)
-    console.error('RUN BACKUP DATA:', error?.response?.data)
-
     showFlash(getErrorMessage(error, 'Failed to run backup.'))
   } finally {
     runningBackup.value = false

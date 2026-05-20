@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '@/services/api'
 
 type LoginUser = {
   id: number | string
@@ -55,8 +55,7 @@ const isDark = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const API_BASE_URL = 'https://api.valdker.web.id'
-const API_LOGIN_URL = `${API_BASE_URL}/api/auth/login/`
+const API_LOGIN_URL = '/api/auth/login/'
 
 const canSubmit = computed(() => {
   return (
@@ -116,11 +115,7 @@ const handleLogin = async () => {
       password: password.value,
     }
 
-    const { data } = await axios.post<LoginResponse>(API_LOGIN_URL, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    const { data } = await api.post<LoginResponse>(API_LOGIN_URL, payload)
 
     if (!data?.token) {
       throw new Error('Token login la hetan husi server.')

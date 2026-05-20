@@ -324,6 +324,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { normalizeApiList } from '@/utils/apiData'
 
 type CountedBy = {
   id?: number
@@ -426,7 +427,7 @@ async function fetchInventoryCounts() {
 
   try {
     const response = await api.get(ENDPOINTS.INVENTORY_COUNTS)
-    const data = Array.isArray(response.data) ? response.data : []
+    const data = normalizeApiList(response.data)
     inventoryCounts.value = data.map(normalizeInventoryCount)
   } catch (err: any) {
     console.error('Failed to fetch inventory counts:', err)

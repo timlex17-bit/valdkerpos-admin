@@ -270,6 +270,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { normalizeApiList } from '@/utils/apiData'
 
 type StockMovement = {
   id: number
@@ -367,7 +368,7 @@ async function fetchStockMovements() {
 
   try {
     const response = await api.get(ENDPOINTS.STOCK_MOVEMENTS)
-    const rows = Array.isArray(response.data) ? response.data : []
+    const rows = normalizeApiList(response.data)
     stockMovements.value = rows.map(normalizeStockMovement)
   } catch (err: any) {
     console.error('Failed to fetch stock movements:', err)

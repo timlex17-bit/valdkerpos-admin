@@ -2,30 +2,30 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoginView from '@/views/LoginView.vue'
 
-import DashboardView from '@/views/dashboard/DashboardView.vue'
-import ProductsView from '@/views/products/ProductsView.vue'
-import OrdersView from '@/views/orders/OrdersView.vue'
-import CustomersView from '@/views/customers/CustomersView.vue'
-import SuppliersView from '@/views/suppliers/SuppliersView.vue'
-import ExpensesView from '@/views/expenses/ExpensesView.vue'
-import BankAccountsView from '@/views/finance/BankAccountsView.vue'
-import BankLedgersView from '@/views/finance/BankLedgersView.vue'
-import CategoriesView from '@/views/categories/CategoriesView.vue'
-import UnitsView from '@/views/units/UnitsView.vue'
-import UsersView from '@/views/users/UsersView.vue'
-import InventoryCountsView from '@/views/inventory/InventoryCountsView.vue'
-import ProductReturnsView from '@/views/returns/ProductReturnsView.vue'
-import TransferStocksView from '@/views/transfers/TransferStocksView.vue'
-import WarehouseStocksView from '@/views/warehouses/WarehouseStocksView.vue'
-import PurchasesView from '@/views/purchases/PurchasesView.vue'
-import ShiftsView from '@/views/shifts/ShiftsView.vue'
-import StockAdjustmentsView from '@/views/stock/StockAdjustmentsView.vue'
-import StockMovementsView from '@/views/stock/StockMovementsView.vue'
-import SalesReportView from '@/views/reports/SalesReportView.vue'
-import ExpenseReportView from '@/views/reports/ExpenseReportView.vue'
-import SalesChartView from '@/views/reports/SalesChartView.vue'
-import ExpenseChartView from '@/views/reports/ExpenseChartView.vue'
-import SettingsView from '@/views/settings/SettingsView.vue'
+const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
+const ProductsView = () => import('@/views/products/ProductsView.vue')
+const OrdersView = () => import('@/views/orders/OrdersView.vue')
+const CustomersView = () => import('@/views/customers/CustomersView.vue')
+const SuppliersView = () => import('@/views/suppliers/SuppliersView.vue')
+const ExpensesView = () => import('@/views/expenses/ExpensesView.vue')
+const BankAccountsView = () => import('@/views/finance/BankAccountsView.vue')
+const BankLedgersView = () => import('@/views/finance/BankLedgersView.vue')
+const CategoriesView = () => import('@/views/categories/CategoriesView.vue')
+const UnitsView = () => import('@/views/units/UnitsView.vue')
+const UsersView = () => import('@/views/users/UsersView.vue')
+const InventoryCountsView = () => import('@/views/inventory/InventoryCountsView.vue')
+const ProductReturnsView = () => import('@/views/returns/ProductReturnsView.vue')
+const TransferStocksView = () => import('@/views/transfers/TransferStocksView.vue')
+const WarehouseStocksView = () => import('@/views/warehouses/WarehouseStocksView.vue')
+const PurchasesView = () => import('@/views/purchases/PurchasesView.vue')
+const ShiftsView = () => import('@/views/shifts/ShiftsView.vue')
+const StockAdjustmentsView = () => import('@/views/stock/StockAdjustmentsView.vue')
+const StockMovementsView = () => import('@/views/stock/StockMovementsView.vue')
+const SalesReportView = () => import('@/views/reports/SalesReportView.vue')
+const ExpenseReportView = () => import('@/views/reports/ExpenseReportView.vue')
+const SalesChartView = () => import('@/views/reports/SalesChartView.vue')
+const ExpenseChartView = () => import('@/views/reports/ExpenseChartView.vue')
+const SettingsView = () => import('@/views/settings/SettingsView.vue')
 
 const routes = [
   {
