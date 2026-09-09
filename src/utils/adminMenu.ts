@@ -50,7 +50,7 @@ export const adminMenuGroups: MenuGroupConfig[] = [
     items: [
       { key: 'customers', label: 'Customers', route: '/customers', plan: 'BASIC', businessTypes: ['RETAIL', 'WORKSHOP', 'RESTAURANT'] },
       { key: 'suppliers', label: 'Suppliers', route: '/suppliers', plan: 'BASIC', businessTypes: ['RETAIL', 'WORKSHOP', 'RESTAURANT'] },
-      { key: 'users', label: 'Users', route: '/users', plan: 'BASIC', businessTypes: ['RETAIL', 'WORKSHOP', 'RESTAURANT'] },
+      { key: 'staff', label: 'Users', route: '/users', plan: 'BASIC', businessTypes: ['RETAIL', 'WORKSHOP', 'RESTAURANT'] },
     ],
   },
   {

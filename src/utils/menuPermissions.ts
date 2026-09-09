@@ -28,7 +28,7 @@ export const routeMenuKeys: Record<string, string[]> = {
   orders: ['orders'],
   purchases: ['purchases'],
   expenses: ['expenses'],
-  users: ['users', 'staff'],
+  users: ['staff'],
   'inventory-counts': ['inventory_counts'],
   'product-returns': ['product_returns'],
   shifts: ['shifts'],
@@ -59,7 +59,7 @@ export const routeMenuKeys: Record<string, string[]> = {
   'bank-accounts': ['bank_accounts'],
   'bank-ledgers': ['bank_ledgers'],
   settings: ['settings'],
-  'backup-center': ['backup', 'backup_center'],
+  'backup-center': ['backup_center'],
   'import-master-data': ['import_master_data'],
 }
 
