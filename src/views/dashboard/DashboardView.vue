@@ -28,6 +28,11 @@
       <button type="button" class="ghost-btn" @click="loadDashboard">Retry</button>
     </section>
 
+    <section v-if="moduleAccessMessage" class="alert-card warning">
+      <div>{{ moduleAccessMessage }}</div>
+      <button type="button" class="ghost-btn" @click="moduleAccessMessage = ''">Dismiss</button>
+    </section>
+
     <!-- KPI Cards -->
     <section class="stats-grid stats-grid-6">
       <div class="stat-card">
@@ -442,6 +447,7 @@ const router = useRouter()
 
 const loading = ref(false)
 const errorMessage = ref('')
+const moduleAccessMessage = ref('')
 const dashboardOrders = ref<OrderRow[]>([])
 const dashboardExpenses = ref<ExpenseRow[]>([])
 const dashboardProducts = ref<ProductRow[]>([])
@@ -962,6 +968,8 @@ function getInitial(value: string) {
 }
 
 onMounted(() => {
+  moduleAccessMessage.value = sessionStorage.getItem('module_access_message') || ''
+  sessionStorage.removeItem('module_access_message')
   loadDashboard()
 })
 </script>
@@ -1028,6 +1036,12 @@ onMounted(() => {
   background: #fee2e2;
   border: 1px solid #fecaca;
   color: #991b1b;
+}
+
+.alert-card.warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
 }
 
 .add-btn,

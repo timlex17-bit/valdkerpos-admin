@@ -18,14 +18,19 @@ type LoggedUser = {
   role_label?: string
   shop_id?: string | number
   shop_name?: string
+  shop_business_type?: string
+  shop_plan?: string
   shop_code?: string
   is_staff?: boolean
   is_superuser?: boolean
   is_platform_admin?: boolean
   is_shop_user?: boolean
   is_shop_owner?: boolean
+  is_shop_admin?: boolean
   is_shop_manager?: boolean
   is_shop_cashier?: boolean
+  menu_permissions?: unknown
+  effective_modules?: unknown
 }
 
 type LoggedShop = {
@@ -34,6 +39,8 @@ type LoggedShop = {
   code?: string
   slug?: string
   business_type?: string
+  business_type_value?: string
+  plan?: string
   address?: string
   phone?: string
   email?: string
@@ -51,7 +58,9 @@ const openGroups = ref({
   inventory: true,
   people: true,
   finance: true,
+  workshop: true,
   reports: true,
+  'system-tools': true,
 })
 
 const isCollapsed = ref(false)
@@ -136,8 +145,8 @@ const loadAuthUser = () => {
   }
 }
 
-const toggleGroup = (group: keyof typeof openGroups.value) => {
-  openGroups.value[group] = !openGroups.value[group]
+const toggleGroup = (group: string) => {
+  openGroups.value[group as keyof typeof openGroups.value] = !openGroups.value[group as keyof typeof openGroups.value]
 }
 
 const toggleCollapse = () => {
@@ -182,6 +191,7 @@ onMounted(() => {
       :pending-order-count="pendingOrderCount"
       :shops="shops"
       :current-shop="currentShop"
+      :current-user="loggedUser"
       @toggle-group="toggleGroup"
       @close-mobile="closeMobileSidebar"
       @toggle-collapse="toggleCollapse"

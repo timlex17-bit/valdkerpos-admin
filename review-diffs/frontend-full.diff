@@ -1,0 +1,167 @@
+diff --git a/src/views/backup/BackupCenterView.vue b/src/views/backup/BackupCenterView.vue
+index 3cb81fc..6e88de2 100644
+--- a/src/views/backup/BackupCenterView.vue
++++ b/src/views/backup/BackupCenterView.vue
+@@ -158,8 +158,8 @@
+             <div class="field-col">
+               <label class="field-label">Default restore mode</label>
+               <select v-model="backupSettings.defaultRestoreMode" class="form-select">
+-                <option value="full">Full Restore</option>
+-                <option value="master">Master Data Only</option>
++                <option value="master">Restore Master Data</option>
++                <option value="full">Restore Full Data</option>
+               </select>
+             </div>
+           </div>
+@@ -199,8 +199,8 @@
+       <article class="panel-card side-panel">
+         <div class="card-header">
+           <div>
+-            <h2>Restore backup</h2>
+-            <p>Restore store data from a selected backup file.</p>
++            <h2>Restore Data</h2>
++            <p>Restore master data or full tenant data from a backup.</p>
+           </div>
+         </div>
+ 
+@@ -219,7 +219,8 @@
+           </p>
+ 
+           <ul class="info-list">
+-            <li>Recommended mode: <strong>{{ restoreModeLabel(backupSettings.defaultRestoreMode) }}</strong></li>
++            <li>Available modes: <strong>Restore Master Data</strong> and <strong>Restore Full Data</strong></li>
++            <li>Restore Full Data includes database records and mapped media files</li>
+             <li>Always verify the selected backup date and time</li>
+             <li>Make a fresh backup before restore</li>
+           </ul>
+@@ -229,7 +230,7 @@
+             @click="openRestoreModal"
+             :disabled="successfulBackups.length === 0"
+           >
+-            Open restore wizard
++            Restore Data
+           </button>
+         </div>
+       </article>
+@@ -400,8 +401,8 @@
+       <div class="modal-container">
+         <div class="modal-header">
+           <div>
+-            <h2>Restore backup</h2>
+-            <p>Choose backup and confirm restore mode before starting.</p>
++            <h2>Restore Data</h2>
++            <p>Choose a backup and restore mode.</p>
+           </div>
+           <button class="close-btn" @click="closeRestoreModal">×</button>
+         </div>
+@@ -421,16 +422,16 @@
+             <div class="field-col">
+               <label class="field-label">Restore mode</label>
+               <select v-model="restoreForm.mode" class="form-select">
+-                <option value="full">Full Restore</option>
+-                <option value="master">Master Data Only</option>
++                <option value="master">Restore Master Data</option>
++                <option value="full">Restore Full Data</option>
+               </select>
+             </div>
+ 
+             <div class="warning-box">
+               <strong>Warning</strong>
+               <p>
+-                Restore can overwrite current data. Make sure you selected the correct backup
+-                before proceeding.
++                Restore overwrites data for this shop only. Full restore also restores mapped
++                media files when they are available in the backup package.
+               </p>
+             </div>
+ 
+@@ -439,7 +440,7 @@
+                 Cancel
+               </button>
+               <button class="btn btn-success" @click="confirmRestore" :disabled="restoring">
+-                {{ restoring ? 'Restoring...' : 'Confirm restore' }}
++                {{ restoring ? 'Restoring...' : restoreModeLabel(restoreForm.mode) }}
+               </button>
+             </div>
+           </div>
+@@ -499,7 +500,7 @@ const backupSettings = reactive({
+   includeMedia: true,
+   includeUsers: true,
+   includeSettings: true,
+-  defaultRestoreMode: 'full',
++  defaultRestoreMode: 'master',
+ })
+ 
+ const initialBackupSettings = reactive({
+@@ -510,7 +511,7 @@ const initialBackupSettings = reactive({
+   includeMedia: true,
+   includeUsers: true,
+   includeSettings: true,
+-  defaultRestoreMode: 'full',
++  defaultRestoreMode: 'master',
+ })
+ 
+ const summaryRaw = ref<Record<string, any> | null>(null)
+@@ -530,7 +531,7 @@ const restoring = ref(false)
+ 
+ const restoreForm = reactive({
+   backupId: '',
+-  mode: 'full',
++  mode: 'master',
+ })
+ 
+ const nextScheduledBackup = computed(() => {
+@@ -576,7 +577,8 @@ function normalizeRestoreMode(value: any): string {
+   if (raw === 'master') return 'master'
+   if (raw === 'full') return 'full'
+   if (raw.includes('master')) return 'master'
+-  return 'full'
++  if (raw.includes('full')) return 'full'
++  return 'master'
+ }
+ 
+ function toArrayStrings(value: any): string[] {
+@@ -591,7 +593,7 @@ function frequencyLabel(value: string): string {
+ }
+ 
+ function restoreModeLabel(value: string): string {
+-  return value === 'master' ? 'Master Data Only' : 'Full Restore'
++  return value === 'master' ? 'Restore Master Data' : 'Restore Full Data'
+ }
+ 
+ function statusClass(status: BackupStatus) {
+@@ -1626,4 +1628,4 @@ onMounted(async () => {
+     grid-template-columns: 1fr;
+   }
+ }
+-</style>
+\ No newline at end of file
++</style>
+diff --git a/vite.config.js b/vite.config.js
+index a841004..b46cb46 100644
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -21,6 +21,9 @@ export default defineConfig({
+     strictPort: true,
+     allowedHosts: [
+       'app.valdker.web.id',
++      'api.valdker.web.id',
++      'valdker.web.id',
++      'valdker.biz.id',
+       'localhost',
+       '127.0.0.1',
+     ],
+@@ -32,8 +35,11 @@ export default defineConfig({
+     strictPort: true,
+     allowedHosts: [
+       'app.valdker.web.id',
++      'api.valdker.web.id',
++      'valdker.web.id',
++      'valdker.biz.id',
+       'localhost',
+       '127.0.0.1',
+     ],
+   },
+-})
+\ No newline at end of file
++})

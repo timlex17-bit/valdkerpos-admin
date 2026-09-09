@@ -20,6 +20,12 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (import.meta.env.DEV) {
+      const baseURL = config.baseURL || api.defaults.baseURL || window.location.origin
+      const requestUrl = new URL(String(config.url || ''), baseURL).toString()
+      console.info('[API request]', String(config.method || 'GET').toUpperCase(), requestUrl)
+    }
+
     const token =
       localStorage.getItem('token') ||
       localStorage.getItem('auth_token') ||

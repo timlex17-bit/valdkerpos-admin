@@ -29,6 +29,15 @@ export const ENDPOINTS = {
 
   // REPORTS
   DASHBOARD_SUMMARY: '/api/dashboard/summary/',
+  REPORT_DASHBOARD_SUMMARY: '/api/reports/dashboard-summary/',
+  REPORT_SALES: '/api/reports/sales/',
+  REPORT_SALES_ITEMS: '/api/reports/sales-items/',
+  REPORT_PAYMENTS: '/api/reports/payments/',
+  REPORT_EXPENSES: '/api/reports/expenses/',
+  REPORT_STOCK: '/api/reports/stock/',
+  REPORT_LOW_STOCK: '/api/reports/low-stock/',
+  REPORT_SHIFTS: '/api/reports/shifts/',
+  REPORT_SALES_EXPORT: '/api/reports/sales/export/',
   REPORT_DAILY_PROFIT: '/api/reports/daily-profit/',
   REPORT_MONTHLY_PL: '/api/reports/monthly-pl/',
   REPORT_NET_INCOME_TODAY: '/api/reports/net-income-today/',

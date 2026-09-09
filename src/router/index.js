@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoginView from '@/views/LoginView.vue'
+import { canAccessMenu, routeMenuKeys } from '@/utils/menuPermissions'
 
 const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
 const ProductsView = () => import('@/views/products/ProductsView.vue')
@@ -21,11 +22,14 @@ const PurchasesView = () => import('@/views/purchases/PurchasesView.vue')
 const ShiftsView = () => import('@/views/shifts/ShiftsView.vue')
 const StockAdjustmentsView = () => import('@/views/stock/StockAdjustmentsView.vue')
 const StockMovementsView = () => import('@/views/stock/StockMovementsView.vue')
-const SalesReportView = () => import('@/views/reports/SalesReportView.vue')
-const ExpenseReportView = () => import('@/views/reports/ExpenseReportView.vue')
-const SalesChartView = () => import('@/views/reports/SalesChartView.vue')
-const ExpenseChartView = () => import('@/views/reports/ExpenseChartView.vue')
+const ReportsView = () => import('@/views/reports/ReportsView.vue')
 const SettingsView = () => import('@/views/settings/SettingsView.vue')
+const VehiclesView = () => import('@/views/workshop/VehiclesView.vue')
+const MechanicsView = () => import('@/views/workshop/MechanicsView.vue')
+const WorkOrdersView = () => import('@/views/workshop/WorkOrdersView.vue')
+const ServiceHistoryView = () => import('@/views/workshop/ServiceHistoryView.vue')
+const ServicePackagesView = () => import('@/views/workshop/ServicePackagesView.vue')
+const BookingsView = () => import('@/views/workshop/BookingsView.vue')
 
 const routes = [
   {
@@ -164,27 +168,117 @@ const routes = [
         meta: { title: 'Warehouse Stocks', section: 'inventory' },
       },
       {
+        path: 'vehicles',
+        name: 'vehicles',
+        component: VehiclesView,
+        meta: { title: 'Vehicles', section: 'workshop' },
+      },
+      {
+        path: 'mechanics',
+        name: 'mechanics',
+        component: MechanicsView,
+        meta: { title: 'Mechanics', section: 'workshop' },
+      },
+      {
+        path: 'work-orders',
+        name: 'work-orders',
+        component: WorkOrdersView,
+        meta: { title: 'Work Orders', section: 'workshop' },
+      },
+      {
+        path: 'service-history',
+        name: 'service-history',
+        component: ServiceHistoryView,
+        meta: { title: 'Service History', section: 'workshop' },
+      },
+      {
+        path: 'service-packages',
+        name: 'service-packages',
+        component: ServicePackagesView,
+        meta: { title: 'Service Packages', section: 'workshop' },
+      },
+      {
+        path: 'bookings',
+        name: 'bookings',
+        component: BookingsView,
+        meta: { title: 'Bookings', section: 'workshop' },
+      },
+      {
+        path: 'reports',
+        name: 'reports',
+        component: ReportsView,
+        meta: { title: 'Reports', section: 'reports' },
+      },
+      {
+        path: 'reports/dashboard-summary',
+        name: 'reports-dashboard-summary',
+        component: ReportsView,
+        meta: { title: 'Dashboard Summary', section: 'reports' },
+      },
+      {
+        path: 'reports/sales',
+        name: 'reports-sales',
+        component: ReportsView,
+        meta: { title: 'Sales Report', section: 'reports' },
+      },
+      {
+        path: 'reports/sales-items',
+        name: 'reports-sales-items',
+        component: ReportsView,
+        meta: { title: 'Sales Items Report', section: 'reports' },
+      },
+      {
+        path: 'reports/payments',
+        name: 'reports-payments',
+        component: ReportsView,
+        meta: { title: 'Payment Report', section: 'reports' },
+      },
+      {
+        path: 'reports/expenses',
+        name: 'reports-expenses',
+        component: ReportsView,
+        meta: { title: 'Expense Report', section: 'reports' },
+      },
+      {
+        path: 'reports/stock',
+        name: 'reports-stock',
+        component: ReportsView,
+        meta: { title: 'Stock Report', section: 'reports' },
+      },
+      {
+        path: 'reports/low-stock',
+        name: 'reports-low-stock',
+        component: ReportsView,
+        meta: { title: 'Low Stock Report', section: 'reports' },
+      },
+      {
+        path: 'reports/shifts',
+        name: 'reports-shifts',
+        component: ReportsView,
+        meta: { title: 'Shift Report', section: 'reports' },
+      },
+      {
         path: 'sales-report',
         name: 'sales-report',
-        component: SalesReportView,
+        component: ReportsView,
         meta: { title: 'Sales Report', section: 'reports' },
       },
       {
         path: 'expense-report',
         name: 'expense-report',
-        component: ExpenseReportView,
+        component: ReportsView,
         meta: { title: 'Expense Report', section: 'reports' },
       },
       {
         path: 'sales-chart',
         name: 'sales-chart',
-        component: SalesChartView,
+        component: ReportsView,
         meta: { title: 'Sales Chart', section: 'reports' },
       },
       {
         path: 'expense-chart',
         name: 'expense-chart',
-        component: ExpenseChartView,
+        component: ReportsView,
         meta: { title: 'Expense Chart', section: 'reports' },
       },
       {
@@ -246,6 +340,30 @@ router.beforeEach((to) => {
 
   if (to.meta.guestOnly && token) {
     return '/dashboard'
+  }
+
+  if (to.meta.requiresAuth || to.matched.some((record) => record.meta.requiresAuth)) {
+    const routeName = String(to.name || '')
+    const menuKeys = routeMenuKeys[routeName]
+
+    if (menuKeys) {
+      const userRaw = localStorage.getItem('user')
+      let user = null
+
+      try {
+        user = userRaw ? JSON.parse(userRaw) : null
+      } catch {
+        user = null
+      }
+
+      if (!canAccessMenu(user, menuKeys)) {
+        sessionStorage.setItem(
+          'module_access_message',
+          'This module is not available for your business type, plan, or role.'
+        )
+        return '/dashboard'
+      }
+    }
   }
 
   const pageTitle = to.meta?.title
