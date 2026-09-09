@@ -163,8 +163,8 @@ const tet = {
     itemsJson: 'Items JSON',
     paymentsJson: 'Payments JSON',
     required: 'presiza',
-    itemsJsonPlaceholder: 'Ezemplu: [{"product":1,"quantity":"2","unit_price":"5.00"}]',
-    paymentsJsonPlaceholder: 'Ezemplu: [{"method":"CASH","amount":"10.00"}]',
+    itemsJsonPlaceholder: 'Ezemplu:',
+    paymentsJsonPlaceholder: 'Ezemplu:',
 
     saveOrder: 'Rai Pedidu',
     updateOrder: 'Atualiza Pedidu',
@@ -1097,7 +1097,7 @@ stockMovementsPage: {
     userDeleted: 'Utilizadór hapus ho susesu.',
   
     usernameRequired: 'Username tenki iha.',
-    usernameInvalid: 'Username bele uza deit letra, númeru, no karakter @/./+/-/_ .',
+    usernameInvalid: "Username bele uza deit letra, númeru, no karakter {'@'}/./+/-/_ .",
     roleRequired: 'Role tenki iha.',
     invalidEmail: 'Formatu enderesu email la loos.',
     passwordRequired: 'Password tenki iha.',

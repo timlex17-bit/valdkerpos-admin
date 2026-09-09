@@ -163,8 +163,8 @@ const id = {
     itemsJson: 'Items JSON',
     paymentsJson: 'Payments JSON',
     required: 'wajib',
-    itemsJsonPlaceholder: 'Contoh: [{"product":1,"quantity":"2","unit_price":"5.00"}]',
-    paymentsJsonPlaceholder: 'Contoh: [{"method":"CASH","amount":"10.00"}]',
+    itemsJsonPlaceholder: 'Contoh:',
+    paymentsJsonPlaceholder: 'Contoh:',
 
     saveOrder: 'Simpan Pesanan',
     updateOrder: 'Update Pesanan',
@@ -1097,7 +1097,7 @@ stockMovementsPage: {
     userDeleted: 'User berhasil dihapus.',
   
     usernameRequired: 'Username wajib diisi.',
-    usernameInvalid: 'Username hanya boleh berisi huruf, angka, dan karakter @/./+/-/_ .',
+    usernameInvalid: "Username hanya boleh berisi huruf, angka, dan karakter {'@'}/./+/-/_ .",
     roleRequired: 'Role wajib diisi.',
     invalidEmail: 'Format alamat email tidak valid.',
     passwordRequired: 'Password wajib diisi.',

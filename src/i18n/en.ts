@@ -163,8 +163,8 @@ const en = {
     itemsJson: 'Items JSON',
     paymentsJson: 'Payments JSON',
     required: 'required',
-    itemsJsonPlaceholder: 'Example: [{"product":1,"quantity":"2","unit_price":"5.00"}]',
-    paymentsJsonPlaceholder: 'Example: [{"method":"CASH","amount":"10.00"}]',
+    itemsJsonPlaceholder: 'Example:',
+    paymentsJsonPlaceholder: 'Example:',
 
     saveOrder: 'Save Order',
     updateOrder: 'Update Order',
@@ -1098,7 +1098,7 @@ stockMovementsPage: {
     userDeleted: 'User deleted successfully.',
   
     usernameRequired: 'Username is required.',
-    usernameInvalid: 'Username may contain only letters, numbers, and @/./+/-/_ characters.',
+    usernameInvalid: "Username may contain only letters, numbers, and {'@'}/./+/-/_ characters.",
     roleRequired: 'Role is required.',
     invalidEmail: 'Email address format is invalid.',
     passwordRequired: 'Password is required.',
