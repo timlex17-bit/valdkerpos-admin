@@ -41,6 +41,15 @@ const saving = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+const businessTypeLabel = computed(
+  () => businessTypeOptions.find((o) => o.value === form.businessType)?.label || form.businessType,
+)
+const planLabel = computed(
+  () => planOptions.find((o) => o.value === form.plan)?.label || form.plan,
+)
+
+// Neither field is editable here any more, so this never fires. Kept so the
+// banner still works if a future screen lets a platform admin change them.
 const showModuleWarning = computed(
   () => form.businessType !== original.businessType || form.plan !== original.plan,
 )
@@ -135,24 +144,26 @@ async function saveSettings() {
   errorMessage.value = ''
   successMessage.value = ''
 
+  // business_type and plan are managed by the platform administrator; the API
+  // rejects them with 403, so they are not part of what this page submits.
   const payload = {
     name: form.name.trim(),
-    business_type: form.businessType,
-    plan: form.plan,
   }
 
   try {
     await api.patch(ENDPOINTS.SHOP_ME, payload)
     persistProfile()
-    original.businessType = form.businessType
-    original.plan = form.plan
     successMessage.value = 'Shop settings updated.'
   } catch (error: any) {
-    persistProfile()
-    original.businessType = form.businessType
-    original.plan = form.plan
-    successMessage.value = 'Shop settings saved locally.'
-    errorMessage.value = error?.response?.data?.detail || ''
+    // A rejected save must not look like a successful one. The previous branch
+    // reported "saved locally", advanced `original`, and ran persistProfile(),
+    // which wrote the unsaved plan and its recomputed effective_modules into
+    // localStorage - so a refused upgrade still unlocked the menus client-side.
+    form.plan = original.plan
+    form.businessType = original.businessType
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Could not save shop settings. Please try again.'
   } finally {
     saving.value = false
   }
@@ -195,29 +206,39 @@ onMounted(() => {
           <input v-model="form.name" class="form-input" type="text" placeholder="Shop name" />
         </label>
 
-        <label class="form-group">
+        <div class="form-group">
           <span>Business Type</span>
-          <select v-model="form.businessType" class="form-input">
-            <option v-for="option in businessTypeOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+          <p class="form-readonly">{{ businessTypeLabel }}</p>
+        </div>
 
-        <label class="form-group">
+        <div class="form-group">
           <span>Plan</span>
-          <select v-model="form.plan" class="form-input">
-            <option v-for="option in planOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+          <p class="form-readonly">{{ planLabel }}</p>
+          <small class="form-hint">
+            Business type and plan are set by the platform administrator.
+            Contact support to change your subscription.
+          </small>
+        </div>
       </div>
     </section>
   </div>
 </template>
 
 <style scoped>
+.form-readonly {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.12);
+  font-weight: 600;
+}
+
+.form-hint {
+  margin-top: 6px;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
 .settings-page {
   display: flex;
   flex-direction: column;
