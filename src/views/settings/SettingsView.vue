@@ -108,6 +108,23 @@ const confirmBlocked = computed(
   () => enablingNegativeStock.value && !negativeStockAcknowledged.value,
 )
 
+/* ------------------------------------------------------------------ *
+ * Device sessions
+ * ------------------------------------------------------------------ */
+
+type DeviceSession = {
+  id: number
+  device_label: string
+  created_at: string
+  last_used_at: string
+  is_current: boolean
+}
+
+const sessions = ref<DeviceSession[]>([])
+const sessionsLoading = ref(false)
+const sessionsError = ref('')
+const revokingId = ref<number | null>(null)
+
 const businessTypeLabel = computed(
   () => businessTypeOptions.find((o) => o.value === form.businessType)?.label || form.businessType,
 )
@@ -363,9 +380,53 @@ function cancelPosConfirm() {
   negativeStockAcknowledged.value = false
 }
 
+function formatDateTime(value: string) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString()
+}
+
+async function fetchSessions() {
+  sessionsLoading.value = true
+  sessionsError.value = ''
+
+  try {
+    const { data } = await api.get<DeviceSession[]>(ENDPOINTS.AUTH_SESSIONS)
+    sessions.value = Array.isArray(data) ? data : []
+  } catch (error: any) {
+    sessions.value = []
+    sessionsError.value = extractApiError(error, 'Could not load your active sessions.')
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+async function revokeSession(session: DeviceSession) {
+  // Revoking your own session is just logging out, and the topbar already
+  // does that properly (it clears the cached contract too), so this never
+  // offers it.
+  if (session.is_current) return
+
+  revokingId.value = session.id
+  sessionsError.value = ''
+
+  try {
+    await api.post(ENDPOINTS.authSessionRevoke(session.id))
+    // Re-read rather than splicing the row out locally, so the list shown is
+    // the list the server actually has.
+    await fetchSessions()
+  } catch (error: any) {
+    sessionsError.value = extractApiError(error, 'Could not revoke that session.')
+  } finally {
+    revokingId.value = null
+  }
+}
+
 onMounted(() => {
   loadStoredShop()
   fetchShop()
+  fetchSessions()
 })
 </script>
 
@@ -505,6 +566,70 @@ onMounted(() => {
             negative. Turning this on asks for a separate confirmation.
           </small>
         </label>
+      </div>
+    </section>
+
+    <!-- Active device sessions -->
+    <section class="settings-card">
+      <div class="card-head">
+        <div>
+          <h2>Active Sessions</h2>
+          <p>Devices currently signed in as you. Revoke any you do not recognise.</p>
+        </div>
+        <button
+          class="btn btn-ghost"
+          type="button"
+          :disabled="sessionsLoading"
+          @click="fetchSessions"
+        >
+          {{ sessionsLoading ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
+
+      <p v-if="sessionsError" class="alert-card error inline-alert">{{ sessionsError }}</p>
+
+      <div v-if="sessionsLoading && !sessions.length" class="alert-card muted inline-alert">
+        Loading sessions...
+      </div>
+
+      <div v-else-if="!sessions.length" class="alert-card muted inline-alert">
+        No active sessions returned.
+      </div>
+
+      <div v-else class="session-list">
+        <div
+          v-for="session in sessions"
+          :key="session.id"
+          class="session-row"
+          :class="{ current: session.is_current }"
+        >
+          <div class="session-copy">
+            <div class="session-title">
+              <span v-if="session.device_label">{{ session.device_label }}</span>
+              <span v-else class="unlabelled">Unlabelled device</span>
+              <span v-if="session.is_current" class="session-badge">This device</span>
+            </div>
+            <div class="session-meta">
+              Last used {{ formatDateTime(session.last_used_at) }}
+              &middot; Signed in {{ formatDateTime(session.created_at) }}
+            </div>
+          </div>
+
+          <!--
+            No revoke button for the current session: revoking it is a logout,
+            and Logout in the topbar already does that properly.
+          -->
+          <span v-if="session.is_current" class="session-note">Use Logout to end this one</span>
+          <button
+            v-else
+            class="btn btn-danger"
+            type="button"
+            :disabled="revokingId === session.id"
+            @click="revokeSession(session)"
+          >
+            {{ revokingId === session.id ? 'Revoking...' : 'Revoke' }}
+          </button>
+        </div>
       </div>
     </section>
 
@@ -709,10 +834,72 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.session-row.current {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.session-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.session-title .unlabelled {
+  color: #94a3b8;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.session-badge {
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  padding: 2px 9px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.session-meta {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.session-note {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .btn-ghost {
   background: #fff;
   border: 1px solid #dbe3ef;
   color: #334155;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
 }
 
 .modal-overlay {

@@ -30,6 +30,8 @@ export const ENDPOINTS = {
 
   // AUTH & STAFF
   AUTH_LOGIN: '/api/auth/login/',
+  AUTH_SESSIONS: '/api/auth/sessions/',
+  authSessionRevoke: (id: number | string) => `/api/auth/sessions/${id}/revoke/`,
   STAFF: '/api/staff/',
 
   // WAREHOUSING
