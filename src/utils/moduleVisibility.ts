@@ -1,63 +1,22 @@
+import { getModuleEntry, isModuleGranted, moduleContract } from '@/services/moduleContract'
+
 export type Plan = 'BASIC' | 'PRO' | 'ENTERPRISE' | string
 export type BusinessType = 'RETAIL' | 'WORKSHOP' | 'RESTAURANT' | string
 export type MenuPlan = 'BASIC' | 'PRO' | 'ENTERPRISE'
 export type MenuBusinessType = 'RETAIL' | 'WORKSHOP' | 'RESTAURANT'
 
+/**
+ * A menu entry is now nothing but a key, a label fallback and where to
+ * navigate. Which plan a module needs and which business types may use it are
+ * the backend's to decide (`GET /api/modules/`); restating them here is what
+ * made ten menus disappear for owners when the backend moved a module.
+ */
 export type MenuItemConfig = {
   key: string
   label: string
   route?: string
-  plan?: MenuPlan
-  businessTypes?: MenuBusinessType[]
-  implemented?: boolean
   children?: MenuItemConfig[]
 }
-
-const PLAN_LEVELS: Record<string, number> = {
-  BASIC: 1,
-  PRO: 2,
-  ENTERPRISE: 3,
-}
-
-const MODULE_PLAN: Record<string, string> = {
-  inventory_counts: 'PRO',
-  stock_adjustments: 'PRO',
-  product_returns: 'PRO',
-  purchase_returns: 'PRO',
-  bank_accounts: 'PRO',
-  bank_ledgers: 'PRO',
-  vehicles: 'PRO',
-  mechanics: 'PRO',
-  work_orders: 'PRO',
-  service_history: 'PRO',
-  service_packages: 'PRO',
-  bookings: 'PRO',
-  warehouses: 'ENTERPRISE',
-  warehouse_stocks: 'ENTERPRISE',
-  stock_transfers: 'ENTERPRISE',
-  stock_movements: 'ENTERPRISE',
-}
-
-const WORKSHOP_ONLY = new Set([
-  'vehicles',
-  'mechanics',
-  'work_orders',
-  'service_history',
-  'service_packages',
-  'bookings',
-])
-
-const RESTAURANT_ONLY = new Set([
-  'tables',
-  'kitchen_display',
-  'waiters',
-  'shifts',
-  'recipe_bom',
-  'delivery_orders',
-  'reservations',
-])
-
-const RESTAURANT_BLOCKED = new Set(['product_returns'])
 
 export type ModuleUser = {
   role?: string
@@ -75,31 +34,6 @@ export type ModuleUser = {
   shop_plan?: string
 }
 
-export function normalizePlan(plan?: Plan | null) {
-  const value = String(plan || 'BASIC').trim().toUpperCase()
-  return PLAN_LEVELS[value] ? value : 'BASIC'
-}
-
-export function normalizeBusinessType(businessType?: BusinessType | null) {
-  const value = String(businessType || 'RETAIL').trim().toUpperCase()
-  return ['RETAIL', 'WORKSHOP', 'RESTAURANT'].includes(value) ? value : 'RETAIL'
-}
-
-export function isModuleInPlan(moduleKey: string, plan?: Plan | null) {
-  const requiredPlan = MODULE_PLAN[moduleKey] || 'BASIC'
-  return PLAN_LEVELS[normalizePlan(plan)] >= PLAN_LEVELS[requiredPlan]
-}
-
-export function isModuleAllowedForBusinessType(moduleKey: string, businessType?: BusinessType | null) {
-  const normalized = normalizeBusinessType(businessType)
-  if (WORKSHOP_ONLY.has(moduleKey)) return normalized === 'WORKSHOP'
-  if (RESTAURANT_ONLY.has(moduleKey)) return normalized === 'RESTAURANT'
-  if (normalized === 'RESTAURANT' && RESTAURANT_BLOCKED.has(moduleKey)) return false
-  if (normalized !== 'WORKSHOP' && WORKSHOP_ONLY.has(moduleKey)) return false
-  if (normalized !== 'RESTAURANT' && RESTAURANT_ONLY.has(moduleKey)) return false
-  return true
-}
-
 export function parseStoredJson<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -109,15 +43,34 @@ export function parseStoredJson<T>(key: string, fallback: T): T {
   }
 }
 
+export function normalizePlan(plan?: Plan | null) {
+  const value = String(plan || '').trim().toUpperCase()
+  return ['BASIC', 'PRO', 'ENTERPRISE'].includes(value) ? value : 'BASIC'
+}
+
+export function normalizeBusinessType(businessType?: BusinessType | null) {
+  const value = String(businessType || '').trim().toUpperCase()
+  return ['RETAIL', 'WORKSHOP', 'RESTAURANT'].includes(value) ? value : 'RETAIL'
+}
+
 export function getStoredEffectiveModules() {
   const direct = parseStoredJson<unknown[]>('effective_modules', [])
-  if (direct.length) return direct
+  if (direct.length) return direct.map(String)
   const user = parseStoredJson<ModuleUser | null>('user', null)
   const modules = user?.effective_modules || user?.effectiveModules
   return Array.isArray(modules) ? modules.map(String) : []
 }
 
+/**
+ * Shop profile, for display only. Nothing gates on these any more - the
+ * backend has already applied plan and business type when it built the
+ * contract. They are read from the contract first so a plan change shows up
+ * without a re-login.
+ */
 export function getStoredBusinessType() {
+  const fromContract = moduleContract.value?.shop?.business_type
+  if (fromContract) return normalizeBusinessType(fromContract)
+
   const user = parseStoredJson<ModuleUser | null>('user', null)
   const shop = parseStoredJson<Record<string, unknown> | null>('shop', null)
   return normalizeBusinessType(
@@ -128,21 +81,12 @@ export function getStoredBusinessType() {
 }
 
 export function getStoredPlan() {
+  const fromContract = moduleContract.value?.shop?.plan
+  if (fromContract) return normalizePlan(fromContract)
+
   const user = parseStoredJson<ModuleUser | null>('user', null)
   const shop = parseStoredJson<Record<string, unknown> | null>('shop', null)
   return normalizePlan(user?.plan || user?.shop_plan || String(shop?.plan || ''))
-}
-
-export function hasPermission(moduleKey: string, user?: ModuleUser | null) {
-  const permissions = user?.menu_permissions || user?.menuPermissions
-  if (!permissions || typeof permissions !== 'object') return true
-  if (Array.isArray(permissions)) {
-    return permissions.some((item: any) => {
-      const key = String(item?.menu_key || item?.key || '')
-      return key === moduleKey && Boolean(item?.can_access ?? item?.canAccess)
-    })
-  }
-  return Boolean((permissions as Record<string, unknown>)[moduleKey])
 }
 
 export function isPrivilegedRole(user?: ModuleUser | null) {
@@ -158,42 +102,33 @@ export function isPrivilegedRole(user?: ModuleUser | null) {
   )
 }
 
-export function canShowModule(moduleKey: string, user?: ModuleUser | null, routeExists = true) {
-  if (!routeExists) return false
+/**
+ * The one gate. Order matters: ask the backend contract first, fall back to
+ * the `effective_modules` the login response already provided, and only if we
+ * have neither (a session that predates the contract, or a first paint before
+ * the fetch lands) stay out of the way and let the API be the authority.
+ *
+ * Note it no longer rejects a key for being absent from a list before it has
+ * checked anything else - that ordering is exactly what hid Users, Backup
+ * Center, Import Master Data and the report pages from owners.
+ */
+export function canShowModule(moduleKey: string, user?: ModuleUser | null) {
+  const granted = isModuleGranted(moduleKey)
+  if (granted !== null) return granted
 
   const userEffectiveModules = user?.effective_modules || user?.effectiveModules
   const effectiveModules = Array.isArray(userEffectiveModules)
     ? userEffectiveModules.map(String)
     : getStoredEffectiveModules()
 
-  const plan = normalizePlan(user?.plan || user?.shop_plan || getStoredPlan())
-  const businessType = normalizeBusinessType(user?.businessType || user?.shop_business_type || getStoredBusinessType())
-  const moduleEnabled = effectiveModules.length
-    ? effectiveModules.includes(moduleKey)
-    : isModuleInPlan(moduleKey, plan) && isModuleAllowedForBusinessType(moduleKey, businessType)
+  if (effectiveModules.length) return effectiveModules.includes(moduleKey)
 
-  return (
-    moduleEnabled &&
-    isModuleInPlan(moduleKey, plan) &&
-    isModuleAllowedForBusinessType(moduleKey, businessType) &&
-    (isPrivilegedRole(user) || hasPermission(moduleKey, user))
-  )
+  return true
 }
 
 export function isMenuItemAvailable(item: MenuItemConfig, user?: ModuleUser | null) {
-  const plan = normalizePlan(user?.plan || user?.shop_plan || getStoredPlan())
-  const businessType = normalizeBusinessType(user?.businessType || user?.shop_business_type || getStoredBusinessType())
-  const routeExists = Boolean(item.route)
-
-  return (
-    item.implemented !== false &&
-    routeExists &&
-    isModuleInPlan(item.key, item.plan || plan) &&
-    (!item.plan || PLAN_LEVELS[plan] >= PLAN_LEVELS[item.plan]) &&
-    isModuleAllowedForBusinessType(item.key, businessType) &&
-    (!item.businessTypes || item.businessTypes.includes(businessType as MenuBusinessType)) &&
-    canShowModule(item.key, user, routeExists)
-  )
+  if (!item.route) return false
+  return canShowModule(item.key, user)
 }
 
 export function getVisibleMenuItems<T extends MenuItemConfig>(menuItems: T[], user?: ModuleUser | null): T[] {
@@ -209,4 +144,9 @@ export function getVisibleMenuItems<T extends MenuItemConfig>(menuItems: T[], us
       if (item.children?.length) return true
       return isMenuItemAvailable(item, user)
     }) as T[]
+}
+
+/** Label the backend gave this module, when we have the contract. */
+export function getModuleLabel(moduleKey: string, fallback: string) {
+  return getModuleEntry(moduleKey)?.label || fallback
 }

@@ -7,6 +7,8 @@ const clearAuthStorage = () => {
   localStorage.removeItem('user')
   localStorage.removeItem('shop')
   localStorage.removeItem('shop_code')
+  localStorage.removeItem('effective_modules')
+  localStorage.removeItem('module_contract')
 }
 
 const api = axios.create({
@@ -43,6 +45,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only 401 (no/expired credentials) ends the session. A 403 means the
+    // session is fine and this particular action is not allowed - logging the
+    // user out on that would throw them to /login for merely opening a module
+    // their role does not cover. It is left for the calling view to report.
     if (error?.response?.status === 401) {
       clearAuthStorage()
 

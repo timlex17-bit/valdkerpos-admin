@@ -19,6 +19,13 @@ type PermissionItem = {
   canAccess?: unknown
 }
 
+/**
+ * Route name -> backend module key. This mapping is genuinely the dashboard's
+ * own business (the backend has no idea what a Vue route is named), but every
+ * value here must be a key the backend actually defines in
+ * `pos/module_registry.py`. `src/utils/__tests__/moduleContract.spec.ts`
+ * fails the build if one is not.
+ */
 export const routeMenuKeys: Record<string, string[]> = {
   customers: ['customers'],
   suppliers: ['suppliers'],
@@ -45,17 +52,21 @@ export const routeMenuKeys: Record<string, string[]> = {
   bookings: ['bookings'],
   reports: ['reports'],
   'reports-dashboard-summary': ['reports'],
-  'reports-sales': ['reports', 'sales_report'],
-  'reports-sales-items': ['reports', 'sales_items_report'],
-  'reports-payments': ['reports', 'payment_report'],
-  'reports-expenses': ['reports', 'expense_report'],
-  'reports-stock': ['reports', 'stock_report'],
-  'reports-low-stock': ['reports', 'low_stock_report'],
-  'reports-shifts': ['reports', 'shift_report'],
-  'sales-report': ['reports', 'sales_report'],
-  'expense-report': ['reports', 'expense_report'],
-  'sales-chart': ['reports', 'sales_chart'],
-  'expense-chart': ['reports', 'expense_chart'],
+  'reports-sales': ['sales_report'],
+  'reports-sales-items': ['sales_items_report'],
+  'reports-payments': ['payment_report'],
+  'reports-expenses': ['expense_report'],
+  'reports-stock': ['stock_report'],
+  'reports-low-stock': ['low_stock_report'],
+  'reports-shifts': ['shift_report'],
+  // Legacy flat aliases for the /reports/* routes above. They render the same
+  // component, so they gate on the same backend key. `sales_chart` and
+  // `expense_chart` used to be listed here as module keys of their own; the
+  // backend has never defined either.
+  'sales-report': ['sales_report'],
+  'expense-report': ['expense_report'],
+  'sales-chart': ['sales_report'],
+  'expense-chart': ['expense_report'],
   'bank-accounts': ['bank_accounts'],
   'bank-ledgers': ['bank_ledgers'],
   settings: ['settings'],
@@ -77,6 +88,11 @@ export function hasFullMenuAccess(user?: PermissionUser | null) {
   )
 }
 
+/**
+ * Turns whatever shape the API used for menu permissions into `{key: boolean}`.
+ * It maps only what it is given - it must never add keys of its own, or the
+ * permission matrix starts offering modules the shop does not have.
+ */
 export function normalizeMenuPermissions(input: unknown) {
   const permissions: Record<string, boolean> = {}
 
@@ -103,17 +119,13 @@ export function normalizeMenuPermissions(input: unknown) {
   return permissions
 }
 
+/**
+ * `canShowModule` already reflects role defaults and per-user overrides,
+ * because the backend applied both before it answered. The local
+ * `menu_permissions` blob is only consulted as a fallback for a session that
+ * has no contract yet.
+ */
 export function canAccessMenu(user: PermissionUser | null | undefined, keys: string | string[]) {
   const menuKeys = Array.isArray(keys) ? keys : [keys]
-  const moduleAllowed = menuKeys.some((key) => canShowModule(key, user))
-  if (!moduleAllowed) return false
-
-  if (hasFullMenuAccess(user)) return true
-
-  const permissions = normalizeMenuPermissions(user?.menu_permissions)
-  const hasPermissionData = Object.keys(permissions).length > 0
-
-  if (!hasPermissionData) return true
-
-  return menuKeys.some((key) => permissions[key] === true)
+  return menuKeys.some((key) => canShowModule(key, user))
 }

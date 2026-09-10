@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoginView from '@/views/LoginView.vue'
 import { canAccessMenu, routeMenuKeys } from '@/utils/menuPermissions'
+import { loadModuleContract, moduleContract } from '@/services/moduleContract'
 
 const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
 const ProductsView = () => import('@/views/products/ProductsView.vue')
@@ -328,7 +329,7 @@ const router = createRouter({
   },
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const token = localStorage.getItem('token')
 
   if (to.meta.requiresAuth && !token) {
@@ -347,6 +348,14 @@ router.beforeEach((to) => {
     const menuKeys = routeMenuKeys[routeName]
 
     if (menuKeys) {
+      // Never decide access from a stale or absent contract: if this session
+      // has not fetched one yet, wait for it. Afterwards the cached contract
+      // answers instantly and the fetch only refreshes in the background.
+      if (!moduleContract.value) {
+        await loadModuleContract()
+      }
+
+
       const userRaw = localStorage.getItem('user')
       let user = null
 
@@ -366,9 +375,7 @@ router.beforeEach((to) => {
     }
   }
 
-  const pageTitle = to.meta?.title
-    ? `${to.meta.title} | ValdKerPOS Admin`
-    : 'ValdKerPOS Admin'
+  const pageTitle = to.meta?.title ? `${to.meta.title} | Valora Admin` : 'Valora Admin'
 
   document.title = pageTitle
 

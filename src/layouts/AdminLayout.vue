@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
+import { loadModuleContract } from '@/services/moduleContract'
 
 type Shop = {
   id: string | number
@@ -177,6 +178,10 @@ const changeShop = (shopId: string | number) => {
 onMounted(() => {
   loadTheme()
   loadAuthUser()
+  // Refresh the module contract on every boot so a plan or permission change
+  // made by the platform admin takes effect without asking the user to log
+  // out and back in.
+  void loadModuleContract()
 })
 </script>
 
