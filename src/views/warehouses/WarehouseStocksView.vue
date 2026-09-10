@@ -240,6 +240,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
 type Warehouse = {
@@ -391,17 +392,17 @@ const resetForm = () => {
 }
 
 const fetchWarehouses = async () => {
-  const { data } = await api.get('/api/warehouses/')
+  const { data } = await api.get(ENDPOINTS.WAREHOUSES)
   warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
 }
 
 const fetchProducts = async () => {
-  const { data } = await api.get('/api/products/')
+  const { data } = await api.get(ENDPOINTS.PRODUCTS)
   products.value = normalizeApiList(data).map(normalizeProduct)
 }
 
 const fetchStocks = async () => {
-  const { data } = await api.get('/api/warehouse-stocks/')
+  const { data } = await api.get(ENDPOINTS.WAREHOUSE_STOCKS)
   stocks.value = normalizeApiList(data).map(normalizeStock)
 }
 
@@ -473,9 +474,9 @@ const saveStock = async () => {
     }
 
     if (isEditing.value && editingId.value !== null) {
-      await api.put(`/api/warehouse-stocks/${editingId.value}/`, payload)
+      await api.put(`${ENDPOINTS.WAREHOUSE_STOCKS}${editingId.value}/`, payload)
     } else {
-      await api.post('/api/warehouse-stocks/', payload)
+      await api.post(ENDPOINTS.WAREHOUSE_STOCKS, payload)
     }
 
     closeModal()
@@ -507,7 +508,7 @@ const removeStock = async (item: WarehouseStock) => {
   errorMessage.value = ''
 
   try {
-    await api.delete(`/api/warehouse-stocks/${item.id}/`)
+    await api.delete(`${ENDPOINTS.WAREHOUSE_STOCKS}${item.id}/`)
     await loadData()
   } catch (error: any) {
     window.alert(getErrorMessage(error, t('warehouseStocksPage.deleteError')))

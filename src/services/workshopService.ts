@@ -1,5 +1,6 @@
 import api from './api'
 import { normalizeApiList } from '@/utils/apiData'
+import { ENDPOINTS } from './endpoints'
 
 export type WorkshopModuleKey =
   | 'vehicles'
@@ -28,12 +29,12 @@ export type WorkshopPayload = {
 }
 
 const endpoints: Record<WorkshopModuleKey, string> = {
-  vehicles: '/api/vehicles/',
-  mechanics: '/api/mechanics/',
-  work_orders: '/api/work-orders/',
-  service_history: '/api/service-history/',
-  service_packages: '/api/service-packages/',
-  bookings: '/api/bookings/',
+  vehicles: ENDPOINTS.VEHICLES,
+  mechanics: ENDPOINTS.MECHANICS,
+  work_orders: ENDPOINTS.WORK_ORDERS,
+  service_history: ENDPOINTS.SERVICE_HISTORY,
+  service_packages: ENDPOINTS.SERVICE_PACKAGES,
+  bookings: ENDPOINTS.BOOKINGS,
 }
 
 export function getWorkshopEndpoint(moduleKey: WorkshopModuleKey) {

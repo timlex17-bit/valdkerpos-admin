@@ -251,6 +251,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
 type Warehouse = {
@@ -373,7 +374,7 @@ const fetchWarehouses = async () => {
   errorMessage.value = ''
 
   try {
-    const { data } = await api.get('/api/warehouses/')
+    const { data } = await api.get(ENDPOINTS.WAREHOUSES)
     warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
   } catch (error: any) {
     errorMessage.value = getErrorMessage(error, t('warehousesPage.fetchError'))
@@ -429,9 +430,9 @@ const saveWarehouse = async () => {
 
   try {
     if (isEditing.value && editingId.value !== null) {
-      await api.put(`/api/warehouses/${editingId.value}/`, payload)
+      await api.put(`${ENDPOINTS.WAREHOUSES}${editingId.value}/`, payload)
     } else {
-      await api.post('/api/warehouses/', payload)
+      await api.post(ENDPOINTS.WAREHOUSES, payload)
     }
 
     closeModal()
@@ -461,7 +462,7 @@ const removeWarehouse = async (warehouse: Warehouse) => {
   errorMessage.value = ''
 
   try {
-    await api.delete(`/api/warehouses/${warehouse.id}/`)
+    await api.delete(`${ENDPOINTS.WAREHOUSES}${warehouse.id}/`)
     await fetchWarehouses()
   } catch (error: any) {
     window.alert(getErrorMessage(error, t('warehousesPage.deleteError')))

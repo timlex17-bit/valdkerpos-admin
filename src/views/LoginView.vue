@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type LoginUser = {
   id: number | string
@@ -68,7 +69,7 @@ const isDark = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const API_LOGIN_URL = '/api/auth/login/'
+const API_LOGIN_URL = ENDPOINTS.AUTH_LOGIN
 
 const canSubmit = computed(() => {
   return (
