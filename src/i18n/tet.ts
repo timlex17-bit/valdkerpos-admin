@@ -1045,6 +1045,7 @@ stockMovementsPage: {
     manager: 'Manager',
     cashier: 'Kasiér',
     inventoryStaff: 'Inventory Staff',
+    followingRoleDefault: 'Tuir role nia default',
     finance: 'Finance',
     allStatus: 'Estadu hotu',
     active: 'Ativu',

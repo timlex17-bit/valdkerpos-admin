@@ -1046,6 +1046,7 @@ stockMovementsPage: {
     manager: 'Manager',
     cashier: 'Cashier',
     inventoryStaff: 'Inventory Staff',
+    followingRoleDefault: 'Following role default',
     finance: 'Finance',
     allStatus: 'All status',
     active: 'Active',

@@ -1045,6 +1045,7 @@ stockMovementsPage: {
     manager: 'Manager',
     cashier: 'Kasir',
     inventoryStaff: 'Inventory Staff',
+    followingRoleDefault: 'Mengikuti default role',
     finance: 'Finance',
     allStatus: 'Semua status',
     active: 'Aktif',

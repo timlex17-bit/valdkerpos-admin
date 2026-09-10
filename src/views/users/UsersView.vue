@@ -403,12 +403,19 @@
                   >
                     <span class="permission-copy">
                       <span>{{ permission.label }}</span>
+                      <small
+                        v-if="permission.permissionSource === 'role_default'"
+                        class="permission-source"
+                      >
+                        {{ t('usersPage.followingRoleDefault') }}
+                      </small>
                     </span>
                     <span class="switch-control">
                       <input
                         v-model="permission.canAccess"
                         type="checkbox"
                         :disabled="saving || permission.disabled"
+                        @change="markPermissionExplicit(permission)"
                       />
                       <span class="switch-track"></span>
                     </span>
@@ -448,6 +455,9 @@ import { ENDPOINTS } from '@/services/endpoints'
 
 type UserRoleApi = 'owner' | 'admin' | 'manager' | 'cashier' | 'inventory_staff' | 'finance'
 
+/** Where a permission value came from, as reported by the API. */
+type PermissionSource = 'explicit' | 'role_default' | 'unknown'
+
 type MenuPermissionApiItem = {
   key?: string
   menu_key?: string
@@ -457,6 +467,8 @@ type MenuPermissionApiItem = {
   business_types?: string[]
   implemented?: boolean
   can_access?: boolean
+  /** "explicit" = set for this user; "role_default" = inherited from the role. */
+  source?: string
 }
 
 type MenuPermissionOption = {
@@ -473,6 +485,7 @@ type MenuPermissionState = {
   group: string
   implemented: boolean
   disabled: boolean
+  permissionSource: PermissionSource
 }
 
 /**
@@ -768,9 +781,29 @@ function normalizeMenuPermissions(
       group: option.group,
       implemented: option.implemented,
       disabled,
+      // `can_access` from the API is the *effective* value: the role's default
+      // unless a UserMenuPermission row overrides it. It is shown as-is. The
+      // `false` at the end is only for a key the API sent no row for at all,
+      // which should not happen.
       canAccess: disabled ? false : existing ? getPermissionAccess(existing) : false,
+      permissionSource: disabled ? 'unknown' : getPermissionSource(existing),
     }
   })
+}
+
+/**
+ * Whether this value was set deliberately for this user or is just the role's
+ * default. Without it, "off" is ambiguous - the owner cannot tell "I turned
+ * this off" apart from "nobody has ever touched this".
+ */
+function getPermissionSource(
+  item: MenuPermissionApiItem | MenuPermissionState | undefined
+): PermissionSource {
+  if (!item) return 'unknown'
+  if ('permissionSource' in item && item.permissionSource) return item.permissionSource
+  const raw = String((item as MenuPermissionApiItem).source || '').trim()
+  if (raw === 'explicit' || raw === 'role_default') return raw
+  return 'unknown'
 }
 
 function canAccessByDefault(role: string, menuKey: string) {
@@ -802,6 +835,8 @@ function applyDefaultRolePermissions(role = form.role) {
       implemented: option.implemented,
       disabled,
       canAccess: disabled ? false : canAccessByDefault(role, option.key),
+      // These values are the role's defaults by definition.
+      permissionSource: (disabled ? 'unknown' : 'role_default') as PermissionSource,
     }
   })
 }
@@ -810,7 +845,18 @@ function setAllMenuPermissions(canAccess: boolean) {
   menuPermissions.value = menuPermissions.value.map((permission) => ({
     ...permission,
     canAccess: permission.disabled ? false : canAccess,
+    permissionSource: (permission.disabled ? 'unknown' : 'explicit') as PermissionSource,
   }))
+}
+
+/**
+ * The moment an owner flips a switch, the value is theirs, not the role's, so
+ * the "following role default" note has to stop claiming otherwise - even
+ * before the form is saved.
+ */
+function markPermissionExplicit(permission: MenuPermissionState) {
+  if (permission.disabled) return
+  permission.permissionSource = 'explicit'
 }
 
 async function fetchMenuOptions() {
@@ -1771,7 +1817,14 @@ onMounted(() => {
 .permission-copy {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
+}
+
+.permission-source {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .switch-control {
