@@ -36,6 +36,78 @@ const saving = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+/* ------------------------------------------------------------------ *
+ * POS settings (backend model POSSettings, nested under /api/shop/me/)
+ * ------------------------------------------------------------------ */
+
+type PosSettingsApi = {
+  tax_percent?: string | number
+  invoice_prefix?: string
+  low_stock_threshold?: number
+  allow_negative_stock?: boolean
+}
+
+const posForm = reactive({
+  taxPercent: '0.00',
+  invoicePrefix: '',
+  lowStockThreshold: 5,
+  allowNegativeStock: false,
+})
+
+const posOriginal = reactive({
+  taxPercent: '0.00',
+  invoicePrefix: '',
+  lowStockThreshold: 5,
+  allowNegativeStock: false,
+})
+
+const posLoaded = ref(false)
+const posSaving = ref(false)
+const posError = ref('')
+const posSuccess = ref('')
+
+const confirmOpen = ref(false)
+const negativeStockAcknowledged = ref(false)
+
+/**
+ * The backend refuses this PATCH for anyone but owner/admin
+ * (MyShopAPIView.patch), so the form is read-only for everyone else rather
+ * than offering a save that is guaranteed to 403.
+ */
+const canEditSettings = computed(() => {
+  const user = parseStorage<Record<string, any> | null>('user', null)
+  const role = String(user?.role || '').toLowerCase().trim()
+  return role === 'owner' || role === 'admin' || Boolean(user?.is_shop_owner || user?.is_shop_admin)
+})
+
+const invoicePrefixChanged = computed(
+  () => posForm.invoicePrefix.trim() !== posOriginal.invoicePrefix.trim(),
+)
+
+const enablingNegativeStock = computed(
+  () => posForm.allowNegativeStock && !posOriginal.allowNegativeStock,
+)
+
+const posDirty = computed(
+  () =>
+    invoicePrefixChanged.value ||
+    posForm.allowNegativeStock !== posOriginal.allowNegativeStock ||
+    String(posForm.taxPercent).trim() !== String(posOriginal.taxPercent).trim() ||
+    Number(posForm.lowStockThreshold) !== Number(posOriginal.lowStockThreshold),
+)
+
+/** Changes serious enough to stop and confirm before sending. */
+const riskyChanges = computed(() => {
+  const items: string[] = []
+  if (invoicePrefixChanged.value) items.push('invoice_prefix')
+  if (enablingNegativeStock.value) items.push('allow_negative_stock')
+  return items
+})
+
+const confirmBlocked = computed(
+  () => enablingNegativeStock.value && !negativeStockAcknowledged.value,
+)
+
 const businessTypeLabel = computed(
   () => businessTypeOptions.find((o) => o.value === form.businessType)?.label || form.businessType,
 )
@@ -122,6 +194,7 @@ async function fetchShop() {
     form.plan = normalizePlan(data?.plan || form.plan)
     original.businessType = form.businessType
     original.plan = form.plan
+    applyPosSettings(data?.pos_settings)
     persistProfile()
     // The plan shown here and the modules the menu shows must agree, so pull
     // a fresh contract whenever the profile is (re)read.
@@ -166,6 +239,128 @@ async function saveSettings() {
   } finally {
     saving.value = false
   }
+}
+
+function applyPosSettings(data?: PosSettingsApi | null) {
+  if (!data) {
+    posLoaded.value = false
+    return
+  }
+
+  posForm.taxPercent = String(data.tax_percent ?? '0.00')
+  posForm.invoicePrefix = String(data.invoice_prefix ?? '')
+  posForm.lowStockThreshold = Number(data.low_stock_threshold ?? 5)
+  posForm.allowNegativeStock = Boolean(data.allow_negative_stock)
+
+  Object.assign(posOriginal, posForm)
+  posLoaded.value = true
+}
+
+/**
+ * Renders whatever the server said, verbatim. The uniqueness check on
+ * invoice_prefix runs server-side and its message is the only accurate
+ * explanation available, so it must reach the user unaltered rather than
+ * being swallowed and replaced with a generic "could not save".
+ */
+function extractApiError(error: any, fallback: string): string {
+  const data = error?.response?.data
+  const status = error?.response?.status
+
+  if (typeof data === 'string') {
+    const text = data.trim()
+    // An unhandled 500 hands back Django's debug page - HTML normally, or a
+    // plain-text traceback when the request asked for JSON, as ours does.
+    // Either way it is pages of stack trace: useless in an alert box, and it
+    // leaks server paths. Report the status and leave the detail in the
+    // network log. A short string is a real message and is shown as sent.
+    const looksLikeDebugPage =
+      !text ||
+      text.startsWith('<') ||
+      text.includes('Traceback (most recent call last)') ||
+      text.includes('Request Method:') ||
+      text.length > 300
+
+    if (looksLikeDebugPage) {
+      return status ? `${fallback} (server error ${status})` : fallback
+    }
+    return text
+  }
+
+  if (!data || typeof data !== 'object') {
+    return status ? `${fallback} (server error ${status})` : fallback
+  }
+
+  const parts: string[] = []
+
+  const walk = (value: unknown, path: string) => {
+    if (value === null || value === undefined) return
+    if (Array.isArray(value)) {
+      value.forEach((entry) => walk(entry, path))
+      return
+    }
+    if (typeof value === 'object') {
+      Object.entries(value as Record<string, unknown>).forEach(([key, entry]) =>
+        walk(entry, path ? `${path}.${key}` : key),
+      )
+      return
+    }
+    const text = String(value).trim()
+    if (!text) return
+    parts.push(path && path !== 'detail' ? `${path}: ${text}` : text)
+  }
+
+  walk(data, '')
+
+  return parts.length ? parts.join(' | ') : fallback
+}
+
+/** Save button: stop for a confirmation when a change carries consequences. */
+function requestPosSave() {
+  posError.value = ''
+  posSuccess.value = ''
+
+  if (riskyChanges.value.length) {
+    negativeStockAcknowledged.value = false
+    confirmOpen.value = true
+    return
+  }
+
+  void savePosSettings()
+}
+
+async function savePosSettings() {
+  confirmOpen.value = false
+  posSaving.value = true
+  posError.value = ''
+  posSuccess.value = ''
+
+  const payload = {
+    pos_settings: {
+      tax_percent: String(posForm.taxPercent).trim() || '0',
+      invoice_prefix: posForm.invoicePrefix.trim(),
+      low_stock_threshold: Number(posForm.lowStockThreshold) || 0,
+      allow_negative_stock: posForm.allowNegativeStock,
+    },
+  }
+
+  try {
+    const { data } = await api.patch(ENDPOINTS.SHOP_ME, payload)
+    // Re-read from the response rather than assuming the payload was accepted
+    // as sent - the server normalises the prefix and may clamp values.
+    applyPosSettings(data?.pos_settings ?? payload.pos_settings)
+    posSuccess.value = 'POS settings updated.'
+  } catch (error: any) {
+    // Nothing local advances on failure: posForm keeps the rejected input so
+    // the user can correct it, and posOriginal still holds what the server has.
+    posError.value = extractApiError(error, 'Could not save POS settings. Please try again.')
+  } finally {
+    posSaving.value = false
+  }
+}
+
+function cancelPosConfirm() {
+  confirmOpen.value = false
+  negativeStockAcknowledged.value = false
 }
 
 onMounted(() => {
@@ -220,6 +415,144 @@ onMounted(() => {
         </div>
       </div>
     </section>
+
+    <!-- POS settings -->
+    <section class="settings-card">
+      <div class="card-head">
+        <div>
+          <h2>POS Settings</h2>
+          <p>Tax, invoice numbering, and stock rules for this shop.</p>
+        </div>
+        <button
+          v-if="canEditSettings"
+          class="btn btn-primary"
+          type="button"
+          :disabled="posSaving || loading || !posLoaded || !posDirty"
+          @click="requestPosSave"
+        >
+          {{ posSaving ? 'Saving...' : 'Save POS Settings' }}
+        </button>
+      </div>
+
+      <p v-if="!canEditSettings" class="alert-card muted inline-alert">
+        Only the shop owner or an admin can change these. Shown read-only.
+      </p>
+
+      <p v-if="posError" class="alert-card error inline-alert">{{ posError }}</p>
+      <p v-if="posSuccess" class="alert-card success inline-alert">{{ posSuccess }}</p>
+
+      <div v-if="!posLoaded && !loading" class="alert-card muted inline-alert">
+        This shop has no POS settings row yet.
+      </div>
+
+      <div v-else class="form-grid">
+        <label class="form-group">
+          <span>Tax Percent</span>
+          <input
+            v-model="posForm.taxPercent"
+            class="form-input"
+            type="number"
+            step="0.01"
+            min="0"
+            :disabled="!canEditSettings || posSaving"
+          />
+          <small class="form-hint">Shop tax rate, e.g. 11.00 for 11%.</small>
+        </label>
+
+        <label class="form-group">
+          <span>Invoice Prefix</span>
+          <input
+            v-model="posForm.invoicePrefix"
+            class="form-input"
+            type="text"
+            maxlength="16"
+            placeholder="VALDKER-"
+            :disabled="!canEditSettings || posSaving"
+          />
+          <small v-if="invoicePrefixChanged" class="form-hint danger">
+            Changing this affects every invoice issued from now on. Invoices
+            already issued keep their current numbers.
+          </small>
+          <small v-else class="form-hint">
+            Prefix for new invoice numbers. Must be unique across shops.
+          </small>
+        </label>
+
+        <label class="form-group">
+          <span>Low Stock Threshold</span>
+          <input
+            v-model="posForm.lowStockThreshold"
+            class="form-input"
+            type="number"
+            min="0"
+            :disabled="!canEditSettings || posSaving"
+          />
+          <small class="form-hint">Warn when stock falls to this level.</small>
+        </label>
+
+        <label class="form-group toggle-group">
+          <span>Allow Negative Stock</span>
+          <span class="toggle-row">
+            <input
+              v-model="posForm.allowNegativeStock"
+              type="checkbox"
+              :disabled="!canEditSettings || posSaving"
+            />
+            <span>{{ posForm.allowNegativeStock ? 'Allowed' : 'Blocked' }}</span>
+          </span>
+          <small class="form-hint" :class="{ danger: enablingNegativeStock }">
+            When allowed, items can be sold with no stock left and stock goes
+            negative. Turning this on asks for a separate confirmation.
+          </small>
+        </label>
+      </div>
+    </section>
+
+    <!-- Confirmation for consequential POS changes -->
+    <div v-if="confirmOpen" class="modal-overlay" @click.self="cancelPosConfirm">
+      <div class="modal-card">
+        <h2>Confirm these changes</h2>
+
+        <div v-if="invoicePrefixChanged" class="confirm-block">
+          <h3>Invoice prefix</h3>
+          <p>
+            <code>{{ posOriginal.invoicePrefix || '(empty)' }}</code>
+            &rarr;
+            <code>{{ posForm.invoicePrefix.trim() || '(empty)' }}</code>
+          </p>
+          <p class="confirm-note">
+            Every invoice issued from now on uses the new prefix. Invoices
+            already issued are not renumbered, so this shop will have invoice
+            numbers in two formats. This cannot be undone for orders created
+            after the change.
+          </p>
+        </div>
+
+        <div v-if="enablingNegativeStock" class="confirm-block danger">
+          <h3>Allow negative stock</h3>
+          <p class="confirm-note">
+            This lets staff sell items the shop has none of. Stock counts will
+            go below zero and stop matching what is physically on the shelf.
+          </p>
+          <label class="confirm-check">
+            <input v-model="negativeStockAcknowledged" type="checkbox" />
+            <span>I understand and want to allow selling with no stock.</span>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-ghost" type="button" @click="cancelPosConfirm">Cancel</button>
+          <button
+            class="btn btn-primary"
+            type="button"
+            :disabled="confirmBlocked || posSaving"
+            @click="savePosSettings"
+          >
+            Save changes
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -326,6 +659,140 @@ onMounted(() => {
 .alert-card.muted {
   background: #f8fafc;
   color: #64748b;
+}
+
+.alert-card.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.inline-alert {
+  margin: 0 0 16px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.card-head p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.form-hint.danger {
+  color: #b91c1c;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.toggle-group .toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  font-weight: 600;
+}
+
+.btn-ghost {
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  color: #334155;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 60;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+}
+
+.modal-card h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.confirm-block {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.confirm-block.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.confirm-block h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.confirm-block p {
+  margin: 0 0 8px;
+  color: #334155;
+}
+
+.confirm-block code {
+  background: rgba(127, 127, 127, 0.14);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-weight: 700;
+}
+
+.confirm-note {
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.confirm-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-weight: 700;
+  color: #7f1d1d;
+  cursor: pointer;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .btn {
