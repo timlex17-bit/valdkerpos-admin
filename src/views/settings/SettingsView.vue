@@ -2,13 +2,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
-import { allAdminMenuItems } from '@/utils/adminMenu'
-import {
-  isModuleAllowedForBusinessType,
-  isModuleInPlan,
-  normalizeBusinessType,
-  normalizePlan,
-} from '@/utils/moduleVisibility'
+import { loadModuleContract } from '@/services/moduleContract'
+import { normalizeBusinessType, normalizePlan } from '@/utils/moduleVisibility'
 
 const warningText =
   'Changing business type or plan will change visible modules. Existing data will not be deleted.'
@@ -78,18 +73,18 @@ function loadStoredShop() {
   original.plan = plan
 }
 
+/**
+ * Caches the shop profile this page just read from the server.
+ *
+ * It deliberately does NOT touch `effective_modules`. It used to recompute
+ * that list from the form's own values and write it to localStorage, which
+ * made the browser the authority on its own entitlements - merely opening
+ * this page overwrote what the backend granted at login. Entitlements come
+ * from the login response and `GET /api/modules/`, and from nowhere else.
+ */
 function persistProfile() {
   const user = parseStorage<Record<string, any> | null>('user', null)
   const shop = parseStorage<Record<string, any> | null>('shop', null)
-  const effectiveModules = allAdminMenuItems
-    .filter((item) => {
-      const businessAllowed =
-        item.businessTypes?.includes(form.businessType as any) &&
-        isModuleAllowedForBusinessType(item.key, form.businessType)
-
-      return item.implemented !== false && item.route && businessAllowed && isModuleInPlan(item.key, form.plan)
-    })
-    .map((item) => item.key)
 
   if (user) {
     localStorage.setItem(
@@ -100,13 +95,9 @@ function persistProfile() {
         plan: form.plan,
         shop_business_type: form.businessType,
         shop_plan: form.plan,
-        effectiveModules,
-        effective_modules: effectiveModules,
       }),
     )
   }
-
-  localStorage.setItem('effective_modules', JSON.stringify(effectiveModules))
 
   localStorage.setItem(
     'shop',
@@ -132,8 +123,16 @@ async function fetchShop() {
     original.businessType = form.businessType
     original.plan = form.plan
     persistProfile()
-  } catch {
+    // The plan shown here and the modules the menu shows must agree, so pull
+    // a fresh contract whenever the profile is (re)read.
+    void loadModuleContract()
+  } catch (error: any) {
+    // Falling back to the cached profile is fine, but saying nothing is not:
+    // the user would read stale values as current ones.
     loadStoredShop()
+    errorMessage.value =
+      error?.response?.data?.detail ||
+      'Could not load shop settings from the server. Showing the last known values.'
   } finally {
     loading.value = false
   }
