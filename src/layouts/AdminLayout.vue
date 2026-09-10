@@ -137,7 +137,7 @@ const loadAuthUser = () => {
       shops.value = []
       selectedShopId.value = ''
     }
-  } catch (error) {
+  } catch {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('shop')

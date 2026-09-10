@@ -586,11 +586,6 @@ function toArrayStrings(value: any): string[] {
   return []
 }
 
-function frequencyLabel(value: string): string {
-  if (value === 'weekly') return 'Weekly'
-  if (value === 'monthly') return 'Monthly'
-  return 'Daily'
-}
 
 function restoreModeLabel(value: string): string {
   return value === 'master' ? 'Restore Master Data' : 'Restore Full Data'

@@ -744,10 +744,6 @@ function getPermissionAccess(item: MenuPermissionApiItem | MenuPermissionState) 
   return Boolean(item.can_access)
 }
 
-function getPermissionLabel(item: MenuPermissionApiItem | MenuPermissionState, key: string) {
-  if ('label' in item && item.label) return item.label
-  return humanizeKey(key)
-}
 
 /**
  * The backend already dropped every module this shop's plan and business type

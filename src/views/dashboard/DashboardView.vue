@@ -465,13 +465,6 @@ const dashboardSalesChart = ref<SalesChartRow[]>([])
 const dashboardTopProducts = ref<TopProductRow[]>([])
 const dashboardActivities = ref<ActivityRow[]>([])
 
-const todayKey = computed(() => dateKey(new Date()))
-const yesterdayKey = computed(() => {
-  const date = new Date()
-  date.setDate(date.getDate() - 1)
-  return dateKey(date)
-})
-
 const salesToday = computed(() =>
   dashboardKpis.value.salesToday
 )
@@ -554,8 +547,10 @@ const paymentDonutStyle = computed(() => {
   }
 })
 
+// Copy before sorting: `.sort()` mutates in place, so sorting the ref's own
+// array here reordered the product list for every other consumer of it.
 const lowStockItems = computed(() =>
-  dashboardProducts.value
+  [...dashboardProducts.value]
     .sort((a, b) => a.stock - b.stock)
     .slice(0, 4)
 )
@@ -581,49 +576,6 @@ const recentExpenses = computed(() =>
       date: formatDate(expense.date),
     }))
 )
-
-const recentActivities = ref([
-  {
-    id: 1,
-    icon: '🧾',
-    title: 'Julio created order INV0000000031',
-    description: 'A new order was added with total $18.50.',
-    time: '2 min ago',
-    colorClass: 'activity-blue',
-  },
-  {
-    id: 2,
-    icon: '📦',
-    title: 'Stock adjusted for Redbull Can',
-    description: 'Owner updated stock from 8 to 12 after recount.',
-    time: '15 min ago',
-    colorClass: 'activity-orange',
-  },
-  {
-    id: 3,
-    icon: '💸',
-    title: 'Expense added: Fuel',
-    description: 'New expense of $17.00 recorded by Owner.',
-    time: '36 min ago',
-    colorClass: 'activity-red',
-  },
-  {
-    id: 4,
-    icon: '🛒',
-    title: 'Purchase received from supplier',
-    description: 'Purchase items increased inventory for beverages.',
-    time: '1 hour ago',
-    colorClass: 'activity-green',
-  },
-  {
-    id: 5,
-    icon: '↩️',
-    title: 'Product return processed',
-    description: 'Return completed for Pizza Sosis quantity 2.',
-    time: '2 hours ago',
-    colorClass: 'activity-purple',
-  },
-])
 
 const dynamicRecentActivities = computed(() => {
   if (dashboardActivities.value.length > 0) {
@@ -863,13 +815,6 @@ function goTo(path: string) {
 
 function dateKey(value: Date): string {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
-}
-
-function orderDateKey(order: OrderRow): string {
-  if (!order.createdAt) return ''
-  if (/^\d{4}-\d{2}-\d{2}/.test(order.createdAt)) return order.createdAt.slice(0, 10)
-  const date = new Date(order.createdAt)
-  return Number.isNaN(date.getTime()) ? '' : dateKey(date)
 }
 
 function lastDays(count: number) {
