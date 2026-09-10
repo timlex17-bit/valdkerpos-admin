@@ -1,6 +1,11 @@
 /**
- * Snapshot of the backend module matrix (`pos/module_registry.py`), taken from
- * MODULE_MATRIX.md. 46 modules.
+ * Snapshot of the backend module matrix (`pos/module_registry.py`), 46
+ * modules, verified against a live `GET /api/modules/` on 2026-09-10.
+ *
+ * One row differs from MODULE_MATRIX.md as written: `shifts` is documented
+ * there as RESTAURANT-only, but the running registry has it on all three
+ * business types. The live endpoint is the authority, so that is what this
+ * records; the doc has not caught up.
  *
  * This is NOT a rule the dashboard applies - nothing in `src/` reads it at
  * runtime. It exists so `moduleContract.spec.ts` can check that every module
@@ -63,7 +68,7 @@ export const BACKEND_MODULE_MATRIX: BackendModule[] = [
   { key: 'tables', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
   { key: 'kitchen_display', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
   { key: 'waiters', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
-  { key: 'shifts', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: true },
+  { key: 'shifts', plan_level: 'BASIC', business_types: ['RETAIL', 'WORKSHOP', 'RESTAURANT'], implemented: true },
   { key: 'recipe_bom', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
   { key: 'delivery_orders', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
   { key: 'reservations', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
