@@ -453,15 +453,7 @@ import api from '@/services/api'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { normalizeApiList } from '@/utils/apiData'
-import {
-  isModuleAllowedForBusinessType,
-  isModuleInPlan,
-  normalizeBusinessType,
-  normalizePlan,
-  parseStoredJson,
-  type BusinessType,
-  type Plan,
-} from '@/utils/moduleVisibility'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type UserRoleApi = 'owner' | 'admin' | 'manager' | 'cashier' | 'inventory_staff' | 'finance'
 
@@ -469,40 +461,41 @@ type MenuPermissionApiItem = {
   key?: string
   menu_key?: string
   label?: string
+  group?: string
+  plan_level?: string
+  business_types?: string[]
+  implemented?: boolean
   can_access?: boolean
 }
 
 type MenuPermissionOption = {
   key: string
   label: string
-  group?: PermissionGroupName
-  plan?: 'BASIC' | 'PRO' | 'ENTERPRISE'
-  businessTypes?: Array<'RETAIL' | 'WORKSHOP' | 'RESTAURANT'>
-  implemented?: boolean
+  group: string
+  plan: string
+  businessTypes: string[]
+  implemented: boolean
 }
 
 type MenuPermissionState = {
   menuKey: string
   label: string
   canAccess: boolean
-  group: PermissionGroupName
-  plan: 'BASIC' | 'PRO' | 'ENTERPRISE'
-  businessTypes: Array<'RETAIL' | 'WORKSHOP' | 'RESTAURANT'>
+  group: string
+  plan: string
+  businessTypes: string[]
   implemented: boolean
   disabled: boolean
 }
 
-type PermissionGroupName =
-  | 'Core'
-  | 'Pro'
-  | 'Enterprise'
-  | 'Finance'
-  | 'Workshop'
-  | 'Restaurant'
-  | 'System'
-
-const permissionGroupOrder: PermissionGroupName[] = [
+/**
+ * Display order for the groups the backend uses. Any group name not listed
+ * here still renders - it is appended in the order the backend sent it - so a
+ * new backend group never silently drops its modules off this screen.
+ */
+const preferredGroupOrder = [
   'Core',
+  'Reports',
   'Pro',
   'Enterprise',
   'Finance',
@@ -511,47 +504,6 @@ const permissionGroupOrder: PermissionGroupName[] = [
   'System',
 ]
 
-const allBusinessTypes: Array<'RETAIL' | 'WORKSHOP' | 'RESTAURANT'> = [
-  'RETAIL',
-  'WORKSHOP',
-  'RESTAURANT',
-]
-
-const permissionCatalog: MenuPermissionOption[] = [
-  { key: 'pos', label: 'POS', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'orders', label: 'Orders', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'customers', label: 'Customers', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'suppliers', label: 'Suppliers', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'purchases', label: 'Purchases', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'products', label: 'Products', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'categories', label: 'Categories', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'units', label: 'Units', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'reports', label: 'Reports', group: 'Core', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'settings', label: 'Settings', group: 'System', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'inventory_counts', label: 'Inventory Counts', group: 'Pro', plan: 'PRO', businessTypes: allBusinessTypes },
-  { key: 'product_returns', label: 'Product Returns', group: 'Pro', plan: 'PRO', businessTypes: ['RETAIL', 'WORKSHOP'] },
-  { key: 'stock_adjustments', label: 'Stock Adjustments', group: 'Pro', plan: 'PRO', businessTypes: allBusinessTypes },
-  { key: 'stock_movements', label: 'Stock Movements', group: 'Enterprise', plan: 'ENTERPRISE', businessTypes: allBusinessTypes },
-  { key: 'warehouses', label: 'Warehouses', group: 'Enterprise', plan: 'ENTERPRISE', businessTypes: allBusinessTypes },
-  { key: 'warehouse_stocks', label: 'Warehouse Stocks', group: 'Enterprise', plan: 'ENTERPRISE', businessTypes: allBusinessTypes },
-  { key: 'stock_transfers', label: 'Stock Transfers', group: 'Enterprise', plan: 'ENTERPRISE', businessTypes: allBusinessTypes },
-  { key: 'expenses', label: 'Expenses', group: 'Finance', plan: 'BASIC', businessTypes: allBusinessTypes },
-  { key: 'bank_accounts', label: 'Bank Accounts', group: 'Finance', plan: 'PRO', businessTypes: allBusinessTypes },
-  { key: 'bank_ledgers', label: 'Bank Ledgers', group: 'Finance', plan: 'PRO', businessTypes: allBusinessTypes },
-  { key: 'vehicles', label: 'Vehicles', group: 'Workshop', plan: 'PRO', businessTypes: ['WORKSHOP'] },
-  { key: 'mechanics', label: 'Mechanics', group: 'Workshop', plan: 'PRO', businessTypes: ['WORKSHOP'] },
-  { key: 'work_orders', label: 'Work Orders', group: 'Workshop', plan: 'PRO', businessTypes: ['WORKSHOP'] },
-  { key: 'service_history', label: 'Service History', group: 'Workshop', plan: 'PRO', businessTypes: ['WORKSHOP'] },
-  { key: 'service_packages', label: 'Service Packages', group: 'Workshop', plan: 'PRO', businessTypes: ['WORKSHOP'] },
-  { key: 'bookings', label: 'Bookings', group: 'Workshop', plan: 'PRO', businessTypes: ['WORKSHOP'] },
-  { key: 'tables', label: 'Tables', group: 'Restaurant', plan: 'PRO', businessTypes: ['RESTAURANT'], implemented: false },
-  { key: 'kitchen_display', label: 'Kitchen Display', group: 'Restaurant', plan: 'PRO', businessTypes: ['RESTAURANT'], implemented: false },
-  { key: 'waiters', label: 'Waiters', group: 'Restaurant', plan: 'PRO', businessTypes: ['RESTAURANT'], implemented: false },
-  { key: 'backup_center', label: 'Backup Center', group: 'System', plan: 'ENTERPRISE', businessTypes: allBusinessTypes },
-  { key: 'import_master_data', label: 'Import Master Data', group: 'System', plan: 'ENTERPRISE', businessTypes: allBusinessTypes },
-]
-
-const finalMenuKeys = permissionCatalog.map((item) => item.key)
 type StaffApiItem = {
   id: number
   username: string
@@ -608,31 +560,20 @@ const permissionsLoading = ref(false)
 const menuOptions = ref<MenuPermissionOption[]>([])
 const menuPermissions = ref<MenuPermissionState[]>([])
 
-const currentBusinessType = computed(() => {
-  const user = parseStoredJson<Record<string, any> | null>('user', null)
-  const shop = parseStoredJson<Record<string, any> | null>('shop', null)
-  return normalizeBusinessType(
-    user?.businessType ||
-      user?.shop_business_type ||
-      shop?.businessType ||
-      shop?.business_type,
-  )
-})
+const groupedMenuPermissions = computed(() => {
+  const seen = menuPermissions.value.map((permission) => permission.group)
+  const order = [
+    ...preferredGroupOrder,
+    ...seen.filter((name) => !preferredGroupOrder.includes(name)),
+  ]
 
-const currentPlan = computed(() => {
-  const user = parseStoredJson<Record<string, any> | null>('user', null)
-  const shop = parseStoredJson<Record<string, any> | null>('shop', null)
-  return normalizePlan(user?.plan || user?.shop_plan || shop?.plan)
-})
-
-const groupedMenuPermissions = computed(() =>
-  permissionGroupOrder
+  return [...new Set(order)]
     .map((name) => ({
       name,
       items: menuPermissions.value.filter((permission) => permission.group === name),
     }))
-    .filter((group) => group.items.length > 0),
-)
+    .filter((group) => group.items.length > 0)
+})
 
 const managerDefaultMenus = new Set([
   'pos',
@@ -772,37 +713,25 @@ function buildFullName(firstName?: string, lastName?: string) {
   return [firstName, lastName].filter(Boolean).join(' ').trim()
 }
 
+/**
+ * Takes one entry from `GET /api/menu-permissions/options/` exactly as it
+ * came. Everything the row displays - label, group, plan tier, business types
+ * - is the backend's own answer for this shop. The dashboard used to overlay
+ * a local catalog here, which is why a retail shop was offered Workshop and
+ * Restaurant toggles it could never use.
+ */
 function normalizeMenuOption(item: MenuPermissionApiItem): MenuPermissionOption | null {
   const key = String(item.key || item.menu_key || '').trim()
   if (!key) return null
-  const catalog = getCatalogItem(key)
 
   return {
     key,
-    label: item.label || catalog?.label || humanizeKey(key),
-    group: catalog?.group || 'System',
-    plan: catalog?.plan || 'BASIC',
-    businessTypes: catalog?.businessTypes || allBusinessTypes,
-    implemented: catalog?.implemented !== false,
+    label: item.label || humanizeKey(key),
+    group: String(item.group || 'System'),
+    plan: String(item.plan_level || ''),
+    businessTypes: Array.isArray(item.business_types) ? item.business_types.map(String) : [],
+    implemented: item.implemented !== false,
   }
-}
-
-function getFinalMenuOptions(options: MenuPermissionOption[] = []) {
-  const optionByKey = new Map(options.map((option) => [option.key, option]))
-
-  return finalMenuKeys.map((key) => {
-    const catalog = getCatalogItem(key)
-    const option = optionByKey.get(key)
-
-    return {
-      key,
-      label: option?.label || catalog?.label || humanizeKey(key),
-      group: option?.group || catalog?.group || 'System',
-      plan: option?.plan || catalog?.plan || 'BASIC',
-      businessTypes: option?.businessTypes || catalog?.businessTypes || allBusinessTypes,
-      implemented: option?.implemented ?? catalog?.implemented !== false,
-    }
-  })
 }
 
 function getPermissionKey(item: MenuPermissionApiItem | MenuPermissionState) {
@@ -820,19 +749,14 @@ function getPermissionLabel(item: MenuPermissionApiItem | MenuPermissionState, k
   return humanizeKey(key)
 }
 
-function getCatalogItem(key: string) {
-  return permissionCatalog.find((item) => item.key === key)
-}
-
+/**
+ * The backend already dropped every module this shop's plan and business type
+ * do not allow, and every module with no page behind it, before it answered.
+ * So the only thing left to refuse is a module that arrived flagged
+ * unimplemented - a belt-and-braces check, not a second opinion.
+ */
 function isPermissionDisabled(option: MenuPermissionOption) {
-  const businessType = currentBusinessType.value as BusinessType
-  const plan = currentPlan.value as Plan
-  return (
-    option.implemented === false ||
-    !isModuleInPlan(option.key, plan) ||
-    !isModuleAllowedForBusinessType(option.key, businessType) ||
-    !option.businessTypes?.includes(currentBusinessType.value as 'RETAIL' | 'WORKSHOP' | 'RESTAURANT')
-  )
+  return option.implemented === false
 }
 
 function permissionBadges(permission: MenuPermissionState) {
@@ -854,48 +778,24 @@ function normalizeMenuPermissions(
     if (key) sourceByKey.set(key, item)
   })
 
-  const permissions = options.map((option) => {
+  // Exactly one row per option the backend offered, and no others. A stale
+  // UserMenuPermission row for a module this shop no longer has must not
+  // resurrect a toggle for it.
+  return options.map((option) => {
     const existing = sourceByKey.get(option.key)
     const disabled = isPermissionDisabled(option)
 
     return {
       menuKey: option.key,
       label: option.label,
-      group: option.group || 'System',
-      plan: option.plan || 'BASIC',
-      businessTypes: option.businessTypes || allBusinessTypes,
-      implemented: option.implemented !== false,
+      group: option.group,
+      plan: option.plan,
+      businessTypes: option.businessTypes,
+      implemented: option.implemented,
       disabled,
       canAccess: disabled ? false : existing ? getPermissionAccess(existing) : false,
     }
   })
-
-  sourceByKey.forEach((item, key) => {
-    if (permissions.some((permission) => permission.menuKey === key)) return
-    const catalog = getCatalogItem(key)
-    const option: MenuPermissionOption = {
-      key,
-      label: getPermissionLabel(item, key),
-      group: catalog?.group || 'System',
-      plan: catalog?.plan || 'BASIC',
-      businessTypes: catalog?.businessTypes || allBusinessTypes,
-      implemented: catalog?.implemented !== false,
-    }
-    const disabled = isPermissionDisabled(option)
-
-    permissions.push({
-      menuKey: key,
-      label: option.label,
-      group: option.group || 'System',
-      plan: option.plan || 'BASIC',
-      businessTypes: option.businessTypes || allBusinessTypes,
-      implemented: option.implemented !== false,
-      disabled,
-      canAccess: disabled ? false : getPermissionAccess(item),
-    })
-  })
-
-  return permissions
 }
 
 function canAccessByDefault(role: string, menuKey: string) {
@@ -917,16 +817,16 @@ function canAccessByDefault(role: string, menuKey: string) {
 }
 
 function applyDefaultRolePermissions(role = form.role) {
-  menuPermissions.value = getFinalMenuOptions(menuOptions.value).map((option) => {
+  menuPermissions.value = menuOptions.value.map((option) => {
     const disabled = isPermissionDisabled(option)
 
     return {
       menuKey: option.key,
       label: option.label,
-      group: option.group || 'System',
-      plan: option.plan || 'BASIC',
-      businessTypes: option.businessTypes || allBusinessTypes,
-      implemented: option.implemented !== false,
+      group: option.group,
+      plan: option.plan,
+      businessTypes: option.businessTypes,
+      implemented: option.implemented,
       disabled,
       canAccess: disabled ? false : canAccessByDefault(role, option.key),
     }
@@ -946,12 +846,14 @@ async function fetchMenuOptions() {
   permissionsLoading.value = true
 
   try {
-    const response = await api.get('/api/menu-permissions/options/')
+    const response = await api.get(ENDPOINTS.MENU_PERMISSION_OPTIONS)
     const raw = normalizeApiList(response.data)
     menuOptions.value = raw
       .map((item) => normalizeMenuOption(item as MenuPermissionApiItem))
       .filter((item): item is MenuPermissionOption => Boolean(item))
-    menuOptions.value = getFinalMenuOptions(menuOptions.value)
+      // A module with no page behind it is not something access can be
+      // granted to, so it is not offered as a choice.
+      .filter((option) => option.implemented)
 
     return menuOptions.value
   } catch (error: any) {
@@ -989,10 +891,15 @@ async function ensureMenuPermissionsReady() {
   return false
 }
 
+/**
+ * Submits a decision for every module the backend offered, and only those.
+ * It used to submit the local catalog's keys instead, which sent the server
+ * toggles for modules the shop does not have.
+ */
 function buildMenuPermissionPayload() {
   const permissionByKey = new Map(menuPermissions.value.map((permission) => [permission.menuKey, permission]))
 
-  return getFinalMenuOptions(menuOptions.value).map((option) => ({
+  return menuOptions.value.map((option) => ({
     menu_key: option.key,
     can_access: !isPermissionDisabled(option) && Boolean(permissionByKey.get(option.key)?.canAccess),
   }))
@@ -1008,7 +915,7 @@ async function fetchUsers() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get('/api/staff/')
+    const response = await api.get(ENDPOINTS.STAFF)
     const raw = normalizeApiList(response.data)
     users.value = raw.map(normalizeUser)
   } catch (error: any) {
@@ -1168,7 +1075,7 @@ async function saveUser() {
   saving.value = true
   try {
     if (isEditMode.value && editingId.value !== null) {
-      const response = await api.patch(`/api/staff/${editingId.value}/`, buildPayload(true))
+      const response = await api.patch(`${ENDPOINTS.STAFF}${editingId.value}/`, buildPayload(true))
       const normalized = normalizeUser(response.data)
       const index = users.value.findIndex((item) => item.id === editingId.value)
       if (index !== -1) {
@@ -1178,7 +1085,7 @@ async function saveUser() {
       }
       successMessage.value = t('usersPage.userUpdated')
     } else {
-      const response = await api.post('/api/staff/', buildPayload(false))
+      const response = await api.post(ENDPOINTS.STAFF, buildPayload(false))
       const normalized = normalizeUser(response.data)
       users.value.unshift(normalized)
       successMessage.value = t('usersPage.userCreated')
@@ -1202,7 +1109,7 @@ async function deleteUser(user: ShopUser) {
 
   deletingId.value = user.id
   try {
-    await api.delete(`/api/staff/${user.id}/`)
+    await api.delete(`${ENDPOINTS.STAFF}${user.id}/`)
     users.value = users.value.filter((item) => item.id !== user.id)
     successMessage.value = t('usersPage.userDeleted')
   } catch (error: any) {
