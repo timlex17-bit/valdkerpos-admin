@@ -31,6 +31,8 @@ const WorkOrdersView = () => import('@/views/workshop/WorkOrdersView.vue')
 const ServiceHistoryView = () => import('@/views/workshop/ServiceHistoryView.vue')
 const ServicePackagesView = () => import('@/views/workshop/ServicePackagesView.vue')
 const BookingsView = () => import('@/views/workshop/BookingsView.vue')
+const SalesChartView = () => import('@/views/reports/SalesChartView.vue')
+const ExpenseChartView = () => import('@/views/reports/ExpenseChartView.vue')
 
 const routes = [
   {
@@ -270,16 +272,21 @@ const routes = [
         component: ReportsView,
         meta: { title: 'Expense Report', section: 'reports' },
       },
+      // These two render their own chart pages, not the ReportsView tabs.
+      // They draw a monthly profit-and-loss trend from
+      // /api/reports/monthly-pl/, which ReportsView never calls, so pointing
+      // them at ReportsView (as they were) left the components unreachable
+      // and the feature invisible. The dashboard links to /sales-chart twice.
       {
         path: 'sales-chart',
         name: 'sales-chart',
-        component: ReportsView,
+        component: SalesChartView,
         meta: { title: 'Sales Chart', section: 'reports' },
       },
       {
         path: 'expense-chart',
         name: 'expense-chart',
-        component: ReportsView,
+        component: ExpenseChartView,
         meta: { title: 'Expense Chart', section: 'reports' },
       },
       {
