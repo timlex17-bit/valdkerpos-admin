@@ -1,4 +1,8 @@
 export const ENDPOINTS = {
+  // MODULE CONTRACT - the authoritative module matrix for the calling shop.
+  MODULES: '/api/modules/',
+  MENU_PERMISSION_OPTIONS: '/api/menu-permissions/options/',
+
   PRODUCTS: '/api/products/',
   CATEGORIES: '/api/categories/',
   UNITS: '/api/units/',
@@ -23,6 +27,32 @@ export const ENDPOINTS = {
   SHIFTS_CURRENT: '/api/shifts/current/',
   SHIFTS_OPEN: '/api/shifts/open/',
   SHIFTS_CLOSE: '/api/shifts/close/',
+
+  // AUTH & STAFF
+  AUTH_LOGIN: '/api/auth/login/',
+  STAFF: '/api/staff/',
+
+  // WAREHOUSING
+  WAREHOUSES: '/api/warehouses/',
+  WAREHOUSE_STOCKS: '/api/warehouse-stocks/',
+  STOCK_TRANSFERS: '/api/stock-transfers/',
+
+  // WORKSHOP
+  VEHICLES: '/api/vehicles/',
+  MECHANICS: '/api/mechanics/',
+  WORK_ORDERS: '/api/work-orders/',
+  SERVICE_HISTORY: '/api/service-history/',
+  SERVICE_PACKAGES: '/api/service-packages/',
+  BOOKINGS: '/api/bookings/',
+
+  // SYSTEM TOOLS
+  BACKUP_CENTER_SUMMARY: '/api/backup-center/summary/',
+  BACKUPS: '/api/backups/',
+  BACKUPS_RUN: '/api/backups/run/',
+  BACKUP_SETTINGS: '/api/backup-settings/',
+  IMPORT_JOBS: '/api/import-master-data/jobs/',
+  IMPORT_TEMPLATE: '/api/import-master-data/template/',
+  IMPORT_TEMPLATE_INFO: '/api/import-master-data/template/info/',
 
   // SHOP
   SHOP_ME: '/api/shop/me/',
