@@ -535,7 +535,13 @@ type ShopUser = {
   shopCode: string
   isActive: boolean
   dateJoined: string
-  menuPermissions: MenuPermissionState[]
+  /**
+   * Kept exactly as the API sent it. It must NOT be normalised at list-load
+   * time: the option list has not been fetched yet then, and normalising
+   * against an empty option list silently threw every row away, so the Edit
+   * modal opened with all permissions off.
+   */
+  menuPermissions: MenuPermissionApiItem[]
 }
 
 const { t, locale } = useI18n()
@@ -679,7 +685,7 @@ function normalizeUser(item: StaffApiItem): ShopUser {
     shopCode: item.shop_code || '',
     isActive: Boolean(item.is_active),
     dateJoined: item.date_joined || '',
-    menuPermissions: normalizeMenuPermissions(item.menu_permissions || [], menuOptions.value),
+    menuPermissions: Array.isArray(item.menu_permissions) ? item.menu_permissions : [],
   }
 }
 
@@ -889,8 +895,7 @@ async function prepareAddMenuPermissions() {
 }
 
 async function prepareEditMenuPermissions(user: ShopUser) {
-  menuPermissions.value = normalizeMenuPermissions(user.menuPermissions, menuOptions.value)
-
+  // Options first: without them there is nothing to render rows against.
   const options = await fetchMenuOptions()
   if (options.length) {
     menuPermissions.value = normalizeMenuPermissions(user.menuPermissions, options)
@@ -975,7 +980,7 @@ async function openAddModal() {
   await prepareAddMenuPermissions()
 }
 
-function openViewModal(user: ShopUser) {
+async function openViewModal(user: ShopUser) {
   selectedUser.value = user
   resetForm()
 
@@ -985,12 +990,13 @@ function openViewModal(user: ShopUser) {
   form.email = user.email
   form.role = user.role
   form.isActive = user.isActive
-  menuPermissions.value = normalizeMenuPermissions(user.menuPermissions, menuOptions.value)
 
   editingId.value = user.id
   isEditMode.value = false
   viewOnly.value = true
   showModal.value = true
+
+  await prepareEditMenuPermissions(user)
 }
 
 async function openEditModal(user: ShopUser) {
