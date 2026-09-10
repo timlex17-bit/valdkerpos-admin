@@ -403,15 +403,6 @@
                   >
                     <span class="permission-copy">
                       <span>{{ permission.label }}</span>
-                      <span class="permission-badges">
-                        <span
-                          v-for="badge in permissionBadges(permission)"
-                          :key="badge"
-                          class="permission-badge"
-                        >
-                          {{ badge }}
-                        </span>
-                      </span>
                     </span>
                     <span class="switch-control">
                       <input
@@ -472,8 +463,6 @@ type MenuPermissionOption = {
   key: string
   label: string
   group: string
-  plan: string
-  businessTypes: string[]
   implemented: boolean
 }
 
@@ -482,8 +471,6 @@ type MenuPermissionState = {
   label: string
   canAccess: boolean
   group: string
-  plan: string
-  businessTypes: string[]
   implemented: boolean
   disabled: boolean
 }
@@ -715,10 +702,14 @@ function buildFullName(firstName?: string, lastName?: string) {
 
 /**
  * Takes one entry from `GET /api/menu-permissions/options/` exactly as it
- * came. Everything the row displays - label, group, plan tier, business types
- * - is the backend's own answer for this shop. The dashboard used to overlay
- * a local catalog here, which is why a retail shop was offered Workshop and
- * Restaurant toggles it could never use.
+ * came. Both the label and the group are the backend's own answer for this
+ * shop. The dashboard used to overlay a local catalog here, which is why a
+ * retail shop was offered Workshop and Restaurant toggles it could never use.
+ *
+ * The response also carries `plan_level` and `business_types`. This screen
+ * deliberately keeps neither: the backend has already dropped every module
+ * this shop's plan or business type rules out, so those two fields are true
+ * of every row shown and say nothing about the user being edited.
  */
 function normalizeMenuOption(item: MenuPermissionApiItem): MenuPermissionOption | null {
   const key = String(item.key || item.menu_key || '').trim()
@@ -728,8 +719,6 @@ function normalizeMenuOption(item: MenuPermissionApiItem): MenuPermissionOption 
     key,
     label: item.label || humanizeKey(key),
     group: String(item.group || 'System'),
-    plan: String(item.plan_level || ''),
-    businessTypes: Array.isArray(item.business_types) ? item.business_types.map(String) : [],
     implemented: item.implemented !== false,
   }
 }
@@ -755,14 +744,6 @@ function isPermissionDisabled(option: MenuPermissionOption) {
   return option.implemented === false
 }
 
-function permissionBadges(permission: MenuPermissionState) {
-  return [
-    permission.plan,
-    ...permission.businessTypes,
-    ...(permission.implemented ? [] : ['NOT IMPLEMENTED']),
-  ]
-}
-
 function normalizeMenuPermissions(
   source: Array<MenuPermissionApiItem | MenuPermissionState>,
   options: MenuPermissionOption[]
@@ -785,8 +766,6 @@ function normalizeMenuPermissions(
       menuKey: option.key,
       label: option.label,
       group: option.group,
-      plan: option.plan,
-      businessTypes: option.businessTypes,
       implemented: option.implemented,
       disabled,
       canAccess: disabled ? false : existing ? getPermissionAccess(existing) : false,
@@ -820,8 +799,6 @@ function applyDefaultRolePermissions(role = form.role) {
       menuKey: option.key,
       label: option.label,
       group: option.group,
-      plan: option.plan,
-      businessTypes: option.businessTypes,
       implemented: option.implemented,
       disabled,
       canAccess: disabled ? false : canAccessByDefault(role, option.key),
@@ -1794,26 +1771,7 @@ onMounted(() => {
 .permission-copy {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   min-width: 0;
-}
-
-.permission-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.permission-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 18px;
-  border-radius: 999px;
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 0 7px;
-  font-size: 0.68rem;
-  font-weight: 800;
 }
 
 .switch-control {
