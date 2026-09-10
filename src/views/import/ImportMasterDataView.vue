@@ -129,7 +129,7 @@
           <div class="step-number">4</div>
           <div class="step-text">
             <strong>Confirm Import</strong>
-            <span>Start migration to ValdKerPOS</span>
+            <span>Start migration to Valora</span>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@
               </div>
 
               <div class="template-content">
-                <h3>ValdKerPOS Master Import Template.xlsx</h3>
+                <h3>Valora Master Import Template.xlsx</h3>
                 <p>
                   Recommended sheets:
                   <strong>Categories, Units, Products, Customers, Suppliers, OpeningStock</strong>

@@ -94,7 +94,7 @@ const handleShopChange = (event: Event) => {
         <div class="brand-icon">V</div>
 
         <div v-if="!isCollapsed" class="brand-text">
-          <h2 class="logo">ValdKerPOS</h2>
+          <h2 class="logo">Valora</h2>
           <p class="brand-subtitle">{{ t('adminPanel') }}</p>
         </div>
       </div>
