@@ -94,7 +94,13 @@ const logout = () => {
         </button>
 
         <div v-if="props.profileOpen" class="profile-dropdown">
-          <button class="dropdown-item" type="button">{{ t('profile') }}</button>
+          <!--
+            A "Profile" item belongs here, but there is no profile page and no
+            /profile route yet, so the button did nothing when clicked - which
+            reads to the user as a broken app rather than a missing feature.
+            Restore this line once a profile page exists:
+            <button class="dropdown-item" type="button" @click="openProfile">{{ t('profile') }}</button>
+          -->
           <button class="dropdown-item" type="button" @click="openSettings">{{ t('settings') }}</button>
           <button class="dropdown-item danger" type="button" @click="logout">
             {{ t('logout') }}
