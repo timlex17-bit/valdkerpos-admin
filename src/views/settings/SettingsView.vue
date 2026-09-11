@@ -535,7 +535,8 @@ onMounted(() => {
             already issued keep their current numbers.
           </small>
           <small v-else class="form-hint">
-            Prefix for new invoice numbers. Must be unique across shops.
+            Prefix for new invoice numbers. It does not have to be unique
+            across shops - invoice numbers are unique per shop.
           </small>
         </label>
 
