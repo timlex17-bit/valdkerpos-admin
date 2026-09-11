@@ -60,13 +60,15 @@ export const routeMenuKeys: Record<string, string[]> = {
   'reports-low-stock': ['low_stock_report'],
   'reports-shifts': ['shift_report'],
   // Legacy flat aliases for the /reports/* routes above. They render the same
-  // component, so they gate on the same backend key. `sales_chart` and
-  // `expense_chart` used to be listed here as module keys of their own; the
-  // backend has never defined either.
+  // component, so they gate on the same backend key.
   'sales-report': ['sales_report'],
   'expense-report': ['expense_report'],
-  'sales-chart': ['sales_report'],
-  'expense-chart': ['expense_report'],
+
+  // The two chart pages are modules in their own right now that the backend
+  // registers them. They were guarded on sales_report/expense_report while
+  // the keys did not exist yet.
+  'sales-chart': ['sales_chart'],
+  'expense-chart': ['expense_chart'],
   'bank-accounts': ['bank_accounts'],
   'bank-ledgers': ['bank_ledgers'],
   settings: ['settings'],

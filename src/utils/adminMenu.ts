@@ -85,6 +85,8 @@ export const adminMenuGroups: MenuGroupConfig[] = [
       { key: 'stock_report', label: 'Stock Report', route: '/reports/stock' },
       { key: 'low_stock_report', label: 'Low Stock Report', route: '/reports/low-stock' },
       { key: 'shift_report', label: 'Shift Report', route: '/reports/shifts' },
+      { key: 'sales_chart', label: 'Sales Chart', route: '/sales-chart' },
+      { key: 'expense_chart', label: 'Expense Chart', route: '/expense-chart' },
     ],
   },
   {
