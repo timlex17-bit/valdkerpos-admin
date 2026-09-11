@@ -276,6 +276,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type Direction = 'IN' | 'OUT'
 
@@ -310,7 +311,7 @@ type BankLedger = {
 
 const { t, locale } = useI18n()
 
-const BANK_LEDGERS_ENDPOINT = '/api/bank-ledgers/'
+const BANK_LEDGERS_ENDPOINT = ENDPOINTS.BANK_LEDGERS
 
 const ledgers = ref<BankLedger[]>([])
 const loading = ref(false)

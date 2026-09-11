@@ -460,6 +460,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type BackupStatus = 'Success' | 'Failed' | 'Running'
 type BackupType = 'Auto' | 'Manual'
@@ -483,13 +484,13 @@ type BackupHistoryItem = {
 }
 
 const BACKUP_ENDPOINTS = {
-  SUMMARY: '/api/backup-center/summary/',
-  SETTINGS: '/api/backup-settings/',
-  HISTORY: '/api/backups/',
-  RUN: '/api/backups/run/',
-  detail: (id: number | string) => `/api/backups/${id}/`,
-  download: (id: number | string) => `/api/backups/${id}/download/`,
-  restore: (id: number | string) => `/api/backups/${id}/restore/`,
+  SUMMARY: ENDPOINTS.BACKUP_CENTER_SUMMARY,
+  SETTINGS: ENDPOINTS.BACKUP_SETTINGS,
+  HISTORY: ENDPOINTS.BACKUPS,
+  RUN: ENDPOINTS.BACKUPS_RUN,
+  detail: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/`,
+  download: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/download/`,
+  restore: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/restore/`,
 }
 
 const backupSettings = reactive({
@@ -586,11 +587,6 @@ function toArrayStrings(value: any): string[] {
   return []
 }
 
-function frequencyLabel(value: string): string {
-  if (value === 'weekly') return 'Weekly'
-  if (value === 'monthly') return 'Monthly'
-  return 'Daily'
-}
 
 function restoreModeLabel(value: string): string {
   return value === 'master' ? 'Restore Master Data' : 'Restore Full Data'

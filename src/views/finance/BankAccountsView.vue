@@ -257,6 +257,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type AccountType = 'BANK' | 'EWALLET' | 'QRIS'
 
@@ -290,7 +291,7 @@ type FormState = {
 
 const { t, locale } = useI18n()
 
-const BANK_ACCOUNTS_ENDPOINT = '/api/bank-accounts/'
+const BANK_ACCOUNTS_ENDPOINT = ENDPOINTS.BANK_ACCOUNTS
 
 const bankAccounts = ref<BankAccount[]>([])
 const loading = ref(false)

@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoginView from '@/views/LoginView.vue'
+import { canAccessMenu, routeMenuKeys } from '@/utils/menuPermissions'
+import { loadModuleContract, moduleContract } from '@/services/moduleContract'
 
 const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
 const ProductsView = () => import('@/views/products/ProductsView.vue')
@@ -21,11 +23,16 @@ const PurchasesView = () => import('@/views/purchases/PurchasesView.vue')
 const ShiftsView = () => import('@/views/shifts/ShiftsView.vue')
 const StockAdjustmentsView = () => import('@/views/stock/StockAdjustmentsView.vue')
 const StockMovementsView = () => import('@/views/stock/StockMovementsView.vue')
-const SalesReportView = () => import('@/views/reports/SalesReportView.vue')
-const ExpenseReportView = () => import('@/views/reports/ExpenseReportView.vue')
+const ReportsView = () => import('@/views/reports/ReportsView.vue')
+const SettingsView = () => import('@/views/settings/SettingsView.vue')
+const VehiclesView = () => import('@/views/workshop/VehiclesView.vue')
+const MechanicsView = () => import('@/views/workshop/MechanicsView.vue')
+const WorkOrdersView = () => import('@/views/workshop/WorkOrdersView.vue')
+const ServiceHistoryView = () => import('@/views/workshop/ServiceHistoryView.vue')
+const ServicePackagesView = () => import('@/views/workshop/ServicePackagesView.vue')
+const BookingsView = () => import('@/views/workshop/BookingsView.vue')
 const SalesChartView = () => import('@/views/reports/SalesChartView.vue')
 const ExpenseChartView = () => import('@/views/reports/ExpenseChartView.vue')
-const SettingsView = () => import('@/views/settings/SettingsView.vue')
 
 const routes = [
   {
@@ -164,17 +171,112 @@ const routes = [
         meta: { title: 'Warehouse Stocks', section: 'inventory' },
       },
       {
+        path: 'vehicles',
+        name: 'vehicles',
+        component: VehiclesView,
+        meta: { title: 'Vehicles', section: 'workshop' },
+      },
+      {
+        path: 'mechanics',
+        name: 'mechanics',
+        component: MechanicsView,
+        meta: { title: 'Mechanics', section: 'workshop' },
+      },
+      {
+        path: 'work-orders',
+        name: 'work-orders',
+        component: WorkOrdersView,
+        meta: { title: 'Work Orders', section: 'workshop' },
+      },
+      {
+        path: 'service-history',
+        name: 'service-history',
+        component: ServiceHistoryView,
+        meta: { title: 'Service History', section: 'workshop' },
+      },
+      {
+        path: 'service-packages',
+        name: 'service-packages',
+        component: ServicePackagesView,
+        meta: { title: 'Service Packages', section: 'workshop' },
+      },
+      {
+        path: 'bookings',
+        name: 'bookings',
+        component: BookingsView,
+        meta: { title: 'Bookings', section: 'workshop' },
+      },
+      {
+        path: 'reports',
+        name: 'reports',
+        component: ReportsView,
+        meta: { title: 'Reports', section: 'reports' },
+      },
+      {
+        path: 'reports/dashboard-summary',
+        name: 'reports-dashboard-summary',
+        component: ReportsView,
+        meta: { title: 'Dashboard Summary', section: 'reports' },
+      },
+      {
+        path: 'reports/sales',
+        name: 'reports-sales',
+        component: ReportsView,
+        meta: { title: 'Sales Report', section: 'reports' },
+      },
+      {
+        path: 'reports/sales-items',
+        name: 'reports-sales-items',
+        component: ReportsView,
+        meta: { title: 'Sales Items Report', section: 'reports' },
+      },
+      {
+        path: 'reports/payments',
+        name: 'reports-payments',
+        component: ReportsView,
+        meta: { title: 'Payment Report', section: 'reports' },
+      },
+      {
+        path: 'reports/expenses',
+        name: 'reports-expenses',
+        component: ReportsView,
+        meta: { title: 'Expense Report', section: 'reports' },
+      },
+      {
+        path: 'reports/stock',
+        name: 'reports-stock',
+        component: ReportsView,
+        meta: { title: 'Stock Report', section: 'reports' },
+      },
+      {
+        path: 'reports/low-stock',
+        name: 'reports-low-stock',
+        component: ReportsView,
+        meta: { title: 'Low Stock Report', section: 'reports' },
+      },
+      {
+        path: 'reports/shifts',
+        name: 'reports-shifts',
+        component: ReportsView,
+        meta: { title: 'Shift Report', section: 'reports' },
+      },
+      {
         path: 'sales-report',
         name: 'sales-report',
-        component: SalesReportView,
+        component: ReportsView,
         meta: { title: 'Sales Report', section: 'reports' },
       },
       {
         path: 'expense-report',
         name: 'expense-report',
-        component: ExpenseReportView,
+        component: ReportsView,
         meta: { title: 'Expense Report', section: 'reports' },
       },
+      // These two render their own chart pages, not the ReportsView tabs.
+      // They draw a monthly profit-and-loss trend from
+      // /api/reports/monthly-pl/, which ReportsView never calls, so pointing
+      // them at ReportsView (as they were) left the components unreachable
+      // and the feature invisible. The dashboard links to /sales-chart twice.
       {
         path: 'sales-chart',
         name: 'sales-chart',
@@ -234,7 +336,7 @@ const router = createRouter({
   },
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const token = localStorage.getItem('token')
 
   if (to.meta.requiresAuth && !token) {
@@ -248,9 +350,39 @@ router.beforeEach((to) => {
     return '/dashboard'
   }
 
-  const pageTitle = to.meta?.title
-    ? `${to.meta.title} | ValdKerPOS Admin`
-    : 'ValdKerPOS Admin'
+  if (to.meta.requiresAuth || to.matched.some((record) => record.meta.requiresAuth)) {
+    const routeName = String(to.name || '')
+    const menuKeys = routeMenuKeys[routeName]
+
+    if (menuKeys) {
+      // Never decide access from a stale or absent contract: if this session
+      // has not fetched one yet, wait for it. Afterwards the cached contract
+      // answers instantly and the fetch only refreshes in the background.
+      if (!moduleContract.value) {
+        await loadModuleContract()
+      }
+
+
+      const userRaw = localStorage.getItem('user')
+      let user = null
+
+      try {
+        user = userRaw ? JSON.parse(userRaw) : null
+      } catch {
+        user = null
+      }
+
+      if (!canAccessMenu(user, menuKeys)) {
+        sessionStorage.setItem(
+          'module_access_message',
+          'This module is not available for your business type, plan, or role.'
+        )
+        return '/dashboard'
+      }
+    }
+  }
+
+  const pageTitle = to.meta?.title ? `${to.meta.title} | Valora Admin` : 'Valora Admin'
 
   document.title = pageTitle
 

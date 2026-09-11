@@ -72,8 +72,11 @@
         <select v-model="roleFilter" class="filter-select">
           <option value="">{{ t('usersPage.allRoles') }}</option>
           <option value="owner">{{ t('usersPage.owner') }}</option>
+          <option value="admin">{{ t('usersPage.admin') }}</option>
           <option value="manager">{{ t('usersPage.manager') }}</option>
           <option value="cashier">{{ t('usersPage.cashier') }}</option>
+          <option value="inventory_staff">{{ t('usersPage.inventoryStaff') }}</option>
+          <option value="finance">{{ t('usersPage.finance') }}</option>
         </select>
 
         <select v-model="activeFilter" class="filter-select">
@@ -259,8 +262,11 @@
                 :disabled="viewOnly || saving"
               >
                 <option value="owner">{{ t('usersPage.owner') }}</option>
+                <option value="admin">{{ t('usersPage.admin') }}</option>
                 <option value="manager">{{ t('usersPage.manager') }}</option>
                 <option value="cashier">{{ t('usersPage.cashier') }}</option>
+                <option value="inventory_staff">{{ t('usersPage.inventoryStaff') }}</option>
+                <option value="finance">{{ t('usersPage.finance') }}</option>
               </select>
             </div>
 
@@ -341,20 +347,99 @@
             </div>
           </div>
 
-          <div class="modal-actions">
-            <button class="secondary-btn" @click="closeModal">
-              {{ viewOnly ? t('common.close') : t('common.cancel') }}
-            </button>
+          <section v-if="!viewOnly" class="menu-permission-section">
+            <div class="menu-permission-header">
+              <div>
+                <h3>Hak Akses Menu</h3>
+                <p>Pilih menu yang boleh diakses user ini.</p>
+              </div>
 
-            <button
-              v-if="!viewOnly"
-              class="save-btn"
-              @click="saveUser"
-              :disabled="saving"
-            >
-              {{ saving ? t('usersPage.saving') : isEditMode ? t('usersPage.update') : t('usersPage.save') }}
-            </button>
-          </div>
+              <div class="menu-permission-actions">
+                <button
+                  type="button"
+                  class="permission-action-btn"
+                  @click="setAllMenuPermissions(true)"
+                  :disabled="saving || permissionsLoading || !menuPermissions.length"
+                >
+                  Aktifkan Semua
+                </button>
+                <button
+                  type="button"
+                  class="permission-action-btn"
+                  @click="setAllMenuPermissions(false)"
+                  :disabled="saving || permissionsLoading || !menuPermissions.length"
+                >
+                  Matikan Semua
+                </button>
+                <button
+                  type="button"
+                  class="permission-action-btn"
+                  @click="applyDefaultRolePermissions()"
+                  :disabled="saving || permissionsLoading || !menuOptions.length"
+                >
+                  Default Role
+                </button>
+              </div>
+            </div>
+
+            <div v-if="permissionsLoading" class="permission-loading">
+              Memuat hak akses menu...
+            </div>
+
+            <div v-else class="menu-permission-groups">
+              <section
+                v-for="group in groupedMenuPermissions"
+                :key="group.name"
+                class="permission-group"
+              >
+                <h4>{{ group.name }}</h4>
+
+                <div class="menu-permission-list">
+                  <label
+                    v-for="permission in group.items"
+                    :key="permission.menuKey"
+                    class="menu-permission-row"
+                    :class="{ disabled: permission.disabled }"
+                  >
+                    <span class="permission-copy">
+                      <span>{{ permission.label }}</span>
+                      <small
+                        v-if="permission.permissionSource === 'role_default'"
+                        class="permission-source"
+                      >
+                        {{ t('usersPage.followingRoleDefault') }}
+                      </small>
+                    </span>
+                    <span class="switch-control">
+                      <input
+                        v-model="permission.canAccess"
+                        type="checkbox"
+                        :disabled="saving || permission.disabled"
+                        @change="markPermissionExplicit(permission)"
+                      />
+                      <span class="switch-track"></span>
+                    </span>
+                  </label>
+                </div>
+              </section>
+            </div>
+          </section>
+
+        </div>
+
+        <div class="modal-actions">
+          <button class="secondary-btn" @click="closeModal">
+            {{ viewOnly ? t('common.close') : t('common.cancel') }}
+          </button>
+
+          <button
+            v-if="!viewOnly"
+            class="save-btn"
+            @click="saveUser"
+            :disabled="saving || permissionsLoading"
+          >
+            {{ saving ? t('usersPage.saving') : isEditMode ? t('usersPage.update') : t('usersPage.save') }}
+          </button>
         </div>
       </div>
     </div>
@@ -366,8 +451,58 @@ import api from '@/services/api'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { normalizeApiList } from '@/utils/apiData'
+import { ENDPOINTS } from '@/services/endpoints'
 
-type UserRoleApi = 'owner' | 'manager' | 'cashier'
+type UserRoleApi = 'owner' | 'admin' | 'manager' | 'cashier' | 'inventory_staff' | 'finance'
+
+/** Where a permission value came from, as reported by the API. */
+type PermissionSource = 'explicit' | 'role_default' | 'unknown'
+
+type MenuPermissionApiItem = {
+  key?: string
+  menu_key?: string
+  label?: string
+  group?: string
+  plan_level?: string
+  business_types?: string[]
+  implemented?: boolean
+  can_access?: boolean
+  /** "explicit" = set for this user; "role_default" = inherited from the role. */
+  source?: string
+}
+
+type MenuPermissionOption = {
+  key: string
+  label: string
+  group: string
+  implemented: boolean
+}
+
+type MenuPermissionState = {
+  menuKey: string
+  label: string
+  canAccess: boolean
+  group: string
+  implemented: boolean
+  disabled: boolean
+  permissionSource: PermissionSource
+}
+
+/**
+ * Display order for the groups the backend uses. Any group name not listed
+ * here still renders - it is appended in the order the backend sent it - so a
+ * new backend group never silently drops its modules off this screen.
+ */
+const preferredGroupOrder = [
+  'Core',
+  'Reports',
+  'Pro',
+  'Enterprise',
+  'Finance',
+  'Workshop',
+  'Restaurant',
+  'System',
+]
 
 type StaffApiItem = {
   id: number
@@ -383,6 +518,7 @@ type StaffApiItem = {
   shop_code: string
   is_active: boolean
   date_joined: string
+  menu_permissions?: MenuPermissionApiItem[]
 }
 
 type ShopUser = {
@@ -399,6 +535,13 @@ type ShopUser = {
   shopCode: string
   isActive: boolean
   dateJoined: string
+  /**
+   * Kept exactly as the API sent it. It must NOT be normalised at list-load
+   * time: the option list has not been fetched yet then, and normalising
+   * against an empty option list silently threw every row away, so the Edit
+   * modal opened with all permissions off.
+   */
+  menuPermissions: MenuPermissionApiItem[]
 }
 
 const { t, locale } = useI18n()
@@ -419,6 +562,63 @@ const saving = ref(false)
 const deletingId = ref<number | null>(null)
 const errorMessage = ref('')
 const successMessage = ref('')
+const permissionsLoading = ref(false)
+const menuOptions = ref<MenuPermissionOption[]>([])
+const menuPermissions = ref<MenuPermissionState[]>([])
+
+const groupedMenuPermissions = computed(() => {
+  const seen = menuPermissions.value.map((permission) => permission.group)
+  const order = [
+    ...preferredGroupOrder,
+    ...seen.filter((name) => !preferredGroupOrder.includes(name)),
+  ]
+
+  return [...new Set(order)]
+    .map((name) => ({
+      name,
+      items: menuPermissions.value.filter((permission) => permission.group === name),
+    }))
+    .filter((group) => group.items.length > 0)
+})
+
+const managerDefaultMenus = new Set([
+  'pos',
+  'orders',
+  'customers',
+  'suppliers',
+  'purchases',
+  'products',
+  'categories',
+  'units',
+  'expenses',
+  'product_returns',
+  'inventory_counts',
+  'stock_adjustments',
+  'stock_movements',
+  'reports',
+])
+
+const cashierDefaultMenus = new Set(['pos', 'orders', 'customers'])
+
+const inventoryStaffDefaultMenus = new Set([
+  'products',
+  'categories',
+  'units',
+  'warehouses',
+  'warehouse_stocks',
+  'stock_transfers',
+  'stock_movements',
+  'stock_adjustments',
+  'inventory_counts',
+])
+
+const financeDefaultMenus = new Set([
+  'reports',
+  'expenses',
+  'bank_accounts',
+  'bank_ledgers',
+  'orders',
+])
 
 const form = reactive({
   username: '',
@@ -467,7 +667,7 @@ const filteredUsers = computed(() => {
 
 const activeCount = computed(() => users.value.filter((item) => item.isActive).length)
 const adminCount = computed(() =>
-  users.value.filter((item) => item.role === 'owner' || item.role === 'manager').length
+  users.value.filter((item) => item.role === 'owner' || item.role === 'admin' || item.role === 'manager').length
 )
 
 function normalizeUser(item: StaffApiItem): ShopUser {
@@ -485,24 +685,248 @@ function normalizeUser(item: StaffApiItem): ShopUser {
     shopCode: item.shop_code || '',
     isActive: Boolean(item.is_active),
     dateJoined: item.date_joined || '',
+    menuPermissions: Array.isArray(item.menu_permissions) ? item.menu_permissions : [],
   }
 }
 
 function normalizeRole(role: unknown): UserRoleApi {
   const value = String(role || '').toLowerCase()
-  if (value === 'owner' || value === 'manager' || value === 'cashier') return value
+  if (value === 'kasir') return 'cashier'
+  if (
+    value === 'owner' ||
+    value === 'admin' ||
+    value === 'manager' ||
+    value === 'cashier' ||
+    value === 'inventory_staff' ||
+    value === 'finance'
+  ) {
+    return value
+  }
   return 'cashier'
 }
 
 function roleToLabel(role: unknown) {
   const value = normalizeRole(role)
   if (value === 'owner') return t('usersPage.owner')
+  if (value === 'admin') return t('usersPage.admin')
   if (value === 'manager') return t('usersPage.manager')
+  if (value === 'inventory_staff') return t('usersPage.inventoryStaff')
+  if (value === 'finance') return t('usersPage.finance')
   return t('usersPage.cashier')
 }
 
 function buildFullName(firstName?: string, lastName?: string) {
   return [firstName, lastName].filter(Boolean).join(' ').trim()
+}
+
+/**
+ * Takes one entry from `GET /api/menu-permissions/options/` exactly as it
+ * came. Both the label and the group are the backend's own answer for this
+ * shop. The dashboard used to overlay a local catalog here, which is why a
+ * retail shop was offered Workshop and Restaurant toggles it could never use.
+ *
+ * The response also carries `plan_level` and `business_types`. This screen
+ * deliberately keeps neither: the backend has already dropped every module
+ * this shop's plan or business type rules out, so those two fields are true
+ * of every row shown and say nothing about the user being edited.
+ */
+function normalizeMenuOption(item: MenuPermissionApiItem): MenuPermissionOption | null {
+  const key = String(item.key || item.menu_key || '').trim()
+  if (!key) return null
+
+  return {
+    key,
+    label: item.label || humanizeKey(key),
+    group: String(item.group || 'System'),
+    implemented: item.implemented !== false,
+  }
+}
+
+function getPermissionKey(item: MenuPermissionApiItem | MenuPermissionState) {
+  if ('menuKey' in item) return item.menuKey
+  return String(item.menu_key || item.key || '').trim()
+}
+
+function getPermissionAccess(item: MenuPermissionApiItem | MenuPermissionState) {
+  if ('canAccess' in item) return Boolean(item.canAccess)
+  return Boolean(item.can_access)
+}
+
+
+/**
+ * The backend already dropped every module this shop's plan and business type
+ * do not allow, and every module with no page behind it, before it answered.
+ * So the only thing left to refuse is a module that arrived flagged
+ * unimplemented - a belt-and-braces check, not a second opinion.
+ */
+function isPermissionDisabled(option: MenuPermissionOption) {
+  return option.implemented === false
+}
+
+function normalizeMenuPermissions(
+  source: Array<MenuPermissionApiItem | MenuPermissionState>,
+  options: MenuPermissionOption[]
+) {
+  const sourceByKey = new Map<string, MenuPermissionApiItem | MenuPermissionState>()
+
+  source.forEach((item) => {
+    const key = getPermissionKey(item)
+    if (key) sourceByKey.set(key, item)
+  })
+
+  // Exactly one row per option the backend offered, and no others. A stale
+  // UserMenuPermission row for a module this shop no longer has must not
+  // resurrect a toggle for it.
+  return options.map((option) => {
+    const existing = sourceByKey.get(option.key)
+    const disabled = isPermissionDisabled(option)
+
+    return {
+      menuKey: option.key,
+      label: option.label,
+      group: option.group,
+      implemented: option.implemented,
+      disabled,
+      // `can_access` from the API is the *effective* value: the role's default
+      // unless a UserMenuPermission row overrides it. It is shown as-is. The
+      // `false` at the end is only for a key the API sent no row for at all,
+      // which should not happen.
+      canAccess: disabled ? false : existing ? getPermissionAccess(existing) : false,
+      permissionSource: disabled ? 'unknown' : getPermissionSource(existing),
+    }
+  })
+}
+
+/**
+ * Whether this value was set deliberately for this user or is just the role's
+ * default. Without it, "off" is ambiguous - the owner cannot tell "I turned
+ * this off" apart from "nobody has ever touched this".
+ */
+function getPermissionSource(
+  item: MenuPermissionApiItem | MenuPermissionState | undefined
+): PermissionSource {
+  if (!item) return 'unknown'
+  if ('permissionSource' in item && item.permissionSource) return item.permissionSource
+  const raw = String((item as MenuPermissionApiItem).source || '').trim()
+  if (raw === 'explicit' || raw === 'role_default') return raw
+  return 'unknown'
+}
+
+function canAccessByDefault(role: string, menuKey: string) {
+  const normalizedRole = role.toLowerCase()
+
+  if (normalizedRole === 'owner' || normalizedRole === 'admin') {
+    return true
+  }
+
+  if (normalizedRole === 'manager') return managerDefaultMenus.has(menuKey)
+
+  if (normalizedRole === 'cashier' || normalizedRole === 'kasir') return cashierDefaultMenus.has(menuKey)
+
+  if (normalizedRole === 'inventory_staff') return inventoryStaffDefaultMenus.has(menuKey)
+
+  if (normalizedRole === 'finance') return financeDefaultMenus.has(menuKey)
+
+  return false
+}
+
+function applyDefaultRolePermissions(role = form.role) {
+  menuPermissions.value = menuOptions.value.map((option) => {
+    const disabled = isPermissionDisabled(option)
+
+    return {
+      menuKey: option.key,
+      label: option.label,
+      group: option.group,
+      implemented: option.implemented,
+      disabled,
+      canAccess: disabled ? false : canAccessByDefault(role, option.key),
+      // These values are the role's defaults by definition.
+      permissionSource: (disabled ? 'unknown' : 'role_default') as PermissionSource,
+    }
+  })
+}
+
+function setAllMenuPermissions(canAccess: boolean) {
+  menuPermissions.value = menuPermissions.value.map((permission) => ({
+    ...permission,
+    canAccess: permission.disabled ? false : canAccess,
+    permissionSource: (permission.disabled ? 'unknown' : 'explicit') as PermissionSource,
+  }))
+}
+
+/**
+ * The moment an owner flips a switch, the value is theirs, not the role's, so
+ * the "following role default" note has to stop claiming otherwise - even
+ * before the form is saved.
+ */
+function markPermissionExplicit(permission: MenuPermissionState) {
+  if (permission.disabled) return
+  permission.permissionSource = 'explicit'
+}
+
+async function fetchMenuOptions() {
+  if (menuOptions.value.length) return menuOptions.value
+
+  permissionsLoading.value = true
+
+  try {
+    const response = await api.get(ENDPOINTS.MENU_PERMISSION_OPTIONS)
+    const raw = normalizeApiList(response.data)
+    menuOptions.value = raw
+      .map((item) => normalizeMenuOption(item as MenuPermissionApiItem))
+      .filter((item): item is MenuPermissionOption => Boolean(item))
+      // A module with no page behind it is not something access can be
+      // granted to, so it is not offered as a choice.
+      .filter((option) => option.implemented)
+
+    return menuOptions.value
+  } catch (error: any) {
+    errorMessage.value = extractErrorMessage(error, 'Gagal memuat daftar hak akses menu.')
+    return []
+  } finally {
+    permissionsLoading.value = false
+  }
+}
+
+async function prepareAddMenuPermissions() {
+  const options = await fetchMenuOptions()
+  if (options.length) applyDefaultRolePermissions(form.role)
+}
+
+async function prepareEditMenuPermissions(user: ShopUser) {
+  // Options first: without them there is nothing to render rows against.
+  const options = await fetchMenuOptions()
+  if (options.length) {
+    menuPermissions.value = normalizeMenuPermissions(user.menuPermissions, options)
+  }
+}
+
+async function ensureMenuPermissionsReady() {
+  if (menuPermissions.value.length) return true
+
+  const options = await fetchMenuOptions()
+  if (options.length) {
+    applyDefaultRolePermissions(form.role)
+    return true
+  }
+
+  errorMessage.value = errorMessage.value || 'Hak Akses Menu belum bisa dimuat.'
+  return false
+}
+
+/**
+ * Submits a decision for every module the backend offered, and only those.
+ * It used to submit the local catalog's keys instead, which sent the server
+ * toggles for modules the shop does not have.
+ */
+function buildMenuPermissionPayload() {
+  const permissionByKey = new Map(menuPermissions.value.map((permission) => [permission.menuKey, permission]))
+
+  return menuOptions.value.map((option) => ({
+    menu_key: option.key,
+    can_access: !isPermissionDisabled(option) && Boolean(permissionByKey.get(option.key)?.canAccess),
+  }))
 }
 
 function getDateLocale() {
@@ -515,7 +939,7 @@ async function fetchUsers() {
   errorMessage.value = ''
 
   try {
-    const response = await api.get('/api/staff/')
+    const response = await api.get(ENDPOINTS.STAFF)
     const raw = normalizeApiList(response.data)
     users.value = raw.map(normalizeUser)
   } catch (error: any) {
@@ -541,9 +965,10 @@ function resetForm() {
   form.isActive = true
   form.password = ''
   form.confirmPassword = ''
+  menuPermissions.value = []
 }
 
-function openAddModal() {
+async function openAddModal() {
   successMessage.value = ''
   errorMessage.value = ''
   selectedUser.value = null
@@ -552,9 +977,10 @@ function openAddModal() {
   isEditMode.value = false
   viewOnly.value = false
   showModal.value = true
+  await prepareAddMenuPermissions()
 }
 
-function openViewModal(user: ShopUser) {
+async function openViewModal(user: ShopUser) {
   selectedUser.value = user
   resetForm()
 
@@ -569,9 +995,11 @@ function openViewModal(user: ShopUser) {
   isEditMode.value = false
   viewOnly.value = true
   showModal.value = true
+
+  await prepareEditMenuPermissions(user)
 }
 
-function openEditModal(user: ShopUser) {
+async function openEditModal(user: ShopUser) {
   successMessage.value = ''
   errorMessage.value = ''
   selectedUser.value = user
@@ -589,6 +1017,7 @@ function openEditModal(user: ShopUser) {
   isEditMode.value = true
   viewOnly.value = false
   showModal.value = true
+  await prepareEditMenuPermissions(user)
 }
 
 function closeModal() {
@@ -651,6 +1080,7 @@ function buildPayload(isEdit = false) {
     email: form.email.trim(),
     role: form.role,
     is_active: Boolean(form.isActive),
+    menu_permissions: buildMenuPermissionPayload(),
   }
 
   if (!isEdit || form.password) {
@@ -665,11 +1095,12 @@ async function saveUser() {
   successMessage.value = ''
 
   if (!validateForm()) return
+  if (!(await ensureMenuPermissionsReady())) return
 
   saving.value = true
   try {
     if (isEditMode.value && editingId.value !== null) {
-      const response = await api.patch(`/api/staff/${editingId.value}/`, buildPayload(true))
+      const response = await api.patch(`${ENDPOINTS.STAFF}${editingId.value}/`, buildPayload(true))
       const normalized = normalizeUser(response.data)
       const index = users.value.findIndex((item) => item.id === editingId.value)
       if (index !== -1) {
@@ -679,7 +1110,7 @@ async function saveUser() {
       }
       successMessage.value = t('usersPage.userUpdated')
     } else {
-      const response = await api.post('/api/staff/', buildPayload(false))
+      const response = await api.post(ENDPOINTS.STAFF, buildPayload(false))
       const normalized = normalizeUser(response.data)
       users.value.unshift(normalized)
       successMessage.value = t('usersPage.userCreated')
@@ -703,7 +1134,7 @@ async function deleteUser(user: ShopUser) {
 
   deletingId.value = user.id
   try {
-    await api.delete(`/api/staff/${user.id}/`)
+    await api.delete(`${ENDPOINTS.STAFF}${user.id}/`)
     users.value = users.value.filter((item) => item.id !== user.id)
     successMessage.value = t('usersPage.userDeleted')
   } catch (error: any) {
@@ -752,9 +1183,9 @@ function getInitials(firstName: string, lastName: string, username: string) {
 
 function roleClass(role: UserRoleApi) {
   return {
-    info: role === 'owner',
+    info: role === 'owner' || role === 'admin',
     unpaid: role === 'manager',
-    paid: role === 'cashier',
+    paid: role === 'cashier' || role === 'inventory_staff' || role === 'finance',
   }
 }
 
@@ -1205,9 +1636,12 @@ onMounted(() => {
 
 .modal-card {
   width: min(760px, 100%);
+  max-height: 90vh;
   background: white;
   border-radius: 22px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-card-wide {
@@ -1220,6 +1654,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid #edf2f7;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -1244,6 +1679,9 @@ onMounted(() => {
 
 .modal-body {
   padding: 22px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .form-grid {
@@ -1284,11 +1722,176 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+.menu-permission-section {
+  margin-top: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.menu-permission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.menu-permission-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.05rem;
+}
+
+.menu-permission-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.menu-permission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.permission-action-btn {
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: white;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.permission-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.permission-loading {
+  color: #64748b;
+  font-weight: 600;
+  padding: 14px 0 2px;
+}
+
+.menu-permission-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.permission-group h4 {
+  margin: 0 0 8px;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.menu-permission-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.menu-permission-row {
+  min-height: 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  padding: 8px 12px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.menu-permission-row.disabled {
+  opacity: 0.58;
+  background: #f1f5f9;
+}
+
+.permission-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.permission-source {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.switch-control {
+  position: relative;
+  display: inline-flex;
+  width: 44px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.switch-control input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch-control input:disabled {
+  cursor: not-allowed;
+}
+
+.switch-track {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 0.15s ease;
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.switch-control input:checked + .switch-track {
+  background: #22c55e;
+}
+
+.switch-control input:checked + .switch-track::after {
+  transform: translateX(20px);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 22px;
+  padding: 16px 22px;
+  border-top: 1px solid #edf2f7;
+  background: white;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .secondary-btn,
@@ -1325,8 +1928,17 @@ onMounted(() => {
 @media (max-width: 1100px) {
   .toolbar-grid-4,
   .stats-grid,
-  .two-col {
+  .two-col,
+  .menu-permission-list {
     grid-template-columns: 1fr;
+  }
+
+  .menu-permission-header {
+    flex-direction: column;
+  }
+
+  .menu-permission-actions {
+    justify-content: flex-start;
   }
 
   .toolbar-actions {

@@ -129,7 +129,7 @@
           <div class="step-number">4</div>
           <div class="step-text">
             <strong>Confirm Import</strong>
-            <span>Start migration to ValdKerPOS</span>
+            <span>Start migration to Valora</span>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@
               </div>
 
               <div class="template-content">
-                <h3>ValdKerPOS Master Import Template.xlsx</h3>
+                <h3>Valora Master Import Template.xlsx</h3>
                 <p>
                   Recommended sheets:
                   <strong>Categories, Units, Products, Customers, Suppliers, OpeningStock</strong>
@@ -425,6 +425,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type ValidationErrorRow = {
   id: number
@@ -466,12 +467,12 @@ type ImportValidateResponse = {
 }
 
 const IMPORT_ENDPOINTS = {
-  TEMPLATE: '/api/import-master-data/template/',
-  TEMPLATE_INFO: '/api/import-master-data/template/info/',
-  JOBS: '/api/import-master-data/jobs/',
-  detail: (id: number | string) => `/api/import-master-data/jobs/${id}/`,
-  validate: (id: number | string) => `/api/import-master-data/jobs/${id}/validate/`,
-  confirm: (id: number | string) => `/api/import-master-data/jobs/${id}/confirm/`,
+  TEMPLATE: ENDPOINTS.IMPORT_TEMPLATE,
+  TEMPLATE_INFO: ENDPOINTS.IMPORT_TEMPLATE_INFO,
+  JOBS: ENDPOINTS.IMPORT_JOBS,
+  detail: (id: number | string) => `${ENDPOINTS.IMPORT_JOBS}${id}/`,
+  validate: (id: number | string) => `${ENDPOINTS.IMPORT_JOBS}${id}/validate/`,
+  confirm: (id: number | string) => `${ENDPOINTS.IMPORT_JOBS}${id}/confirm/`,
 }
 
 const currentStep = ref(1)

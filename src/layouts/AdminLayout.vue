@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
+import { loadModuleContract } from '@/services/moduleContract'
 
 type Shop = {
   id: string | number
@@ -18,14 +19,19 @@ type LoggedUser = {
   role_label?: string
   shop_id?: string | number
   shop_name?: string
+  shop_business_type?: string
+  shop_plan?: string
   shop_code?: string
   is_staff?: boolean
   is_superuser?: boolean
   is_platform_admin?: boolean
   is_shop_user?: boolean
   is_shop_owner?: boolean
+  is_shop_admin?: boolean
   is_shop_manager?: boolean
   is_shop_cashier?: boolean
+  menu_permissions?: unknown
+  effective_modules?: unknown
 }
 
 type LoggedShop = {
@@ -34,6 +40,8 @@ type LoggedShop = {
   code?: string
   slug?: string
   business_type?: string
+  business_type_value?: string
+  plan?: string
   address?: string
   phone?: string
   email?: string
@@ -51,7 +59,9 @@ const openGroups = ref({
   inventory: true,
   people: true,
   finance: true,
+  workshop: true,
   reports: true,
+  'system-tools': true,
 })
 
 const isCollapsed = ref(false)
@@ -127,7 +137,7 @@ const loadAuthUser = () => {
       shops.value = []
       selectedShopId.value = ''
     }
-  } catch (error) {
+  } catch {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('shop')
@@ -136,8 +146,8 @@ const loadAuthUser = () => {
   }
 }
 
-const toggleGroup = (group: keyof typeof openGroups.value) => {
-  openGroups.value[group] = !openGroups.value[group]
+const toggleGroup = (group: string) => {
+  openGroups.value[group as keyof typeof openGroups.value] = !openGroups.value[group as keyof typeof openGroups.value]
 }
 
 const toggleCollapse = () => {
@@ -168,6 +178,10 @@ const changeShop = (shopId: string | number) => {
 onMounted(() => {
   loadTheme()
   loadAuthUser()
+  // Refresh the module contract on every boot so a plan or permission change
+  // made by the platform admin takes effect without asking the user to log
+  // out and back in.
+  void loadModuleContract()
 })
 </script>
 
@@ -182,6 +196,7 @@ onMounted(() => {
       :pending-order-count="pendingOrderCount"
       :shops="shops"
       :current-shop="currentShop"
+      :current-user="loggedUser"
       @toggle-group="toggleGroup"
       @close-mobile="closeMobileSidebar"
       @toggle-collapse="toggleCollapse"

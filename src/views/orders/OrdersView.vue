@@ -472,7 +472,7 @@
                   <textarea
                     v-model="itemsJson"
                     rows="8"
-                    :placeholder="t('ordersPage.itemsJsonPlaceholder')"
+                    :placeholder="`${t('ordersPage.itemsJsonPlaceholder')} ${ITEMS_JSON_SAMPLE}`"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -482,7 +482,7 @@
                   <textarea
                     v-model="paymentsJson"
                     rows="6"
-                    :placeholder="t('ordersPage.paymentsJsonPlaceholder')"
+                    :placeholder="`${t('ordersPage.paymentsJsonPlaceholder')} ${PAYMENTS_JSON_SAMPLE}`"
                     :disabled="modalMode === 'view' || saving"
                   />
                 </div>
@@ -555,6 +555,13 @@
 </template>
 
 <script setup lang="ts">
+
+// JSON samples live here rather than in the locale files: vue-i18n reads `{` as
+// the start of an interpolation, so a brace-bearing message fails to compile and
+// throws on every render of this page. They are code examples, not prose, so
+// there is nothing to translate in them either.
+const ITEMS_JSON_SAMPLE = '[{"product":1,"quantity":"2","unit_price":"5.00"}]'
+const PAYMENTS_JSON_SAMPLE = '[{"method":"CASH","amount":"10.00"}]'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'

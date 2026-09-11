@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { clearModuleContract } from '@/services/moduleContract'
 
 type AppLocale = 'en' | 'id' | 'tet'
 
@@ -40,12 +41,22 @@ const currentLanguage = computed<AppLocale>({
   },
 })
 
+const openSettings = () => {
+  emit('toggle-profile')
+  router.push('/settings')
+}
+
 const logout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('auth_token')
   localStorage.removeItem('user')
   localStorage.removeItem('shop')
   localStorage.removeItem('shop_code')
+  // Entitlements are per user. Leaving these behind let the next person to
+  // log in on this browser inherit the previous user's modules until their
+  // own contract arrived.
+  localStorage.removeItem('effective_modules')
+  clearModuleContract()
 
   router.replace('/login')
 }
@@ -83,8 +94,14 @@ const logout = () => {
         </button>
 
         <div v-if="props.profileOpen" class="profile-dropdown">
-          <button class="dropdown-item" type="button">{{ t('profile') }}</button>
-          <button class="dropdown-item" type="button">{{ t('settings') }}</button>
+          <!--
+            A "Profile" item belongs here, but there is no profile page and no
+            /profile route yet, so the button did nothing when clicked - which
+            reads to the user as a broken app rather than a missing feature.
+            Restore this line once a profile page exists:
+            <button class="dropdown-item" type="button" @click="openProfile">{{ t('profile') }}</button>
+          -->
+          <button class="dropdown-item" type="button" @click="openSettings">{{ t('settings') }}</button>
           <button class="dropdown-item danger" type="button" @click="logout">
             {{ t('logout') }}
           </button>

@@ -306,6 +306,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
 type TransferStatus = 'DRAFT' | 'COMPLETED' | 'CANCELLED'
@@ -501,12 +502,12 @@ const removeItemRow = (index: number) => {
 }
 
 const fetchWarehouses = async () => {
-  const { data } = await api.get('/api/warehouses/')
+  const { data } = await api.get(ENDPOINTS.WAREHOUSES)
   warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
 }
 
 const fetchProductOptions = async () => {
-  const { data } = await api.get('/api/warehouse-stocks/')
+  const { data } = await api.get(ENDPOINTS.WAREHOUSE_STOCKS)
   const normalized = normalizeApiList(data).map(normalizeProductOption)
 
   const seen = new Set<number>()
@@ -518,7 +519,7 @@ const fetchProductOptions = async () => {
 }
 
 const fetchTransfers = async () => {
-  const { data } = await api.get('/api/stock-transfers/')
+  const { data } = await api.get(ENDPOINTS.STOCK_TRANSFERS)
   transfers.value = normalizeApiList(data).map(normalizeTransfer)
 }
 
@@ -613,9 +614,9 @@ const saveTransfer = async () => {
     const payload = buildPayload()
 
     if (isEditing.value && editingId.value !== null) {
-      await api.put(`/api/stock-transfers/${editingId.value}/`, payload)
+      await api.put(`${ENDPOINTS.STOCK_TRANSFERS}${editingId.value}/`, payload)
     } else {
-      await api.post('/api/stock-transfers/', payload)
+      await api.post(ENDPOINTS.STOCK_TRANSFERS, payload)
     }
 
     closeModal()
@@ -647,7 +648,7 @@ const removeTransfer = async (item: StockTransfer) => {
   errorMessage.value = ''
 
   try {
-    await api.delete(`/api/stock-transfers/${item.id}/`)
+    await api.delete(`${ENDPOINTS.STOCK_TRANSFERS}${item.id}/`)
     await loadData()
   } catch (error: any) {
     window.alert(getErrorMessage(error, t('transferStocksPage.deleteError')))
@@ -667,7 +668,7 @@ const completeTransfer = async (item: StockTransfer) => {
   submitting.value = true
 
   try {
-    await api.post(`/api/stock-transfers/${item.id}/complete/`, {
+    await api.post(`${ENDPOINTS.STOCK_TRANSFERS}${item.id}/complete/`, {
       from_warehouse: item.from_warehouse,
       to_warehouse: item.to_warehouse,
       note: item.note || '',
@@ -692,7 +693,7 @@ const cancelTransfer = async (item: StockTransfer) => {
   submitting.value = true
 
   try {
-    await api.post(`/api/stock-transfers/${item.id}/cancel/`, {
+    await api.post(`${ENDPOINTS.STOCK_TRANSFERS}${item.id}/cancel/`, {
       from_warehouse: item.from_warehouse,
       to_warehouse: item.to_warehouse,
       note: item.note || '',

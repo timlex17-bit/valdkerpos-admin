@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import { ENDPOINTS } from '@/services/endpoints'
 
 type LoginUser = {
   id: number | string
@@ -9,17 +10,26 @@ type LoginUser = {
   full_name?: string
   email?: string
   role?: string
+  businessType?: string
+  plan?: string
+  effectiveModules?: string[]
+  menuPermissions?: unknown
   role_label?: string
   shop_id?: number | string
   shop_name?: string
+  shop_business_type?: string
+  shop_plan?: string
   shop_code?: string
   is_staff?: boolean
   is_superuser?: boolean
   is_platform_admin?: boolean
   is_shop_user?: boolean
   is_shop_owner?: boolean
+  is_shop_admin?: boolean
   is_shop_manager?: boolean
   is_shop_cashier?: boolean
+  menu_permissions?: unknown
+  effective_modules?: string[]
 }
 
 type LoginShop = {
@@ -27,7 +37,10 @@ type LoginShop = {
   name: string
   code?: string
   slug?: string
+  businessType?: string
   business_type?: string
+  business_type_value?: string
+  plan?: string
   address?: string
   phone?: string
   email?: string
@@ -42,6 +55,7 @@ type LoginResponse = {
   token: string
   user: LoginUser
   shop?: LoginShop
+  effective_modules?: string[]
 }
 
 const router = useRouter()
@@ -55,7 +69,7 @@ const isDark = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const API_LOGIN_URL = '/api/auth/login/'
+const API_LOGIN_URL = ENDPOINTS.AUTH_LOGIN
 
 const canSubmit = computed(() => {
   return (
@@ -75,16 +89,54 @@ const togglePassword = () => {
 }
 
 const saveAuthToStorage = (data: LoginResponse) => {
+  const shopBusinessType =
+    data.user.businessType ||
+    data.user.shop_business_type ||
+    data.shop?.businessType ||
+    data.shop?.business_type ||
+    ''
+  const shopPlan = data.user.plan || data.user.shop_plan || data.shop?.plan || 'BASIC'
+  const effectiveModules = Array.isArray(data.effective_modules)
+    ? data.effective_modules
+    : Array.isArray(data.user.effectiveModules)
+      ? data.user.effectiveModules
+      : Array.isArray(data.user.effective_modules)
+        ? data.user.effective_modules
+        : []
+  const userWithShopProfile: LoginUser = {
+    ...data.user,
+    role: data.user.role || 'cashier',
+    businessType: shopBusinessType,
+    plan: shopPlan,
+    effectiveModules,
+    menuPermissions: data.user.menuPermissions || data.user.menu_permissions || [],
+    shop_id: data.user.shop_id || data.shop?.id,
+    shop_name: data.user.shop_name || data.shop?.name,
+    shop_business_type: shopBusinessType,
+    shop_plan: shopPlan,
+    menu_permissions: data.user.menu_permissions || data.user.menuPermissions || [],
+    effective_modules: effectiveModules,
+  }
+
   localStorage.setItem('token', data.token)
-  localStorage.setItem('user', JSON.stringify(data.user))
+  localStorage.setItem('user', JSON.stringify(userWithShopProfile))
+  localStorage.setItem('effective_modules', JSON.stringify(effectiveModules))
 
   if (data.shop) {
-    localStorage.setItem('shop', JSON.stringify(data.shop))
+    localStorage.setItem(
+      'shop',
+      JSON.stringify({
+        ...data.shop,
+        businessType: data.shop.businessType || data.shop.business_type || shopBusinessType,
+        business_type: data.shop.business_type || shopBusinessType,
+        plan: data.shop.plan || shopPlan,
+      })
+    )
   }
 
   localStorage.setItem(
     'shop_code',
-    data.user.shop_code || data.shop?.code || shopCode.value.trim().toUpperCase()
+    userWithShopProfile.shop_code || data.shop?.code || shopCode.value.trim().toUpperCase()
   )
 
   if (rememberMe.value) {
