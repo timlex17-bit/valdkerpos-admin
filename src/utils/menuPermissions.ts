@@ -50,6 +50,8 @@ export const routeMenuKeys: Record<string, string[]> = {
   'service-history': ['service_history'],
   'service-packages': ['service_packages'],
   bookings: ['bookings'],
+  tables: ['tables'],
+  waiters: ['waiters'],
   reports: ['reports'],
   'reports-dashboard-summary': ['reports'],
   'reports-sales': ['sales_report'],

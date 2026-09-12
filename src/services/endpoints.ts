@@ -39,6 +39,12 @@ export const ENDPOINTS = {
   WAREHOUSE_STOCKS: '/api/warehouse-stocks/',
   STOCK_TRANSFERS: '/api/stock-transfers/',
 
+  // RESTAURANT
+  TABLES: '/api/tables/',
+  tableDetail: (id: number | string) => `/api/tables/${id}/`,
+  RESTAURANT_WAITERS: '/api/restaurant/waiters/',
+  REPORT_WAITER_PERFORMANCE: '/api/reports/waiter-performance/',
+
   // WORKSHOP
   VEHICLES: '/api/vehicles/',
   MECHANICS: '/api/mechanics/',

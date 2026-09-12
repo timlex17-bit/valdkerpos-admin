@@ -1,6 +1,6 @@
 /**
  * Snapshot of the backend module matrix (`pos/module_registry.py`), 48
- * modules, regenerated from a live `GET /api/modules/` on 2026-09-11.
+ * modules, regenerated from a live `GET /api/modules/` on 2026-09-12.
  *
  * This is NOT a rule the dashboard applies - nothing in `src/` reads it at
  * runtime. It exists so `moduleContract.spec.ts` can check that every module
@@ -63,9 +63,9 @@ export const BACKEND_MODULE_MATRIX: BackendModule[] = [
   { key: 'service_history', plan_level: 'BASIC', business_types: ['WORKSHOP'], implemented: true },
   { key: 'service_packages', plan_level: 'BASIC', business_types: ['WORKSHOP'], implemented: true },
   { key: 'bookings', plan_level: 'BASIC', business_types: ['WORKSHOP'], implemented: true },
-  { key: 'tables', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
+  { key: 'tables', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: true },
   { key: 'kitchen_display', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
-  { key: 'waiters', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
+  { key: 'waiters', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: true },
   { key: 'recipe_bom', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
   { key: 'delivery_orders', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },
   { key: 'reservations', plan_level: 'BASIC', business_types: ['RESTAURANT'], implemented: false },

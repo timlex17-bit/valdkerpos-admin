@@ -60,6 +60,7 @@ const openGroups = ref({
   people: true,
   finance: true,
   workshop: true,
+  restaurant: true,
   reports: true,
   'system-tools': true,
 })
