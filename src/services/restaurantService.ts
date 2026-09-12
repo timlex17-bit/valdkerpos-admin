@@ -160,6 +160,169 @@ export async function getWaiterPerformance(params: {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Kitchen Display
+ * ------------------------------------------------------------------ */
+
+/**
+ * The five kitchen states. `kitchen_status` can also be null in the database,
+ * but that is NOT a sixth state - it marks an item from a retail/workshop shop
+ * that has no kitchen flow at all. The board query excludes those, so a null
+ * reaching this client would be a backend bug, not a state to render.
+ */
+export type KitchenStatus = 'PENDING' | 'PREPARING' | 'READY' | 'SERVED' | 'CANCELLED'
+
+/** Statuses that actually appear on the board. SERVED/CANCELLED leave it. */
+export const KITCHEN_BOARD_STATUSES: KitchenStatus[] = ['PENDING', 'PREPARING', 'READY']
+
+/**
+ * Server-enforced transition table, copied from the contract in
+ * docs/api/RESTAURANT_API.md. This is not a second opinion about business
+ * rules: the server re-reads the current status under select_for_update() and
+ * rejects anything illegal with 400 regardless of what this says. It exists so
+ * the UI does not offer a button that is certain to be refused.
+ */
+const KITCHEN_TRANSITIONS: Record<KitchenStatus, KitchenStatus[]> = {
+  PENDING: ['PREPARING', 'CANCELLED'],
+  PREPARING: ['READY', 'CANCELLED'],
+  READY: ['SERVED', 'CANCELLED'],
+  SERVED: [],
+  CANCELLED: [],
+}
+
+export function allowedKitchenTransitions(from: KitchenStatus): KitchenStatus[] {
+  return KITCHEN_TRANSITIONS[from] ?? []
+}
+
+export type KitchenItem = {
+  id: number
+  product_name: string
+  quantity: number
+  kitchen_status: KitchenStatus
+  kitchen_status_updated_at: string
+}
+
+export type KitchenOrder = {
+  order_id: number
+  invoice_number: string
+  table: string | null
+  waiter: string | null
+  items: KitchenItem[]
+}
+
+export type KitchenBoard = {
+  last_changed_at: string | null
+  orders: KitchenOrder[]
+}
+
+export type KitchenBoardResult = {
+  /** 304: the board is unchanged and `board` is null - keep what you have. */
+  notModified: boolean
+  board: KitchenBoard | null
+  /**
+   * The ETag from THIS response, which is what the next request must send as
+   * If-None-Match. A 304 carries the same ETag, so this is always the latest
+   * value and never the one from the first load.
+   *
+   * `null` means the header was not readable. Cross-origin that means the API
+   * is missing CORS_EXPOSE_HEADERS = ["ETag"]; the caller is expected to
+   * surface that rather than quietly carry on as if ETag did not exist.
+   */
+  etag: string | null
+  /** Items that arrived with a null/unknown status - a backend bug if non-empty. */
+  invalidItems: { order_id: number; item_id: number; raw: unknown }[]
+}
+
+const VALID_STATUSES = new Set<string>(['PENDING', 'PREPARING', 'READY', 'SERVED', 'CANCELLED'])
+
+/**
+ * Conditional GET of the kitchen board.
+ *
+ * `ifNoneMatch` must be the ETag from the previous response, passed through
+ * byte for byte - the `W/` prefix and the quotes are part of the value.
+ */
+export async function getKitchenBoard(ifNoneMatch?: string | null): Promise<KitchenBoardResult> {
+  const response = await api.get(ENDPOINTS.KITCHEN_BOARD, {
+    headers: ifNoneMatch ? { 'If-None-Match': ifNoneMatch } : {},
+    // axios treats 304 as a failure by default: its validateStatus only
+    // accepts 200-299. Without this the board would look broken on every
+    // unchanged poll, which is nearly every poll.
+    validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
+  })
+
+  const etagHeader = response.headers?.etag ?? response.headers?.ETag ?? null
+  const etag = etagHeader ? String(etagHeader) : null
+
+  if (response.status === 304) {
+    // 304 has no body. Returning board: null keeps the caller from replacing
+    // good state with an empty board.
+    return { notModified: true, board: null, etag, invalidItems: [] }
+  }
+
+  const data = response.data || {}
+  const invalidItems: KitchenBoardResult['invalidItems'] = []
+
+  const orders: KitchenOrder[] = (Array.isArray(data.orders) ? data.orders : []).map((order: any) => {
+    const items: KitchenItem[] = []
+
+    for (const item of Array.isArray(order?.items) ? order.items : []) {
+      const status = String(item?.kitchen_status ?? '')
+
+      if (!VALID_STATUSES.has(status)) {
+        // Never rendered as a state. Collected so the view can report it.
+        invalidItems.push({
+          order_id: Number(order?.order_id ?? 0),
+          item_id: Number(item?.id ?? 0),
+          raw: item?.kitchen_status ?? null,
+        })
+        continue
+      }
+
+      items.push({
+        id: Number(item?.id ?? 0),
+        product_name: String(item?.product_name ?? ''),
+        quantity: Number(item?.quantity ?? 0),
+        kitchen_status: status as KitchenStatus,
+        kitchen_status_updated_at: String(item?.kitchen_status_updated_at ?? ''),
+      })
+    }
+
+    return {
+      order_id: Number(order?.order_id ?? 0),
+      invoice_number: String(order?.invoice_number ?? ''),
+      table: order?.table ?? null,
+      waiter: order?.waiter ?? null,
+      items,
+    }
+  })
+
+  return {
+    notModified: false,
+    board: { last_changed_at: data.last_changed_at ?? null, orders },
+    etag,
+    invalidItems,
+  }
+}
+
+export async function setKitchenItemStatus(
+  itemId: number,
+  status: KitchenStatus
+): Promise<KitchenItem & { order_id: number }> {
+  const response = await api.post(ENDPOINTS.kitchenItemStatus(itemId), {
+    kitchen_status: status,
+  })
+  const item = response.data || {}
+
+  return {
+    id: Number(item.id ?? itemId),
+    order_id: Number(item.order_id ?? 0),
+    product_name: String(item.product_name ?? ''),
+    quantity: Number(item.quantity ?? 0),
+    kitchen_status: String(item.kitchen_status ?? status) as KitchenStatus,
+    kitchen_status_updated_at: String(item.kitchen_status_updated_at ?? ''),
+  }
+}
+
 /**
  * Field errors as the API sent them, e.g. a duplicate table name comes back as
  * `{"name": ["A table with this name already exists."]}`. Returned per field so
@@ -183,7 +346,27 @@ export function extractFieldErrors(error: any): Record<string, string> {
 /** Non-field message, for errors that are not about one input. */
 export function extractDetailMessage(error: any, fallback: string): string {
   const data = error?.response?.data
-  if (typeof data === 'string' && data.trim() && !data.trim().startsWith('<')) return data.trim()
+  const status = error?.response?.status
+
+  if (typeof data === 'string') {
+    const text = data.trim()
+    // An unhandled 500 answers a JSON request with Django's plain-text
+    // traceback (HTML when the client asks for HTML). Either way it is pages
+    // of stack trace that leak server paths and tell the user nothing, so
+    // report the status and leave the detail in the network log.
+    const looksLikeDebugPage =
+      !text ||
+      text.startsWith('<') ||
+      text.includes('Traceback (most recent call last)') ||
+      text.includes('Request Method:') ||
+      text.length > 300
+
+    if (looksLikeDebugPage) {
+      return status ? `${fallback} (server error ${status})` : fallback
+    }
+    return text
+  }
+
   if (data?.detail) return String(data.detail)
-  return fallback
+  return status ? `${fallback} (server error ${status})` : fallback
 }
