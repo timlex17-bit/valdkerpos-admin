@@ -79,6 +79,17 @@ Serving the built bundle with `vite preview` removes both risks: it serves
    # or: npm run preview -- --port 5173 --host
    ```
 
+   Then confirm that one process, and only one, owns the port on both address
+   families. With `--host`, `vite preview` binds `0.0.0.0` **and** `[::]`. The
+   dev server binds only `0.0.0.0`. So if two different PIDs show up here,
+   the dev server is still running and traffic is being split between the two:
+
+   ```powershell
+   Get-NetTCPConnection -LocalPort 5173 -State Listen |
+     Select-Object LocalAddress, OwningProcess
+   # expected: 0.0.0.0 and :: with the SAME OwningProcess
+   ```
+
 4. Open `https://app.valdker.web.id/` and a deep link such as
    `https://app.valdker.web.id/dashboard`. Deep links must load the app, not a
    404; `vite preview` serves `index.html` for unknown paths.
