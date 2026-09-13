@@ -156,7 +156,7 @@
 
               <td>
                 <span class="created-by-badge">
-                  {{ purchase.created_by || '-' }}
+                  {{ purchase.created_by_name || '-' }}
                 </span>
               </td>
 
@@ -235,7 +235,7 @@
               <span class="label">{{ t('purchasesPage.createdBy') }}</span>
               <span class="value">
                 <span class="created-by-badge">
-                  {{ purchase.created_by || '-' }}
+                  {{ purchase.created_by_name || '-' }}
                 </span>
               </span>
             </div>
@@ -369,7 +369,7 @@
                   <div class="form-group">
                     <label>{{ t('purchasesPage.createdBy') }}</label>
                     <input
-                      :value="selectedPurchase?.created_by || '-'"
+                      :value="selectedPurchase?.created_by_name || '-'"
                       type="text"
                       disabled
                     />
@@ -646,6 +646,8 @@ type Purchase = {
   total_cost: string
   note: string
   created_by: number | string | null
+  /** Display name of the creator (backend c8ce20b). `created_by` is only the user id. */
+  created_by_name?: string | null
   items: PurchaseApiItem[]
 }
 
@@ -690,7 +692,7 @@ const filteredPurchases = computed(() => {
         (purchase.invoice_id || '').toLowerCase().includes(q) ||
         (purchase.supplier_name || '').toLowerCase().includes(q) ||
         (purchase.note || '').toLowerCase().includes(q) ||
-        String(purchase.created_by || '').toLowerCase().includes(q)
+        String(purchase.created_by_name || '').toLowerCase().includes(q)
       )
     })
   }
@@ -707,11 +709,13 @@ const filteredPurchases = computed(() => {
 })
 
 const filteredGrandTotal = computed(() => {
-  const total = filteredPurchases.value.reduce(
-    (sum, purchase) => sum + Number(purchase.total_cost || 0),
+  // Summed in whole cents so adding two-decimal amounts cannot accumulate
+  // float error before it is formatted.
+  const cents = filteredPurchases.value.reduce(
+    (sum, purchase) => sum + Math.round(Number(purchase.total_cost || 0) * 100),
     0
   )
-  return formatMoney(total)
+  return formatMoney(cents / 100)
 })
 
 const filteredItemsCount = computed(() => {
@@ -982,8 +986,31 @@ async function removePurchase(id: number) {
   }
 }
 
+function moneyLocale() {
+  // Same mapping as the other finance pages (BankAccounts, BankLedgers), so
+  // an amount reads identically wherever it appears.
+  const current = String(locale.value || 'en').toLowerCase()
+  if (current === 'id' || current === 'tet') return 'id-ID'
+  return 'en-US'
+}
+
+/**
+ * Formats with digit grouping, like every other money column in the app.
+ *
+ * API amounts arrive as two-decimal strings. Intl.NumberFormat formats a
+ * decimal string exactly as given, so they are passed through as strings
+ * rather than via Number(): the old `Number(value).toFixed(2)` both dropped
+ * the thousands separators ("$9000004.50") and pushed the value through a
+ * float first.
+ */
 function formatMoney(value: unknown) {
-  return Number(value || 0).toFixed(2)
+  const raw = typeof value === 'number' ? value : String(value ?? '').trim()
+  const valid = typeof raw === 'number' ? Number.isFinite(raw) : /^-?\d+(\.\d+)?$/.test(raw)
+
+  return new Intl.NumberFormat(moneyLocale(), {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format((valid ? raw : 0) as number)
 }
 
 function getInitials(name: string) {
