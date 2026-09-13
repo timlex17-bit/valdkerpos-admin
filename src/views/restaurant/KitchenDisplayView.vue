@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   allowedKitchenTransitions,
-  extractDetailMessage,
   extractFieldErrors,
   getKitchenBoard,
   KITCHEN_BOARD_STATUSES,
@@ -13,6 +12,7 @@ import {
   type KitchenItem,
   type KitchenStatus,
 } from '@/services/restaurantService'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { canShowModule, parseStoredJson } from '@/utils/moduleVisibility'
 
 const POLL_MS = 8000
@@ -166,7 +166,7 @@ async function fetchBoard(useConditional = true) {
       errorMessage.value = ''
     }
   } catch (error: any) {
-    errorMessage.value = extractDetailMessage(error, t('kitchenPage.failedLoad'))
+    errorMessage.value = getApiErrorMessage(error, t('kitchenPage.failedLoad'))
   } finally {
     loading.value = false
   }
@@ -185,7 +185,7 @@ async function changeStatus(item: KitchenItem, to: KitchenStatus) {
   } catch (error: any) {
     const fields = extractFieldErrors(error)
     errorMessage.value =
-      fields.kitchen_status || extractDetailMessage(error, t('kitchenPage.failedUpdate'))
+      fields.kitchen_status || getApiErrorMessage(error, t('kitchenPage.failedUpdate'))
   } finally {
     updatingItemId.value = null
   }

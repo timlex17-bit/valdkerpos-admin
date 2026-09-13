@@ -342,31 +342,3 @@ export function extractFieldErrors(error: any): Record<string, string> {
 
   return fields
 }
-
-/** Non-field message, for errors that are not about one input. */
-export function extractDetailMessage(error: any, fallback: string): string {
-  const data = error?.response?.data
-  const status = error?.response?.status
-
-  if (typeof data === 'string') {
-    const text = data.trim()
-    // An unhandled 500 answers a JSON request with Django's plain-text
-    // traceback (HTML when the client asks for HTML). Either way it is pages
-    // of stack trace that leak server paths and tell the user nothing, so
-    // report the status and leave the detail in the network log.
-    const looksLikeDebugPage =
-      !text ||
-      text.startsWith('<') ||
-      text.includes('Traceback (most recent call last)') ||
-      text.includes('Request Method:') ||
-      text.length > 300
-
-    if (looksLikeDebugPage) {
-      return status ? `${fallback} (server error ${status})` : fallback
-    }
-    return text
-  }
-
-  if (data?.detail) return String(data.detail)
-  return status ? `${fallback} (server error ${status})` : fallback
-}

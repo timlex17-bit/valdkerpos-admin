@@ -523,6 +523,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type ModalMode = 'create' | 'edit' | 'view'
@@ -911,11 +912,7 @@ async function saveProduct() {
     await fetchAllData()
   } catch (err: any) {
     console.error('Failed to save product:', err)
-    alert(
-      err?.response?.data?.detail ||
-      JSON.stringify(err?.response?.data || {}) ||
-      t('productsPage.failedSave')
-    )
+    alert(getApiErrorMessage(err, t('productsPage.failedSave'), { allFields: true }))
   } finally {
     saving.value = false
   }

@@ -251,6 +251,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
@@ -351,24 +352,6 @@ const normalizeWarehouse = (item: any): Warehouse => ({
   updated_at: item.updated_at ?? '',
 })
 
-const getErrorMessage = (error: any, fallback: string) => {
-  const data = error?.response?.data
-
-  if (typeof data === 'string' && data.trim()) return data
-  if (data?.detail) return data.detail
-
-  if (data && typeof data === 'object') {
-    const firstEntry = Object.entries(data)[0]
-    if (firstEntry) {
-      const [, value] = firstEntry
-      if (Array.isArray(value) && value.length) return String(value[0])
-      if (typeof value === 'string') return value
-    }
-  }
-
-  return fallback
-}
-
 const fetchWarehouses = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -377,7 +360,7 @@ const fetchWarehouses = async () => {
     const { data } = await api.get(ENDPOINTS.WAREHOUSES)
     warehouses.value = normalizeApiList(data).map(normalizeWarehouse)
   } catch (error: any) {
-    errorMessage.value = getErrorMessage(error, t('warehousesPage.fetchError'))
+    errorMessage.value = getApiErrorMessage(error, t('warehousesPage.fetchError'))
   } finally {
     loading.value = false
   }
@@ -440,7 +423,7 @@ const saveWarehouse = async () => {
     await fetchWarehouses()
   } catch (error: any) {
     window.alert(
-      getErrorMessage(
+      getApiErrorMessage(
         error,
         isEditing.value
           ? t('warehousesPage.updateError')
@@ -465,7 +448,7 @@ const removeWarehouse = async (warehouse: Warehouse) => {
     await api.delete(`${ENDPOINTS.WAREHOUSES}${warehouse.id}/`)
     await fetchWarehouses()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, t('warehousesPage.deleteError')))
+    window.alert(getApiErrorMessage(error, t('warehousesPage.deleteError')))
   } finally {
     submitting.value = false
   }

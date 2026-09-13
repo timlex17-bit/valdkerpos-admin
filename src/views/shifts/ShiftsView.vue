@@ -522,6 +522,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type ShiftRecord = Record<string, any>
@@ -1017,19 +1018,7 @@ async function submitOpenShift() {
     await Promise.all([fetchShifts(), fetchCurrentShift()])
     closeOpenModal()
   } catch (error: any) {
-    const data = error?.response?.data
-
-    if (typeof data === 'string') {
-      openFormError.value = data
-    } else if (data?.detail) {
-      openFormError.value = data.detail
-    } else if (data && typeof data === 'object') {
-      const firstKey = Object.keys(data)[0]
-      const firstValue = data[firstKey]
-      openFormError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
-    } else {
-      openFormError.value = error?.message || t('shiftsPage.failedOpen')
-    }
+    openFormError.value = getApiErrorMessage(error, t('shiftsPage.failedOpen'))
   } finally {
     openingShift.value = false
   }
@@ -1059,19 +1048,7 @@ async function submitCloseShift() {
     await Promise.all([fetchShifts(), fetchCurrentShift()])
     closeCloseModal()
   } catch (error: any) {
-    const data = error?.response?.data
-
-    if (typeof data === 'string') {
-      closeFormError.value = data
-    } else if (data?.detail) {
-      closeFormError.value = data.detail
-    } else if (data && typeof data === 'object') {
-      const firstKey = Object.keys(data)[0]
-      const firstValue = data[firstKey]
-      closeFormError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
-    } else {
-      closeFormError.value = error?.message || t('shiftsPage.failedClose')
-    }
+    closeFormError.value = getApiErrorMessage(error, t('shiftsPage.failedClose'))
   } finally {
     closingShift.value = false
   }

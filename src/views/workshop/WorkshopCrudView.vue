@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getApiErrorMessage } from '@/utils/apiError'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -69,18 +70,6 @@ function resetForm() {
   form.description = ''
 }
 
-function getErrorMessage(error: any, fallback: string) {
-  const data = error?.response?.data
-  if (typeof data === 'string' && data.trim()) return data
-  if (data?.detail) return String(data.detail)
-  if (data && typeof data === 'object') {
-    const first = Object.values(data)[0]
-    if (Array.isArray(first) && first.length) return String(first[0])
-    if (typeof first === 'string') return first
-  }
-  return fallback
-}
-
 async function fetchRecords() {
   loading.value = true
   errorMessage.value = ''
@@ -88,7 +77,7 @@ async function fetchRecords() {
   try {
     records.value = await listWorkshopRecords(props.moduleKey)
   } catch (error: any) {
-    errorMessage.value = getErrorMessage(error, `Failed to load ${props.title}.`)
+    errorMessage.value = getApiErrorMessage(error, `Failed to load ${props.title}.`)
   } finally {
     loading.value = false
   }
@@ -142,7 +131,7 @@ async function saveRecord() {
     closeModal()
     await fetchRecords()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, `Failed to save ${props.title}.`))
+    window.alert(getApiErrorMessage(error, `Failed to save ${props.title}.`))
   } finally {
     submitting.value = false
   }
@@ -159,7 +148,7 @@ async function removeRecord(record: WorkshopRecord) {
     await deleteWorkshopRecord(props.moduleKey, record.id)
     await fetchRecords()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, `Failed to delete ${props.title}.`))
+    window.alert(getApiErrorMessage(error, `Failed to delete ${props.title}.`))
   } finally {
     submitting.value = false
   }

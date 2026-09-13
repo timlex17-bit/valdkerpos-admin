@@ -257,6 +257,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type AccountType = 'BANK' | 'EWALLET' | 'QRIS'
@@ -381,30 +382,6 @@ function normalizeBankAccount(raw: any): BankAccount {
     note: raw?.note ?? '',
     created_at: raw?.created_at ?? '',
   }
-}
-
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstValue = firstKey ? data[firstKey] : null
-
-    if (Array.isArray(firstValue) && firstValue.length) {
-      return String(firstValue[0])
-    }
-
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return error?.message || fallback
 }
 
 function toNumber(value: string | number | null | undefined) {
@@ -536,7 +513,7 @@ async function fetchBankAccounts() {
     bankAccounts.value = rows.map(normalizeBankAccount)
   } catch (error: any) {
     console.error('Failed to load bank accounts:', error)
-    errorMessage.value = getErrorMessage(error, t('bankAccountsPage.messages.loadFailed'))
+    errorMessage.value = getApiErrorMessage(error, t('bankAccountsPage.messages.loadFailed'))
     bankAccounts.value = []
   } finally {
     loading.value = false
@@ -566,7 +543,7 @@ async function saveBankAccount() {
     closeModal()
   } catch (error: any) {
     console.error('Failed to save bank account:', error)
-    errorMessage.value = getErrorMessage(error, t('bankAccountsPage.messages.saveFailed'))
+    errorMessage.value = getApiErrorMessage(error, t('bankAccountsPage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -586,7 +563,7 @@ async function deleteBankAccount(id: number) {
     await fetchBankAccounts()
   } catch (error: any) {
     console.error('Failed to delete bank account:', error)
-    errorMessage.value = getErrorMessage(error, t('bankAccountsPage.messages.deleteFailed'))
+    errorMessage.value = getApiErrorMessage(error, t('bankAccountsPage.messages.deleteFailed'))
   } finally {
     deletingId.value = null
   }

@@ -494,6 +494,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
@@ -983,11 +984,7 @@ async function saveReturn() {
     closeModal()
   } catch (error: any) {
     console.error('Failed to save product return:', error)
-    const serverMessage =
-      error?.response?.data?.detail ||
-      JSON.stringify(error?.response?.data || {}) ||
-      t('productReturnsPage.failedSave')
-    alert(serverMessage)
+    alert(getApiErrorMessage(error, t('productReturnsPage.failedSave'), { allFields: true }))
   } finally {
     submitting.value = false
   }

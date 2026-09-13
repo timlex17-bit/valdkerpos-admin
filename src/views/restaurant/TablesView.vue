@@ -5,13 +5,13 @@ import { useI18n } from 'vue-i18n'
 import {
   createTable,
   deleteTable,
-  extractDetailMessage,
   extractFieldErrors,
   listTables,
   updateTable,
   type RestaurantTable,
   type TablePayload,
 } from '@/services/restaurantService'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { canShowModule, parseStoredJson } from '@/utils/moduleVisibility'
 
 const router = useRouter()
@@ -96,7 +96,7 @@ async function fetchTables() {
   try {
     tables.value = await listTables()
   } catch (error: any) {
-    errorMessage.value = extractDetailMessage(error, t('tablesPage.failedLoad'))
+    errorMessage.value = getApiErrorMessage(error, t('tablesPage.failedLoad'))
   } finally {
     loading.value = false
   }
@@ -166,7 +166,7 @@ async function saveTable() {
     Object.assign(fieldErrors, fields)
 
     if (!Object.keys(fields).length) {
-      errorMessage.value = extractDetailMessage(error, t('tablesPage.failedSave'))
+      errorMessage.value = getApiErrorMessage(error, t('tablesPage.failedSave'))
     }
   } finally {
     submitting.value = false
@@ -184,7 +184,7 @@ async function removeTable(table: RestaurantTable) {
     await deleteTable(table.id)
     await fetchTables()
   } catch (error: any) {
-    errorMessage.value = extractDetailMessage(error, t('tablesPage.failedDelete'))
+    errorMessage.value = getApiErrorMessage(error, t('tablesPage.failedDelete'))
   } finally {
     submitting.value = false
   }

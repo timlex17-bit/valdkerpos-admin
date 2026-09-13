@@ -3,12 +3,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  extractDetailMessage,
   getWaiterPerformance,
   listWaiters,
   type Waiter,
   type WaiterPerformanceRow,
 } from '@/services/restaurantService'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { canShowModule, parseStoredJson } from '@/utils/moduleVisibility'
 
 const router = useRouter()
@@ -88,7 +88,7 @@ async function fetchWaiters() {
   try {
     waiters.value = await listWaiters()
   } catch (error: any) {
-    staffError.value = extractDetailMessage(error, t('waitersPage.failedLoadStaff'))
+    staffError.value = getApiErrorMessage(error, t('waitersPage.failedLoadStaff'))
   } finally {
     loadingStaff.value = false
   }
@@ -107,7 +107,7 @@ async function fetchPerformance() {
     performanceLoaded.value = true
   } catch (error: any) {
     performance.value = []
-    performanceError.value = extractDetailMessage(error, t('waitersPage.failedLoadPerformance'))
+    performanceError.value = getApiErrorMessage(error, t('waitersPage.failedLoadPerformance'))
   } finally {
     loadingPerformance.value = false
   }
