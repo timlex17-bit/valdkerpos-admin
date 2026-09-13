@@ -240,6 +240,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
@@ -327,24 +328,6 @@ const normalizeStock = (item: any): WarehouseStock => ({
   updated_at: item.updated_at ?? '',
 })
 
-const getErrorMessage = (error: any, fallback: string) => {
-  const data = error?.response?.data
-
-  if (typeof data === 'string' && data.trim()) return data
-  if (data?.detail) return data.detail
-
-  if (data && typeof data === 'object') {
-    const firstEntry = Object.entries(data)[0]
-    if (firstEntry) {
-      const [, value] = firstEntry
-      if (Array.isArray(value) && value.length) return String(value[0])
-      if (typeof value === 'string') return value
-    }
-  }
-
-  return fallback
-}
-
 const filteredStocks = computed(() => {
   const q = search.value.trim().toLowerCase()
 
@@ -413,7 +396,7 @@ const loadData = async () => {
   try {
     await Promise.all([fetchWarehouses(), fetchProducts(), fetchStocks()])
   } catch (error: any) {
-    errorMessage.value = getErrorMessage(error, t('warehouseStocksPage.fetchError'))
+    errorMessage.value = getApiErrorMessage(error, t('warehouseStocksPage.fetchError'))
   } finally {
     loading.value = false
   }
@@ -484,7 +467,7 @@ const saveStock = async () => {
     await loadData()
   } catch (error: any) {
     window.alert(
-      getErrorMessage(
+      getApiErrorMessage(
         error,
         isEditing.value
           ? t('warehouseStocksPage.updateError')
@@ -511,7 +494,7 @@ const removeStock = async (item: WarehouseStock) => {
     await api.delete(`${ENDPOINTS.WAREHOUSE_STOCKS}${item.id}/`)
     await loadData()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, t('warehouseStocksPage.deleteError')))
+    window.alert(getApiErrorMessage(error, t('warehouseStocksPage.deleteError')))
   } finally {
     submitting.value = false
   }

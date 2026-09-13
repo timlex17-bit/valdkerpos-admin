@@ -276,6 +276,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type Direction = 'IN' | 'OUT'
@@ -408,30 +409,6 @@ function normalizeLedger(raw: any): BankLedger {
   }
 }
 
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstValue = firstKey ? data[firstKey] : null
-
-    if (Array.isArray(firstValue) && firstValue.length) {
-      return String(firstValue[0])
-    }
-
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return error?.message || fallback
-}
-
 function toNumber(value: string | number | null | undefined) {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -497,7 +474,7 @@ async function fetchLedgers() {
     ledgers.value = rows.map(normalizeLedger)
   } catch (error: any) {
     console.error('Failed to load bank ledgers:', error)
-    errorMessage.value = getErrorMessage(error, t('bankLedgersPage.messages.loadFailed'))
+    errorMessage.value = getApiErrorMessage(error, t('bankLedgersPage.messages.loadFailed'))
     ledgers.value = []
   } finally {
     loading.value = false
@@ -514,7 +491,7 @@ async function openDetail(id: number) {
     selectedLedger.value = normalizeLedger(response.data)
   } catch (error: any) {
     console.error('Failed to load bank ledger detail:', error)
-    errorMessage.value = getErrorMessage(error, t('bankLedgersPage.messages.loadDetailFailed'))
+    errorMessage.value = getApiErrorMessage(error, t('bankLedgersPage.messages.loadDetailFailed'))
     showDetailModal.value = false
   } finally {
     detailLoading.value = false

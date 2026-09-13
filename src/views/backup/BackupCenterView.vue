@@ -460,6 +460,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type BackupStatus = 'Success' | 'Failed' | 'Running'
@@ -600,25 +601,6 @@ function statusClass(status: BackupStatus) {
   }
 }
 
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstVal = data[firstKey]
-    if (Array.isArray(firstVal) && firstVal.length) return String(firstVal[0])
-    if (typeof firstVal === 'string') return firstVal
-    if (typeof firstVal === 'object' && firstVal !== null) return JSON.stringify(firstVal)
-  }
-
-  return error?.message || fallback
-}
-
 function applySummaryData(data: Record<string, any>) {
   summaryRaw.value = data || {}
 
@@ -722,7 +704,7 @@ async function fetchBackupHistory() {
 
     backupHistory.value = rows.map(mapBackupHistoryItem)
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to load backup history.'))
+    showFlash(getApiErrorMessage(error, 'Failed to load backup history.'))
   } finally {
     loadingHistory.value = false
   }
@@ -749,7 +731,7 @@ async function saveBackupSettings() {
     await fetchSummary()
     showFlash('Backup settings saved successfully.')
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to save backup settings.'))
+    showFlash(getApiErrorMessage(error, 'Failed to save backup settings.'))
   } finally {
     savingSettings.value = false
   }
@@ -769,7 +751,7 @@ async function runBackupNow() {
     showFlash(response.data?.message || 'Manual backup completed successfully.')
     await Promise.all([fetchSummary(), fetchBackupHistory()])
   } catch (error: any) {
-    showFlash(getErrorMessage(error, 'Failed to run backup.'))
+    showFlash(getApiErrorMessage(error, 'Failed to run backup.'))
   } finally {
     runningBackup.value = false
   }
@@ -781,7 +763,7 @@ async function viewBackup(item: BackupHistoryItem) {
     selectedBackup.value = mapBackupHistoryItem(response.data)
     showDetailModal.value = true
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to load backup detail.'))
+    showFlash(getApiErrorMessage(error, 'Failed to load backup detail.'))
   }
 }
 
@@ -831,7 +813,7 @@ async function confirmRestore() {
     showFlash(response.data?.message || `Restore started with mode: ${restoreModeLabel(restoreForm.mode)}.`)
     closeRestoreModal()
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to restore backup.'))
+    showFlash(getApiErrorMessage(error, 'Failed to restore backup.'))
   } finally {
     restoring.value = false
   }
@@ -860,7 +842,7 @@ async function downloadBackup(item: BackupHistoryItem) {
 
     showFlash(`Download started for backup ${item.dateTime}.`)
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to download backup.'))
+    showFlash(getApiErrorMessage(error, 'Failed to download backup.'))
   }
 }
 
@@ -874,7 +856,7 @@ async function deleteBackup(id: number) {
     await fetchSummary()
     showFlash('Backup deleted successfully.')
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to delete backup.'))
+    showFlash(getApiErrorMessage(error, 'Failed to delete backup.'))
   }
 }
 
@@ -898,7 +880,7 @@ onMounted(async () => {
     await Promise.all([fetchSummary(), fetchSettings(), fetchBackupHistory()])
     restoreForm.mode = backupSettings.defaultRestoreMode
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to load backup center data.'))
+    showFlash(getApiErrorMessage(error, 'Failed to load backup center data.'))
   }
 })
 </script>

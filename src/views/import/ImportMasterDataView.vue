@@ -425,6 +425,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type ValidationErrorRow = {
@@ -571,28 +572,6 @@ function applyValidateResponse(data: ImportValidateResponse) {
     : []
 }
 
-function getErrorMessage(error: any, fallback = 'Request failed.') {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstVal = data[firstKey]
-    if (Array.isArray(firstVal) && firstVal.length) {
-      return String(firstVal[0])
-    }
-    if (typeof firstVal === 'string') {
-      return firstVal
-    }
-  }
-
-  return error?.message || fallback
-}
-
 async function downloadTemplate() {
   loadingTemplate.value = true
   currentStep.value = Math.max(currentStep.value, 1)
@@ -616,7 +595,7 @@ async function downloadTemplate() {
 
     showFlash('Template download started.')
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to download template.'))
+    showFlash(getApiErrorMessage(error, 'Failed to download template.'))
   } finally {
     loadingTemplate.value = false
   }
@@ -674,7 +653,7 @@ async function uploadFile(file: File) {
 
     showFlash('File uploaded successfully.')
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to upload file.'))
+    showFlash(getApiErrorMessage(error, 'Failed to upload file.'))
   } finally {
     uploading.value = false
   }
@@ -695,7 +674,7 @@ async function validatePreview() {
     await refreshImportJob()
     showFlash('Validation preview generated.')
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to validate uploaded file.'))
+    showFlash(getApiErrorMessage(error, 'Failed to validate uploaded file.'))
   } finally {
     validating.value = false
   }
@@ -710,7 +689,7 @@ async function refreshImportJob() {
     applyUploadOrDetailResponse(response.data)
     showFlash('Import job refreshed.')
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to refresh import job.'))
+    showFlash(getApiErrorMessage(error, 'Failed to refresh import job.'))
   } finally {
     loadingJob.value = false
   }
@@ -746,7 +725,7 @@ async function startImport() {
 
     showFlash(`Import completed. ${importedRows} row(s) processed.`)
   } catch (error) {
-    showFlash(getErrorMessage(error, 'Failed to start import.'))
+    showFlash(getApiErrorMessage(error, 'Failed to start import.'))
   } finally {
     importing.value = false
   }

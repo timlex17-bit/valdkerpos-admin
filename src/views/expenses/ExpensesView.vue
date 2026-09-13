@@ -247,6 +247,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 
 type Expense = {
@@ -414,30 +415,6 @@ function buildPayload() {
   }
 }
 
-function getErrorMessage(error: any, fallback: string) {
-  const data = error?.response?.data
-
-  if (typeof data === 'string') return data
-  if (data?.detail) return String(data.detail)
-  if (data?.message) return String(data.message)
-  if (data?.error) return String(data.error)
-
-  if (data && typeof data === 'object') {
-    const firstKey = Object.keys(data)[0]
-    const firstValue = data[firstKey]
-
-    if (Array.isArray(firstValue) && firstValue.length) {
-      return String(firstValue[0])
-    }
-
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return error?.message || fallback
-}
-
 async function fetchExpenses() {
   loading.value = true
   errorMessage.value = ''
@@ -448,7 +425,7 @@ async function fetchExpenses() {
     expenses.value = rows.map(normalizeExpense)
   } catch (error: any) {
     console.error('Failed to fetch expenses:', error)
-    errorMessage.value = getErrorMessage(error, t('expensePage.messages.loadFailed'))
+    errorMessage.value = getApiErrorMessage(error, t('expensePage.messages.loadFailed'))
     expenses.value = []
   } finally {
     loading.value = false
@@ -478,7 +455,7 @@ async function saveExpense() {
     closeModal()
     resetForm()
   } catch (error: any) {
-    formError.value = getErrorMessage(error, t('expensePage.messages.saveFailed'))
+    formError.value = getApiErrorMessage(error, t('expensePage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -500,7 +477,7 @@ async function saveAndAddAnother() {
     await fetchExpenses()
     resetForm()
   } catch (error: any) {
-    formError.value = getErrorMessage(error, t('expensePage.messages.saveFailed'))
+    formError.value = getApiErrorMessage(error, t('expensePage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -529,7 +506,7 @@ async function saveAndContinueEditing() {
 
     await fetchExpenses()
   } catch (error: any) {
-    formError.value = getErrorMessage(error, t('expensePage.messages.saveFailed'))
+    formError.value = getApiErrorMessage(error, t('expensePage.messages.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -544,7 +521,7 @@ async function deleteExpense(id: number) {
     await api.delete(`${ENDPOINTS.EXPENSES}${id}/`)
     expenses.value = expenses.value.filter((item) => item.id !== id)
   } catch (error: any) {
-    alert(getErrorMessage(error, t('expensePage.messages.deleteFailed')))
+    alert(getApiErrorMessage(error, t('expensePage.messages.deleteFailed')))
   } finally {
     deletingId.value = null
   }

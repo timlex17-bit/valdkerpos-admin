@@ -323,6 +323,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
@@ -552,11 +553,7 @@ async function saveItem() {
     await fetchInventoryCounts()
   } catch (err: any) {
     console.error('Failed to save inventory count:', err)
-    alert(
-      err?.response?.data?.detail ||
-      JSON.stringify(err?.response?.data || {}) ||
-      t('inventoryCountsPage.failedSave')
-    )
+    alert(getApiErrorMessage(err, t('inventoryCountsPage.failedSave'), { allFields: true }))
   } finally {
     saving.value = false
   }
@@ -598,11 +595,7 @@ async function finalizeItem(item: InventoryCount) {
     await fetchInventoryCounts()
   } catch (err: any) {
     console.error('Failed to finalize inventory count:', err)
-    alert(
-      err?.response?.data?.detail ||
-      JSON.stringify(err?.response?.data || {}) ||
-      t('inventoryCountsPage.failedFinalize')
-    )
+    alert(getApiErrorMessage(err, t('inventoryCountsPage.failedFinalize'), { allFields: true }))
   }
 }
 

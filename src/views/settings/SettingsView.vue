@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { loadModuleContract } from '@/services/moduleContract'
 import { normalizeBusinessType, normalizePlan } from '@/utils/moduleVisibility'
@@ -273,64 +274,6 @@ function applyPosSettings(data?: PosSettingsApi | null) {
   posLoaded.value = true
 }
 
-/**
- * Renders whatever the server said, verbatim. The uniqueness check on
- * invoice_prefix runs server-side and its message is the only accurate
- * explanation available, so it must reach the user unaltered rather than
- * being swallowed and replaced with a generic "could not save".
- */
-function extractApiError(error: any, fallback: string): string {
-  const data = error?.response?.data
-  const status = error?.response?.status
-
-  if (typeof data === 'string') {
-    const text = data.trim()
-    // An unhandled 500 hands back Django's debug page - HTML normally, or a
-    // plain-text traceback when the request asked for JSON, as ours does.
-    // Either way it is pages of stack trace: useless in an alert box, and it
-    // leaks server paths. Report the status and leave the detail in the
-    // network log. A short string is a real message and is shown as sent.
-    const looksLikeDebugPage =
-      !text ||
-      text.startsWith('<') ||
-      text.includes('Traceback (most recent call last)') ||
-      text.includes('Request Method:') ||
-      text.length > 300
-
-    if (looksLikeDebugPage) {
-      return status ? `${fallback} (server error ${status})` : fallback
-    }
-    return text
-  }
-
-  if (!data || typeof data !== 'object') {
-    return status ? `${fallback} (server error ${status})` : fallback
-  }
-
-  const parts: string[] = []
-
-  const walk = (value: unknown, path: string) => {
-    if (value === null || value === undefined) return
-    if (Array.isArray(value)) {
-      value.forEach((entry) => walk(entry, path))
-      return
-    }
-    if (typeof value === 'object') {
-      Object.entries(value as Record<string, unknown>).forEach(([key, entry]) =>
-        walk(entry, path ? `${path}.${key}` : key),
-      )
-      return
-    }
-    const text = String(value).trim()
-    if (!text) return
-    parts.push(path && path !== 'detail' ? `${path}: ${text}` : text)
-  }
-
-  walk(data, '')
-
-  return parts.length ? parts.join(' | ') : fallback
-}
-
 /** Save button: stop for a confirmation when a change carries consequences. */
 function requestPosSave() {
   posError.value = ''
@@ -369,7 +312,7 @@ async function savePosSettings() {
   } catch (error: any) {
     // Nothing local advances on failure: posForm keeps the rejected input so
     // the user can correct it, and posOriginal still holds what the server has.
-    posError.value = extractApiError(error, 'Could not save POS settings. Please try again.')
+    posError.value = getApiErrorMessage(error, 'Could not save POS settings. Please try again.', { allFields: true })
   } finally {
     posSaving.value = false
   }
@@ -396,7 +339,7 @@ async function fetchSessions() {
     sessions.value = Array.isArray(data) ? data : []
   } catch (error: any) {
     sessions.value = []
-    sessionsError.value = extractApiError(error, 'Could not load your active sessions.')
+    sessionsError.value = getApiErrorMessage(error, 'Could not load your active sessions.', { allFields: true })
   } finally {
     sessionsLoading.value = false
   }
@@ -417,7 +360,7 @@ async function revokeSession(session: DeviceSession) {
     // the list the server actually has.
     await fetchSessions()
   } catch (error: any) {
-    sessionsError.value = extractApiError(error, 'Could not revoke that session.')
+    sessionsError.value = getApiErrorMessage(error, 'Could not revoke that session.', { allFields: true })
   } finally {
     revokingId.value = null
   }

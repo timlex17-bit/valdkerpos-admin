@@ -31,6 +31,9 @@ const WorkOrdersView = () => import('@/views/workshop/WorkOrdersView.vue')
 const ServiceHistoryView = () => import('@/views/workshop/ServiceHistoryView.vue')
 const ServicePackagesView = () => import('@/views/workshop/ServicePackagesView.vue')
 const BookingsView = () => import('@/views/workshop/BookingsView.vue')
+const TablesView = () => import('@/views/restaurant/TablesView.vue')
+const WaitersView = () => import('@/views/restaurant/WaitersView.vue')
+const KitchenDisplayView = () => import('@/views/restaurant/KitchenDisplayView.vue')
 const SalesChartView = () => import('@/views/reports/SalesChartView.vue')
 const ExpenseChartView = () => import('@/views/reports/ExpenseChartView.vue')
 
@@ -205,6 +208,24 @@ const routes = [
         name: 'bookings',
         component: BookingsView,
         meta: { title: 'Bookings', section: 'workshop' },
+      },
+      {
+        path: 'tables',
+        name: 'tables',
+        component: TablesView,
+        meta: { title: 'Tables', section: 'restaurant' },
+      },
+      {
+        path: 'waiters',
+        name: 'waiters',
+        component: WaitersView,
+        meta: { title: 'Waiters', section: 'restaurant' },
+      },
+      {
+        path: 'kitchen-display',
+        name: 'kitchen-display',
+        component: KitchenDisplayView,
+        meta: { title: 'Kitchen Display', section: 'restaurant' },
       },
       {
         path: 'reports',

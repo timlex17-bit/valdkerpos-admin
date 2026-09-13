@@ -448,6 +448,7 @@
 
 <script setup lang="ts">
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { normalizeApiList } from '@/utils/apiData'
@@ -882,7 +883,7 @@ async function fetchMenuOptions() {
 
     return menuOptions.value
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, 'Gagal memuat daftar hak akses menu.')
+    errorMessage.value = getApiErrorMessage(error, 'Gagal memuat daftar hak akses menu.', { allFields: true })
     return []
   } finally {
     permissionsLoading.value = false
@@ -943,7 +944,7 @@ async function fetchUsers() {
     const raw = normalizeApiList(response.data)
     users.value = raw.map(normalizeUser)
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, t('usersPage.failedLoad'))
+    errorMessage.value = getApiErrorMessage(error, t('usersPage.failedLoad'), { allFields: true })
     users.value = []
   } finally {
     loading.value = false
@@ -1119,7 +1120,7 @@ async function saveUser() {
     closeModal()
     await fetchUsers()
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, t('usersPage.failedSave'))
+    errorMessage.value = getApiErrorMessage(error, t('usersPage.failedSave'), { allFields: true })
   } finally {
     saving.value = false
   }
@@ -1138,36 +1139,10 @@ async function deleteUser(user: ShopUser) {
     users.value = users.value.filter((item) => item.id !== user.id)
     successMessage.value = t('usersPage.userDeleted')
   } catch (error: any) {
-    errorMessage.value = extractErrorMessage(error, t('usersPage.failedDelete'))
+    errorMessage.value = getApiErrorMessage(error, t('usersPage.failedDelete'), { allFields: true })
   } finally {
     deletingId.value = null
   }
-}
-
-function extractErrorMessage(error: any, fallback: string) {
-  const data = error?.response?.data
-
-  if (typeof data === 'string' && data.trim()) return data
-
-  if (data?.detail) return String(data.detail)
-
-  if (data && typeof data === 'object') {
-    const messages: string[] = []
-
-    Object.entries(data).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        messages.push(`${humanizeKey(key)}: ${value.join(', ')}`)
-      } else if (value && typeof value === 'object') {
-        messages.push(`${humanizeKey(key)}: ${JSON.stringify(value)}`)
-      } else if (value !== undefined && value !== null) {
-        messages.push(`${humanizeKey(key)}: ${String(value)}`)
-      }
-    })
-
-    if (messages.length) return messages.join(' | ')
-  }
-
-  return fallback
 }
 
 function humanizeKey(value: string) {

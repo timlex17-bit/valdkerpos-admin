@@ -56,6 +56,15 @@ export const adminMenuGroups: MenuGroupConfig[] = [
     ],
   },
   {
+    key: 'restaurant',
+    label: 'Restaurant',
+    items: [
+      { key: 'tables', label: 'Tables', route: '/tables' },
+      { key: 'waiters', label: 'Waiters', route: '/waiters' },
+      { key: 'kitchen_display', label: 'Kitchen Display', route: '/kitchen-display' },
+    ],
+  },
+  {
     key: 'people',
     label: 'People',
     items: [

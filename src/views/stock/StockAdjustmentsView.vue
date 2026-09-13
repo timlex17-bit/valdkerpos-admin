@@ -302,6 +302,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
@@ -564,11 +565,7 @@ async function saveItem() {
     await Promise.all([fetchStockAdjustments(), fetchProducts()])
   } catch (err: any) {
     console.error('Failed to save stock adjustment:', err)
-    alert(
-      err?.response?.data?.detail ||
-      JSON.stringify(err?.response?.data || {}) ||
-      t('stockAdjustmentsPage.failedSave')
-    )
+    alert(getApiErrorMessage(err, t('stockAdjustmentsPage.failedSave'), { allFields: true }))
   } finally {
     saving.value = false
   }

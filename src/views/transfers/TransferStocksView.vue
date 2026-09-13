@@ -306,6 +306,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
+import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
 
@@ -430,25 +431,6 @@ const normalizeTransfer = (item: any): StockTransfer => ({
     : [],
 })
 
-const getErrorMessage = (error: any, fallback: string) => {
-  const data = error?.response?.data
-
-  if (typeof data === 'string' && data.trim()) return data
-  if (data?.detail) return data.detail
-
-  if (data && typeof data === 'object') {
-    const firstEntry = Object.entries(data)[0]
-    if (firstEntry) {
-      const [, value] = firstEntry
-      if (Array.isArray(value) && value.length) return String(value[0])
-      if (typeof value === 'string') return value
-      if (typeof value === 'object') return JSON.stringify(value)
-    }
-  }
-
-  return fallback
-}
-
 const filteredTransfers = computed(() => {
   const q = search.value.trim().toLowerCase()
 
@@ -530,7 +512,7 @@ const loadData = async () => {
   try {
     await Promise.all([fetchWarehouses(), fetchProductOptions(), fetchTransfers()])
   } catch (error: any) {
-    errorMessage.value = getErrorMessage(error, t('transferStocksPage.fetchError'))
+    errorMessage.value = getApiErrorMessage(error, t('transferStocksPage.fetchError'))
   } finally {
     loading.value = false
   }
@@ -624,7 +606,7 @@ const saveTransfer = async () => {
     await loadData()
   } catch (error: any) {
     window.alert(
-      getErrorMessage(
+      getApiErrorMessage(
         error,
         isEditing.value
           ? t('transferStocksPage.updateError')
@@ -651,7 +633,7 @@ const removeTransfer = async (item: StockTransfer) => {
     await api.delete(`${ENDPOINTS.STOCK_TRANSFERS}${item.id}/`)
     await loadData()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, t('transferStocksPage.deleteError')))
+    window.alert(getApiErrorMessage(error, t('transferStocksPage.deleteError')))
   } finally {
     submitting.value = false
   }
@@ -676,7 +658,7 @@ const completeTransfer = async (item: StockTransfer) => {
     })
     await loadData()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, t('transferStocksPage.completeError')))
+    window.alert(getApiErrorMessage(error, t('transferStocksPage.completeError')))
   } finally {
     submitting.value = false
   }
@@ -701,7 +683,7 @@ const cancelTransfer = async (item: StockTransfer) => {
     })
     await loadData()
   } catch (error: any) {
-    window.alert(getErrorMessage(error, t('transferStocksPage.cancelError')))
+    window.alert(getApiErrorMessage(error, t('transferStocksPage.cancelError')))
   } finally {
     submitting.value = false
   }
