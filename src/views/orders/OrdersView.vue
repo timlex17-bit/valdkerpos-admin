@@ -17,11 +17,16 @@
           <span class="current">{{ t('ordersPage.title') }}</span>
         </nav>
       </div>
+    </div>
 
-      <button class="btn btn-primary add-btn" @click="openCreateModal">
-        <span class="btn-icon">＋</span>
-        {{ t('ordersPage.addOrder') }}
-      </button>
+    <!--
+      No Add Order here on purpose: orders are created at the POS, where stock,
+      pricing and rounding rules are enforced. This page views orders, settles
+      open bills and deletes unpaid drafts.
+    -->
+    <div v-if="notice" class="notice-banner" :class="notice.type" role="status">
+      <span>{{ notice.text }}</span>
+      <button type="button" class="notice-close" :aria-label="t('common.close')" @click="notice = null">×</button>
     </div>
 
     <div class="stats-grid">
@@ -184,14 +189,16 @@
                     {{ t('common.view') }}
                   </button>
                   <button
+                    v-if="!order.is_paid"
                     type="button"
-                    class="btn btn-sm btn-warning"
-                    data-order-action="edit"
+                    class="btn btn-sm btn-primary"
+                    data-order-action="settle"
                     :data-order-id="String(order.id)"
                   >
-                    {{ t('common.edit') }}
+                    {{ t('ordersPage.settle') }}
                   </button>
                   <button
+                    v-if="!order.is_paid"
                     type="button"
                     class="btn btn-sm btn-danger"
                     :disabled="deletingId === order.id"
@@ -301,14 +308,16 @@
               {{ t('common.view') }}
             </button>
             <button
+              v-if="!order.is_paid"
               type="button"
-              class="btn btn-sm btn-warning"
-              data-order-action="edit"
+              class="btn btn-sm btn-primary"
+              data-order-action="settle"
               :data-order-id="String(order.id)"
             >
-              {{ t('common.edit') }}
+              {{ t('ordersPage.settle') }}
             </button>
             <button
+              v-if="!order.is_paid"
               type="button"
               class="btn btn-sm btn-danger"
               :disabled="deletingId === order.id"
@@ -322,231 +331,272 @@
       </div>
     </div>
 
+    <!-- Order detail: read-only. Orders cannot be edited after creation. -->
     <transition name="fade">
-      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div v-if="viewOrder" class="modal-overlay" @click.self="closeView">
         <div class="modal-card modal-lg">
           <div class="modal-header">
             <div>
-              <h3>
-                {{
-                  modalMode === 'create'
-                    ? t('ordersPage.addOrderTitle')
-                    : modalMode === 'edit'
-                    ? t('ordersPage.editOrderTitle')
-                    : t('ordersPage.orderDetailTitle')
-                }}
-              </h3>
-              <p>
-                {{
-                  modalMode === 'view'
-                    ? t('ordersPage.viewOrderInformation')
-                    : t('ordersPage.fillOrderForm')
-                }}
-              </p>
+              <h3>{{ t('ordersPage.orderDetailTitle') }} · {{ viewOrder.invoice_number }}</h3>
+              <p>{{ t('ordersPage.viewOrderInformation') }}</p>
             </div>
-
-            <button class="modal-close" @click="closeModal">×</button>
+            <button class="modal-close" @click="closeView">×</button>
           </div>
 
           <div class="modal-body">
-            <form class="order-form" @submit.prevent="saveOrder">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>{{ t('ordersPage.customerId') }}</label>
-                  <input
-                    v-model="form.customer"
-                    type="number"
-                    min="1"
-                    :placeholder="t('ordersPage.customerIdPlaceholder')"
-                    :disabled="modalMode === 'view' || saving"
-                  />
+            <div class="summary-grid">
+              <div class="summary-card">
+                <div class="summary-label">{{ t('common.status') }}</div>
+                <div class="summary-value">
+                  <span :class="['status-badge', viewOrder.is_paid ? 'status-paid' : 'status-unpaid']">
+                    {{ viewOrder.is_paid ? t('ordersPage.paid') : t('ordersPage.unpaid') }}
+                  </span>
                 </div>
-
-                <div class="form-group">
-                  <label>{{ t('ordersPage.paymentMethod') }}</label>
-                  <input
-                    v-model="form.payment_method"
-                    type="text"
-                    :placeholder="t('ordersPage.paymentMethodPlaceholder')"
-                    :disabled="modalMode === 'view' || saving"
-                  />
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">{{ t('common.payment') }}</div>
+                <div class="summary-value">{{ displayPaymentMethod(viewOrder.payment_method) }}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">{{ t('common.customer') }}</div>
+                <div class="summary-value">{{ getCustomerLabel(viewOrder.customer) }}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">{{ t('common.createdAt') }}</div>
+                <div class="summary-value">{{ viewOrder.created_at ? formatDateTime(viewOrder.created_at) : '-' }}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">{{ t('common.orderType') }}</div>
+                <div class="summary-value">{{ displayOrderType(viewOrder.default_order_type || '-') }}</div>
+              </div>
+              <div class="summary-card">
+                <div class="summary-label">{{ t('ordersPage.deliveryTable') }}</div>
+                <div class="summary-value">
+                  {{ t('ordersPage.tableAddress', { table: viewOrder.table_number || '-', address: viewOrder.delivery_address || '-' }) }}
                 </div>
+              </div>
+              <div v-if="viewOrder.settled_at" class="summary-card">
+                <div class="summary-label">{{ t('ordersPage.settledAt') }}</div>
+                <div class="summary-value">{{ formatDateTime(viewOrder.settled_at) }}</div>
+              </div>
+            </div>
 
-                <div class="form-group">
-                  <label>{{ t('common.orderType') }}</label>
-                  <select v-model="form.order_type" :disabled="modalMode === 'view' || saving">
-                    <option value="GENERAL">{{ t('ordersPage.general') }}</option>
-                    <option value="DINE_IN">{{ t('ordersPage.dineIn') }}</option>
-                    <option value="TAKE_OUT">{{ t('ordersPage.takeOut') }}</option>
-                    <option value="DELIVERY">{{ t('ordersPage.delivery') }}</option>
-                  </select>
-                </div>
+            <h4 class="section-title">{{ t('ordersPage.items') }}</h4>
+            <div class="table-wrapper">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th>{{ t('ordersPage.product') }}</th>
+                    <th class="text-right">{{ t('ordersPage.quantity') }}</th>
+                    <th class="text-right">{{ t('ordersPage.price') }}</th>
+                    <th class="text-right">{{ t('common.subtotal') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="viewOrder.items.length === 0">
+                    <td colspan="4" class="empty-cell">-</td>
+                  </tr>
+                  <tr v-for="(item, index) in viewOrder.items" :key="index">
+                    <td>{{ productLabel(item.product) }}</td>
+                    <td class="text-right">{{ item.quantity }}</td>
+                    <td class="text-right">${{ formatMoney(item.price) }}</td>
+                    <td class="text-right">${{ lineTotal(item) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-                <div class="form-group">
-                  <label>{{ t('ordersPage.defaultOrderType') }}</label>
-                  <select v-model="form.default_order_type" :disabled="modalMode === 'view' || saving">
-                    <option value="GENERAL">{{ t('ordersPage.general') }}</option>
-                    <option value="DINE_IN">{{ t('ordersPage.dineIn') }}</option>
-                    <option value="TAKE_OUT">{{ t('ordersPage.takeOut') }}</option>
-                    <option value="DELIVERY">{{ t('ordersPage.delivery') }}</option>
-                  </select>
-                </div>
+            <div class="totals-box">
+              <div><span>{{ t('common.subtotal') }}</span><strong>${{ formatMoney(viewOrder.subtotal) }}</strong></div>
+              <div><span>{{ t('common.discount') }}</span><strong>${{ formatMoney(viewOrder.discount) }}</strong></div>
+              <div><span>{{ t('common.tax') }}</span><strong>${{ formatMoney(viewOrder.tax) }}</strong></div>
+              <div><span>{{ t('ordersPage.deliveryFee') }}</span><strong>${{ formatMoney(viewOrder.delivery_fee) }}</strong></div>
+              <div class="grand"><span>{{ t('common.total') }}</span><strong>${{ formatMoney(viewOrder.total) }}</strong></div>
+            </div>
 
-                <div class="form-group">
-                  <label>{{ t('common.discount') }}</label>
-                  <input
-                    v-model="form.discount"
-                    type="text"
-                    placeholder="0.00"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
+            <h4 class="section-title">{{ t('ordersPage.payments') }}</h4>
+            <div class="table-wrapper">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th>{{ t('ordersPage.paymentMethod') }}</th>
+                    <th>{{ t('ordersPage.bankAccount') }}</th>
+                    <th>{{ t('ordersPage.referenceNumber') }}</th>
+                    <th class="text-right">{{ t('ordersPage.amount') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="viewOrder.payment_records.length === 0">
+                    <td colspan="4" class="empty-cell">{{ t('ordersPage.noPaymentRecords') }}</td>
+                  </tr>
+                  <tr v-for="record in viewOrder.payment_records" :key="record.id">
+                    <td>{{ record.payment_method_name || record.payment_method || '-' }}</td>
+                    <td>{{ record.bank_account_name || '-' }}</td>
+                    <td>{{ record.reference_number || '-' }}</td>
+                    <td class="text-right">${{ formatMoney(record.amount) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-                <div class="form-group">
-                  <label>{{ t('common.tax') }}</label>
-                  <input
-                    v-model="form.tax"
-                    type="text"
-                    placeholder="0.00"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
+            <p v-if="viewOrder.notes" class="notes-text">{{ viewOrder.notes }}</p>
 
-                <div class="form-group">
-                  <label>{{ t('ordersPage.deliveryFee') }}</label>
-                  <input
-                    v-model="form.delivery_fee"
-                    type="text"
-                    placeholder="0.00"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
+            <div class="modal-footer">
+              <button
+                v-if="!viewOrder.is_paid"
+                type="button"
+                class="btn btn-primary modal-btn"
+                @click="openSettleFromView"
+              >
+                {{ t('ordersPage.settle') }}
+              </button>
+              <button type="button" class="btn btn-light modal-btn" @click="closeView">
+                {{ t('common.close') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
-                <div class="form-group checkbox-group">
-                  <label>{{ t('ordersPage.paidStatus') }}</label>
-                  <div class="checkbox-wrap">
-                    <input
-                      v-model="form.is_paid"
-                      type="checkbox"
-                      :disabled="modalMode === 'view' || saving"
-                    />
-                    <span>{{ t('ordersPage.markAsPaid') }}</span>
+    <!-- Settle an open bill: POST /api/orders/{id}/settle/ -->
+    <transition name="fade">
+      <div v-if="settleOrder" class="modal-overlay" @click.self="closeSettle">
+        <div class="modal-card modal-lg">
+          <div class="modal-header">
+            <div>
+              <h3>{{ t('ordersPage.settleTitle', { invoice: settleOrder.invoice_number }) }}</h3>
+              <p>{{ t('ordersPage.settleSubtitle') }}</p>
+            </div>
+            <button class="modal-close" :disabled="settling" @click="closeSettle">×</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="settle-total">
+              <span>{{ t('ordersPage.orderTotal') }}</span>
+              <strong>${{ formatMoney(settleOrder.total) }}</strong>
+            </div>
+
+            <div v-if="loadingPaymentOptions" class="loading-state">{{ t('ordersPage.loadingPaymentOptions') }}</div>
+            <div v-else-if="paymentOptionsError" class="form-error">{{ paymentOptionsError }}</div>
+            <div v-else-if="paymentMethods.length === 0" class="form-error">{{ t('ordersPage.noActivePaymentMethods') }}</div>
+
+            <template v-else>
+              <div
+                v-for="(row, index) in settleRows"
+                :key="index"
+                class="payment-row"
+                :class="{ 'has-issue': rowMessages(index).length }"
+                data-testid="settle-payment-row"
+              >
+                <div class="payment-row-grid">
+                  <div class="form-group">
+                    <label>{{ t('ordersPage.paymentMethod') }} <span>*</span></label>
+                    <select
+                      v-model.number="row.paymentMethodId"
+                      :disabled="settling"
+                      @change="onMethodChange(row)"
+                    >
+                      <option :value="null">{{ t('ordersPage.selectPaymentMethod') }}</option>
+                      <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
+                        {{ method.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>
+                      {{ t('ordersPage.bankAccount') }}
+                      <span v-if="methodFor(row)?.requires_bank_account">*</span>
+                    </label>
+                    <select
+                      v-model.number="row.bankAccountId"
+                      :disabled="settling || methodIsCash(methodFor(row)) || !row.paymentMethodId"
+                    >
+                      <option :value="null">
+                        {{ methodIsCash(methodFor(row)) ? t('ordersPage.noBankForCash') : t('ordersPage.selectBankAccount') }}
+                      </option>
+                      <option v-for="account in bankAccounts" :key="account.id" :value="account.id">
+                        {{ account.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>{{ t('ordersPage.amount') }} <span>*</span></label>
+                    <input v-model="row.amount" type="text" inputmode="decimal" placeholder="0.00" :disabled="settling" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>{{ t('ordersPage.referenceNumber') }}</label>
+                    <input v-model="row.referenceNumber" type="text" :disabled="settling" />
                   </div>
                 </div>
 
-                <div class="form-group full">
-                  <label>{{ t('ordersPage.tableNumber') }}</label>
-                  <input
-                    v-model="form.table_number"
-                    type="text"
-                    :placeholder="t('ordersPage.tableNumberPlaceholder')"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
-
-                <div class="form-group full">
-                  <label>{{ t('ordersPage.deliveryAddress') }}</label>
-                  <textarea
-                    v-model="form.delivery_address"
-                    rows="3"
-                    :placeholder="t('ordersPage.deliveryAddressPlaceholder')"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
-
-                <div class="form-group full">
-                  <label>{{ t('common.notes') }}</label>
-                  <textarea
-                    v-model="form.notes"
-                    rows="4"
-                    :placeholder="t('ordersPage.notesPlaceholder')"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
-
-                <div class="form-group full">
-                  <label>
-                    {{ t('ordersPage.itemsJson') }}
-                    <span>*</span>
-                  </label>
-                  <textarea
-                    v-model="itemsJson"
-                    rows="8"
-                    :placeholder="`${t('ordersPage.itemsJsonPlaceholder')} ${ITEMS_JSON_SAMPLE}`"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
-
-                <div class="form-group full">
-                  <label>{{ t('ordersPage.paymentsJson') }}</label>
-                  <textarea
-                    v-model="paymentsJson"
-                    rows="6"
-                    :placeholder="`${t('ordersPage.paymentsJsonPlaceholder')} ${PAYMENTS_JSON_SAMPLE}`"
-                    :disabled="modalMode === 'view' || saving"
-                  />
-                </div>
-              </div>
-
-              <div v-if="modalMode === 'view'" class="summary-grid">
-                <div class="summary-card">
-                  <div class="summary-label">{{ t('common.invoice') }}</div>
-                  <div class="summary-value">{{ selectedOrder?.invoice_number || '-' }}</div>
-                </div>
-
-                <div class="summary-card">
-                  <div class="summary-label">{{ t('common.payment') }}</div>
-                  <div class="summary-value">
-                    {{ displayPaymentMethod(selectedOrder?.payment_method) }}
+                <div class="payment-row-footer">
+                  <ul v-if="rowMessages(index).length" class="row-issues">
+                    <li v-for="message in rowMessages(index)" :key="message">{{ message }}</li>
+                  </ul>
+                  <div class="row-buttons">
+                    <button
+                      v-if="settleCheck.remainingCents > 0"
+                      type="button"
+                      class="btn btn-sm btn-outline"
+                      :disabled="settling"
+                      @click="fillRemaining(row)"
+                    >
+                      {{ t('ordersPage.fillRemaining') }}
+                    </button>
+                    <button
+                      v-if="settleRows.length > 1"
+                      type="button"
+                      class="btn btn-sm btn-light"
+                      :disabled="settling"
+                      @click="removePaymentRow(index)"
+                    >
+                      {{ t('ordersPage.removePayment') }}
+                    </button>
                   </div>
                 </div>
-
-                <div class="summary-card">
-                  <div class="summary-label">{{ t('common.createdAt') }}</div>
-                  <div class="summary-value">
-                    {{ selectedOrder?.created_at ? formatDateTime(selectedOrder.created_at) : '-' }}
-                  </div>
-                </div>
-
-                <div class="summary-card">
-                  <div class="summary-label">{{ t('common.subtotal') }}</div>
-                  <div class="summary-value">${{ formatMoney(selectedOrder?.subtotal) }}</div>
-                </div>
-
-                <div class="summary-card">
-                  <div class="summary-label">{{ t('common.total') }}</div>
-                  <div class="summary-value">${{ formatMoney(selectedOrder?.total) }}</div>
-                </div>
-
-                <div class="summary-card">
-                  <div class="summary-label">{{ t('common.orderType') }}</div>
-                  <div class="summary-value">{{ displayOrderType(selectedOrder?.default_order_type || '-') }}</div>
-                </div>
               </div>
 
-              <div v-if="formError" class="form-error">
-                {{ formError }}
-              </div>
+              <button type="button" class="btn btn-light add-payment-btn" :disabled="settling" @click="addPaymentRow">
+                ＋ {{ t('ordersPage.addPayment') }}
+              </button>
 
-              <div v-if="modalMode !== 'view'" class="modal-footer">
-                <button type="button" class="btn btn-light modal-btn" @click="closeModal">
-                  {{ t('common.cancel') }}
-                </button>
-                <button type="submit" class="btn btn-primary modal-btn" :disabled="saving">
-                  {{
-                    saving
-                      ? (modalMode === 'create' ? t('ordersPage.saving') : t('ordersPage.updating'))
-                      : (modalMode === 'create' ? t('ordersPage.saveOrder') : t('ordersPage.updateOrder'))
-                  }}
-                </button>
+              <div
+                class="remaining-box"
+                :class="settleCheck.remainingCents === 0 ? 'ok' : 'off'"
+                data-testid="settle-remaining"
+              >
+                <span>{{ t('ordersPage.paidSoFar') }}: <strong>${{ formatCents(settleCheck.paidCents) }}</strong></span>
+                <span v-if="settleCheck.remainingCents > 0">
+                  {{ t('ordersPage.remaining') }}: <strong>${{ formatCents(settleCheck.remainingCents) }}</strong>
+                </span>
+                <span v-else-if="settleCheck.remainingCents < 0">
+                  {{ t('ordersPage.overpaid') }}: <strong>${{ formatCents(-settleCheck.remainingCents) }}</strong>
+                </span>
+                <span v-else>{{ t('ordersPage.fullyCovered') }}</span>
               </div>
+            </template>
 
-              <div v-else class="modal-footer">
-                <button type="button" class="btn btn-primary modal-btn" @click="closeModal">
-                  {{ t('common.close') }}
-                </button>
-              </div>
-            </form>
+            <div v-if="settleGeneralErrors.length" class="form-error" role="alert">
+              <div v-for="message in settleGeneralErrors" :key="message">{{ message }}</div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light modal-btn" :disabled="settling" @click="closeSettle">
+                {{ t('common.cancel') }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary modal-btn"
+                :disabled="!settleCheck.canSubmit || settling"
+                @click="submitSettle"
+              >
+                {{ settling ? t('ordersPage.settling') : t('ordersPage.settleNow', { amount: formatMoney(settleOrder.total) }) }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -555,26 +605,42 @@
 </template>
 
 <script setup lang="ts">
-
-// JSON samples live here rather than in the locale files: vue-i18n reads `{` as
-// the start of an interpolation, so a brace-bearing message fails to compile and
-// throws on every render of this page. They are code examples, not prose, so
-// there is nothing to translate in them either.
-//
-// They show the fields the order endpoint actually reads. Item prices are not
-// sent: the backend always charges the product's current sell price. A paid
-// order needs payments that add up to the order total, each naming a payment
-// method by id (and a bank account for methods that require one).
-const ITEMS_JSON_SAMPLE = '[{"product":1,"quantity":"2"}]'
-const PAYMENTS_JSON_SAMPLE = '[{"payment_method_id":1,"bank_account_id":null,"amount":"10.00"}]'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 import { getApiErrorMessage } from '@/utils/apiError'
-import { deviceTimeIso } from '@/utils/deviceTime'
+import {
+  buildSettlePayload,
+  checkSettle,
+  formatCents,
+  methodIsCash,
+  newClientSettleId,
+  parseSettleErrors,
+  toCents,
+  type BankAccountOption,
+  type PaymentMethodOption,
+  type SettleRow,
+  type SettleRowIssue,
+} from '@/services/orderSettle'
 
 type OrderType = 'GENERAL' | 'DINE_IN' | 'TAKE_OUT' | 'DELIVERY'
+
+type OrderItem = {
+  product: number | null
+  quantity: number | string
+  price: string
+  order_type?: string
+}
+
+type PaymentRecord = {
+  id: number
+  payment_method?: number | string
+  payment_method_name?: string
+  bank_account_name?: string
+  amount: string
+  reference_number?: string
+}
 
 type Order = {
   id: number | string
@@ -592,47 +658,23 @@ type Order = {
   table_number: string
   delivery_address: string
   delivery_fee: string
-  items: any[]
-  payments: any[]
-  payment_records?: any[]
-  order_type?: OrderType | string
+  items: OrderItem[]
+  payment_records: PaymentRecord[]
+  settled_at: string | null
 }
-
-type ModalMode = 'create' | 'edit' | 'view'
 
 const { t, locale } = useI18n()
 
 const search = ref('')
 const paymentFilter = ref('')
 const paidFilter = ref('')
-const showModal = ref(false)
-const modalMode = ref<ModalMode>('create')
-const editingId = ref<number | string | null>(null)
 const loading = ref(false)
-const saving = ref(false)
 const deletingId = ref<number | string | null>(null)
 const errorMessage = ref('')
-const formError = ref('')
-const selectedOrder = ref<Order | null>(null)
+const notice = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 const orders = ref<Order[]>([])
-
-const form = reactive({
-  customer: '' as string | number,
-  payment_method: 'CASH',
-  discount: '0.00',
-  tax: '0.00',
-  notes: '',
-  is_paid: true,
-  order_type: 'GENERAL' as OrderType,
-  default_order_type: 'GENERAL' as OrderType,
-  table_number: '',
-  delivery_address: '',
-  delivery_fee: '0.00',
-})
-
-const itemsJson = ref('[]')
-const paymentsJson = ref('[]')
+const productNames = ref<Record<number, string>>({})
 
 const filteredOrders = computed(() => {
   let result = [...orders.value]
@@ -672,125 +714,9 @@ const paidOrdersCount = computed(() => {
 })
 
 const filteredTotalAmount = computed(() => {
-  const total = filteredOrders.value.reduce((sum, order) => sum + Number(order.total || 0), 0)
-  return formatMoney(total)
+  const cents = filteredOrders.value.reduce((sum, order) => sum + (toCents(order.total) ?? 0), 0)
+  return formatCents(cents)
 })
-
-function resetForm() {
-  form.customer = ''
-  form.payment_method = 'CASH'
-  form.discount = '0.00'
-  form.tax = '0.00'
-  form.notes = ''
-  form.is_paid = true
-  form.order_type = 'GENERAL'
-  form.default_order_type = 'GENERAL'
-  form.table_number = ''
-  form.delivery_address = ''
-  form.delivery_fee = '0.00'
-  itemsJson.value = '[]'
-  paymentsJson.value = '[]'
-  formError.value = ''
-}
-
-function safeStringifyArray(value: unknown) {
-  try {
-    return JSON.stringify(Array.isArray(value) ? value : [], null, 2)
-  } catch {
-    return '[]'
-  }
-}
-
-function fillForm(order: Order) {
-  form.customer = order.customer ?? ''
-  form.payment_method = String(order.payment_method || 'CASH')
-  form.discount = normalizeDecimalInput(order.discount, '0.00')
-  form.tax = normalizeDecimalInput(order.tax, '0.00')
-  form.notes = order.notes || ''
-  form.is_paid = !!order.is_paid
-  form.order_type = (order.order_type || order.default_order_type || 'GENERAL') as OrderType
-  form.default_order_type = (order.default_order_type || 'GENERAL') as OrderType
-  form.table_number = order.table_number || ''
-  form.delivery_address = order.delivery_address || ''
-  form.delivery_fee = normalizeDecimalInput(order.delivery_fee, '0.00')
-  itemsJson.value = safeStringifyArray(order.items)
-  paymentsJson.value = safeStringifyArray(order.payments)
-}
-
-function openCreateModal() {
-  modalMode.value = 'create'
-  editingId.value = null
-  selectedOrder.value = null
-  resetForm()
-  showModal.value = true
-}
-
-function openEditModal(order: Order) {
-  openOrderModal('edit', order)
-}
-
-function openViewModal(order: Order) {
-  openOrderModal('view', order)
-}
-
-function findOrderById(id: string) {
-  return orders.value.find((order) => String(order.id) === id) ?? null
-}
-
-function handleOrderActionClick(event: MouseEvent) {
-  const actionButton = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>(
-    '[data-order-action]'
-  )
-
-  if (!actionButton) return
-
-  const action = actionButton.dataset.orderAction
-  const orderId = actionButton.dataset.orderId
-  const order = orderId ? findOrderById(orderId) : null
-
-  if (!action || !order || actionButton.disabled) return
-
-  event.preventDefault()
-  event.stopPropagation()
-
-  if (action === 'view') {
-    openViewModal(order)
-    return
-  }
-
-  if (action === 'edit') {
-    openEditModal(order)
-    return
-  }
-
-  if (action === 'delete') {
-    removeOrder(order.id)
-  }
-}
-
-function openOrderModal(mode: Extract<ModalMode, 'edit' | 'view'>, order: Order) {
-  modalMode.value = mode
-  editingId.value = order.id
-  selectedOrder.value = order
-  resetForm()
-
-  try {
-    fillForm(order)
-  } catch (error: any) {
-    formError.value =
-      error?.message ||
-      t('ordersPage.failedLoad')
-  }
-
-  showModal.value = true
-}
-
-function closeModal() {
-  showModal.value = false
-  editingId.value = null
-  selectedOrder.value = null
-  resetForm()
-}
 
 function resetFilters() {
   search.value = ''
@@ -807,7 +733,8 @@ function currentDateLocale() {
 }
 
 function formatMoney(value: unknown) {
-  return Number(value || 0).toFixed(2)
+  const cents = toCents(value)
+  return cents === null ? Number(value || 0).toFixed(2) : formatCents(cents)
 }
 
 function formatDateTime(value: string) {
@@ -844,65 +771,6 @@ function normalizeDecimalInput(value: unknown, fallback = '0.00') {
   return text === '' ? fallback : text
 }
 
-function safeParseJsonArray(raw: string, fieldName: string) {
-  try {
-    const parsed = JSON.parse(raw || '[]')
-    if (!Array.isArray(parsed)) {
-      throw new Error(t('ordersPage.jsonArrayRequired', { field: fieldName }))
-    }
-    return parsed
-  } catch (error: any) {
-    if (error?.message?.includes(fieldName) && error?.message?.includes('JSON')) {
-      throw error
-    }
-    throw new Error(t('ordersPage.invalidJsonField', { field: fieldName }))
-  }
-}
-
-function validateForm() {
-  formError.value = ''
-
-  if (!String(form.payment_method).trim()) {
-    formError.value = t('ordersPage.paymentMethodRequired')
-    return false
-  }
-
-  try {
-    const parsedItems = safeParseJsonArray(itemsJson.value, t('ordersPage.itemsJson'))
-    if (parsedItems.length === 0) {
-      formError.value = t('ordersPage.itemsJsonRequired')
-      return false
-    }
-    safeParseJsonArray(paymentsJson.value || '[]', t('ordersPage.paymentsJson'))
-  } catch (error: any) {
-    formError.value = error.message
-    return false
-  }
-
-  return true
-}
-
-function buildPayload() {
-  const customerValue =
-    String(form.customer).trim() === '' ? null : Number(form.customer)
-
-  return {
-    customer: Number.isNaN(customerValue as number) ? null : customerValue,
-    payment_method: String(form.payment_method).trim(),
-    discount: normalizeDecimalInput(form.discount, '0.00'),
-    tax: normalizeDecimalInput(form.tax, '0.00'),
-    notes: String(form.notes).trim(),
-    is_paid: form.is_paid,
-    order_type: form.order_type,
-    default_order_type: form.default_order_type,
-    table_number: String(form.table_number).trim(),
-    delivery_address: String(form.delivery_address).trim(),
-    delivery_fee: normalizeDecimalInput(form.delivery_fee, '0.00'),
-    items: safeParseJsonArray(itemsJson.value, t('ordersPage.itemsJson')),
-    payments: safeParseJsonArray(paymentsJson.value || '[]', t('ordersPage.paymentsJson')),
-  }
-}
-
 function normalizeOrder(order: any): Order {
   const rawId = order?.id ?? order?.uuid ?? order?.pk ?? ''
   const numericId = Number(rawId)
@@ -933,9 +801,8 @@ function normalizeOrder(order: any): Order {
     delivery_address: String(order?.delivery_address ?? ''),
     delivery_fee: normalizeDecimalInput(order?.delivery_fee, '0.00'),
     items: Array.isArray(order?.items) ? order.items : [],
-    payments: Array.isArray(order?.payments) ? order.payments : [],
     payment_records: Array.isArray(order?.payment_records) ? order.payment_records : [],
-    order_type: order?.order_type ?? undefined,
+    settled_at: order?.settled_at || null,
   }
 }
 
@@ -948,6 +815,7 @@ function displayPaymentMethod(value: unknown) {
   if (raw === 'QRIS') return t('ordersPage.paymentQris')
   if (raw === 'BANK') return t('ordersPage.paymentBank')
   if (raw === 'SPLIT') return t('ordersPage.paymentSplit')
+  if (raw === 'UNPAID') return t('ordersPage.unpaid')
   return raw || '-'
 }
 
@@ -984,69 +852,258 @@ function orderTypeBadgeClass(value: unknown) {
   }
 }
 
+function rowsOf(data: any): any[] {
+  return Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
+}
+
 async function fetchOrders() {
   loading.value = true
   errorMessage.value = ''
 
   try {
     const response = await api.get(ENDPOINTS.ORDERS)
-    const rawOrders = Array.isArray(response.data)
-      ? response.data
-      : Array.isArray(response.data?.results)
-        ? response.data.results
-        : []
-    orders.value = rawOrders.map(normalizeOrder)
-  } catch (error: any) {
-    errorMessage.value =
-      error?.response?.data?.detail ||
-      error?.message ||
-      t('ordersPage.failedLoad')
+    orders.value = rowsOf(response.data).map(normalizeOrder)
+  } catch (error: unknown) {
+    errorMessage.value = getApiErrorMessage(error, t('ordersPage.failedLoad'))
   } finally {
     loading.value = false
   }
 }
 
-async function saveOrder() {
-  if (!validateForm()) return
+function findOrderById(id: string) {
+  return orders.value.find((order) => String(order.id) === id) ?? null
+}
 
-  saving.value = true
-  formError.value = ''
+function handleOrderActionClick(event: MouseEvent) {
+  const actionButton = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>(
+    '[data-order-action]'
+  )
 
+  if (!actionButton) return
+
+  const action = actionButton.dataset.orderAction
+  const orderId = actionButton.dataset.orderId
+  const order = orderId ? findOrderById(orderId) : null
+
+  if (!action || !order || actionButton.disabled) return
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (action === 'view') openView(order)
+  else if (action === 'settle') openSettle(order)
+  else if (action === 'delete') removeOrder(order)
+}
+
+// ---------------------------------------------------------------- detail
+
+const viewOrder = ref<Order | null>(null)
+
+async function loadProductNames() {
+  if (Object.keys(productNames.value).length) return
   try {
-    const payload = buildPayload()
-
-    if (modalMode.value === 'create') {
-      // Taken at the moment of saving, not when the form opened: the backend
-      // refuses a device_time more than five minutes off its own clock.
-      await api.post(ENDPOINTS.ORDERS, { ...payload, device_time: deviceTimeIso() })
-    } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await api.patch(`${ENDPOINTS.ORDERS}${editingId.value}/`, payload)
-    }
-
-    await fetchOrders()
-    closeModal()
-  } catch (error: unknown) {
-    formError.value = getApiErrorMessage(error, t('ordersPage.failedSave'), { allFields: true })
-  } finally {
-    saving.value = false
+    const response = await api.get(ENDPOINTS.PRODUCTS)
+    productNames.value = Object.fromEntries(
+      rowsOf(response.data).map((product) => [Number(product.id), String(product.name ?? '')])
+    )
+  } catch {
+    // Names are a convenience; the product id is still shown.
   }
 }
 
-async function removeOrder(id: number | string) {
+function productLabel(productId: number | null) {
+  if (productId === null || productId === undefined) return '-'
+  const name = productNames.value[Number(productId)]
+  return name ? `${name} (#${productId})` : `#${productId}`
+}
+
+function lineTotal(item: OrderItem) {
+  const price = toCents(item.price) ?? 0
+  const quantity = Number(item.quantity) || 0
+  return formatCents(Math.round(price * quantity))
+}
+
+function openView(order: Order) {
+  viewOrder.value = order
+  loadProductNames()
+}
+
+function closeView() {
+  viewOrder.value = null
+}
+
+function openSettleFromView() {
+  const order = viewOrder.value
+  closeView()
+  if (order) openSettle(order)
+}
+
+// ---------------------------------------------------------------- settle
+
+const settleOrder = ref<Order | null>(null)
+const settleRows = ref<SettleRow[]>([])
+const settling = ref(false)
+const settleGeneralErrors = ref<string[]>([])
+const settleServerRowErrors = ref<string[][]>([])
+const paymentMethods = ref<PaymentMethodOption[]>([])
+const bankAccounts = ref<BankAccountOption[]>([])
+const loadingPaymentOptions = ref(false)
+const paymentOptionsError = ref('')
+// One key per settle dialog, reused if the same attempt is retried, so a
+// response lost on the way back replays instead of charging twice.
+let clientSettleId = ''
+
+const settleCheck = computed(() =>
+  checkSettle(settleRows.value, paymentMethods.value, settleOrder.value?.total ?? '0')
+)
+
+function emptyRow(amount = ''): SettleRow {
+  return { paymentMethodId: null, bankAccountId: null, amount, referenceNumber: '' }
+}
+
+async function loadPaymentOptions() {
+  loadingPaymentOptions.value = true
+  paymentOptionsError.value = ''
+  try {
+    const [methodsResponse, accountsResponse] = await Promise.all([
+      api.get('/api/payment-methods/'),
+      api.get(ENDPOINTS.BANK_ACCOUNTS),
+    ])
+    paymentMethods.value = rowsOf(methodsResponse.data)
+      .filter((method) => method.is_active !== false)
+      .map((method) => ({
+        id: Number(method.id),
+        name: String(method.name ?? method.code ?? `#${method.id}`),
+        payment_type: String(method.payment_type ?? ''),
+        requires_bank_account: !!method.requires_bank_account,
+      }))
+    bankAccounts.value = rowsOf(accountsResponse.data)
+      .filter((account) => account.is_active !== false)
+      .map((account) => ({
+        id: Number(account.id),
+        name: [account.name, account.bank_name].filter(Boolean).join(' · ') || `#${account.id}`,
+      }))
+  } catch (error: unknown) {
+    paymentOptionsError.value = getApiErrorMessage(error, t('ordersPage.failedLoadPaymentOptions'))
+  } finally {
+    loadingPaymentOptions.value = false
+  }
+}
+
+function openSettle(order: Order) {
+  if (order.is_paid) return
+  settleOrder.value = order
+  settleRows.value = [emptyRow(formatMoney(order.total))]
+  settleGeneralErrors.value = []
+  settleServerRowErrors.value = []
+  clientSettleId = newClientSettleId()
+  loadPaymentOptions()
+}
+
+function closeSettle() {
+  if (settling.value) return
+  settleOrder.value = null
+  settleRows.value = []
+}
+
+function methodFor(row: SettleRow) {
+  return paymentMethods.value.find((method) => method.id === row.paymentMethodId)
+}
+
+function onMethodChange(row: SettleRow) {
+  const method = methodFor(row)
+  if (methodIsCash(method)) row.bankAccountId = null
+  if (method?.requires_bank_account && !row.bankAccountId && bankAccounts.value.length === 1) {
+    row.bankAccountId = bankAccounts.value[0].id
+  }
+}
+
+function addPaymentRow() {
+  const remaining = settleCheck.value.remainingCents
+  settleRows.value.push(emptyRow(remaining > 0 ? formatCents(remaining) : ''))
+}
+
+function removePaymentRow(index: number) {
+  settleRows.value.splice(index, 1)
+  settleServerRowErrors.value.splice(index, 1)
+}
+
+function fillRemaining(row: SettleRow) {
+  const current = toCents(row.amount) ?? 0
+  row.amount = formatCents(current + settleCheck.value.remainingCents)
+}
+
+const ISSUE_KEYS: Record<SettleRowIssue, string> = {
+  method_required: 'ordersPage.issueMethodRequired',
+  amount_invalid: 'ordersPage.issueAmountInvalid',
+  bank_required: 'ordersPage.issueBankRequired',
+  bank_not_allowed: 'ordersPage.issueBankNotAllowed',
+}
+
+function rowMessages(index: number) {
+  const row = settleRows.value[index]
+  const local = (settleCheck.value.rowIssues[index] || [])
+    // An untouched amount or method is not an error yet, just incomplete.
+    .filter((issue) => !(issue === 'method_required' && row.paymentMethodId === null))
+    .filter((issue) => !(issue === 'amount_invalid' && row.amount.trim() === ''))
+    .map((issue) => t(ISSUE_KEYS[issue]))
+  return [...local, ...(settleServerRowErrors.value[index] || [])]
+}
+
+async function submitSettle() {
+  const order = settleOrder.value
+  if (!order || !settleCheck.value.canSubmit) return
+
+  settling.value = true
+  settleGeneralErrors.value = []
+  settleServerRowErrors.value = []
+
+  try {
+    const response = await api.post(
+      `${ENDPOINTS.ORDERS}${order.id}/settle/`,
+      buildSettlePayload(settleRows.value, clientSettleId)
+    )
+    const settled = normalizeOrder(response.data)
+    orders.value = orders.value.map((item) => (String(item.id) === String(settled.id) ? settled : item))
+    settling.value = false
+    closeSettle()
+    notice.value = {
+      type: 'success',
+      text: t('ordersPage.settleSuccess', { invoice: settled.invoice_number, amount: formatMoney(settled.total) }),
+    }
+  } catch (error: any) {
+    const status = error?.response?.status
+    const parsed = parseSettleErrors(error?.response?.data, settleRows.value.length)
+    settleServerRowErrors.value = parsed.rows
+    settleGeneralErrors.value = parsed.general.length
+      ? parsed.general
+      : parsed.rows.some((messages) => messages.length)
+        ? []
+        : [getApiErrorMessage(error, t('ordersPage.failedSettle'))]
+    if (status === 409) {
+      // Already paid, by this attempt or someone else: show the current state.
+      await fetchOrders()
+    }
+  } finally {
+    settling.value = false
+  }
+}
+
+// ---------------------------------------------------------------- delete
+
+async function removeOrder(order: Order) {
+  if (order.is_paid) return
   const ok = window.confirm(t('ordersPage.deleteConfirm'))
   if (!ok) return
 
-  deletingId.value = id
+  deletingId.value = order.id
 
   try {
-    await api.delete(`${ENDPOINTS.ORDERS}${id}/`)
-    orders.value = orders.value.filter((o) => o.id !== id)
-  } catch (error: any) {
-    alert(
-      error?.response?.data?.detail ||
-      error?.message ||
-      t('ordersPage.failedDelete')
-    )
+    await api.delete(`${ENDPOINTS.ORDERS}${order.id}/`)
+    orders.value = orders.value.filter((o) => o.id !== order.id)
+    notice.value = { type: 'success', text: t('ordersPage.deleted', { invoice: order.invoice_number }) }
+  } catch (error: unknown) {
+    notice.value = { type: 'error', text: getApiErrorMessage(error, t('ordersPage.failedDelete')) }
   } finally {
     deletingId.value = null
   }
@@ -1712,6 +1769,187 @@ onMounted(() => {
   font-size: 24px;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notice-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.notice-banner.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.notice-banner.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.notice-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.section-title {
+  margin: 22px 0 10px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.detail-table th,
+.detail-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2f7;
+  text-align: left;
+}
+
+.detail-table th {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.detail-table .text-right {
+  text-align: right;
+}
+
+.totals-box {
+  margin: 12px 0 0 auto;
+  max-width: 320px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.totals-box > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.totals-box .grand {
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 16px;
+}
+
+.notes-text {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
+.settle-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.settle-total strong {
+  font-size: 22px;
+}
+
+.payment-row {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.payment-row.has-issue {
+  border-color: #fca5a5;
+}
+
+.payment-row-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.payment-row-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.row-issues {
+  margin: 0;
+  padding-left: 18px;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.row-buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.add-payment-btn {
+  width: 100%;
+}
+
+.remaining-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.remaining-box.ok {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.remaining-box.off {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+@media (max-width: 640px) {
+  .payment-row-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .modal-body {
