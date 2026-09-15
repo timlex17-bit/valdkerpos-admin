@@ -463,8 +463,11 @@ productsPage: {
   isActive: 'Is Active',
   productIsActive: 'Product is active',
   descriptionPlaceholder: 'Enter product description',
-  imageUrl: 'Image URL',
-  imageUrlPlaceholder: 'Enter image URL',
+  image: 'Image',
+  keepCurrentImage: 'Leave empty to keep the current image.',
+  noImageYet: 'No image yet. Choose a file to add one.',
+  newImageSelected: 'New image selected: {name}. It is uploaded when you save.',
+  undoImageChoice: 'Keep the current image instead',
   preview: 'Preview',
 
   saveProduct: 'Save Product',

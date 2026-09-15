@@ -462,8 +462,11 @@ productsPage: {
   isActive: 'Ativu ka Lae',
   productIsActive: 'Produtu ativu',
   descriptionPlaceholder: 'Hatama deskrisaun produtu',
-  imageUrl: 'URL Imajen',
-  imageUrlPlaceholder: 'Hatama URL imajen',
+  image: 'Imajen',
+  keepCurrentImage: 'Husik mamuk atu mantein imajen agora.',
+  noImageYet: 'Seidauk iha imajen. Hili arkivu atu aumenta.',
+  newImageSelected: 'Imajen foun hili ona: {name}. Sei haruka bainhira ita rai.',
+  undoImageChoice: 'Mantein imajen agora',
   preview: 'Preview',
 
   saveProduct: 'Rai Produtu',

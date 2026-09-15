@@ -497,14 +497,39 @@
                   />
                 </div>
 
-                <div class="form-group full">
-                  <label>{{ t('productsPage.imageUrl') }}</label>
+                <!--
+                  The image is a file upload. It is sent only when a new file
+                  is chosen; otherwise the field is left out and the backend
+                  keeps the current image. Sending the existing image URL
+                  back as text is what made products with an image
+                  impossible to save.
+                -->
+                <div v-if="modalMode !== 'view'" class="form-group full">
+                  <label>{{ t('productsPage.image') }}</label>
                   <input
-                    v-model="form.image"
-                    type="text"
-                    :placeholder="t('productsPage.imageUrlPlaceholder')"
-                    :disabled="modalMode === 'view'"
+                    ref="imageInput"
+                    type="file"
+                    accept="image/*"
+                    data-testid="product-image-input"
+                    @change="onImageSelected"
                   />
+                  <small class="stock-readonly-hint">
+                    {{
+                      form.imageFile
+                        ? t('productsPage.newImageSelected', { name: form.imageFile.name })
+                        : form.image
+                          ? t('productsPage.keepCurrentImage')
+                          : t('productsPage.noImageYet')
+                    }}
+                  </small>
+                  <button
+                    v-if="form.imageFile"
+                    type="button"
+                    class="btn btn-light btn-clear-image"
+                    @click="clearSelectedImage"
+                  >
+                    {{ t('productsPage.undoImageChoice') }}
+                  </button>
                 </div>
 
                 <div class="form-group full" v-if="currentPreviewImage">
@@ -542,11 +567,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
+import { toMultipart } from '@/utils/multipart'
 
 type ModalMode = 'create' | 'edit' | 'view'
 
@@ -635,12 +661,38 @@ const form = reactive({
   buy_price: '0.00',
   sell_price: '0.00',
   weight: '0.00',
+  // URL of the image the product already has; display only, never sent.
   image: '',
+  // A newly chosen file; the only way an image is ever sent.
+  imageFile: null as File | null,
   is_active: true,
   category_id: null as number | null,
   supplier_id: null as number | null,
   unit_id: null as number | null,
 })
+
+const imageInput = ref<HTMLInputElement | null>(null)
+const selectedImagePreview = ref('')
+
+function releaseSelectedPreview() {
+  if (selectedImagePreview.value) URL.revokeObjectURL(selectedImagePreview.value)
+  selectedImagePreview.value = ''
+}
+
+function onImageSelected(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0] || null
+  releaseSelectedPreview()
+  form.imageFile = file
+  if (file) selectedImagePreview.value = URL.createObjectURL(file)
+}
+
+function clearSelectedImage() {
+  releaseSelectedPreview()
+  form.imageFile = null
+  if (imageInput.value) imageInput.value.value = ''
+}
+
+onBeforeUnmount(releaseSelectedPreview)
 
 const filteredProducts = computed(() => {
   let result = [...products.value]
@@ -681,7 +733,7 @@ const totalStockUnits = computed(() => {
 })
 
 const currentPreviewImage = computed(() => {
-  return form.image || ''
+  return selectedImagePreview.value || form.image || ''
 })
 
 function normalizeLookupRows(payload: any): LookupOption[] {
@@ -806,6 +858,7 @@ function resetForm() {
   form.sell_price = '0.00'
   form.weight = '0.00'
   form.image = ''
+  clearSelectedImage()
   form.is_active = true
   form.category_id = null
   form.supplier_id = null
@@ -908,7 +961,7 @@ function buildPayload() {
     sell_price: String(form.sell_price || '0.00'),
     weight: String(form.weight || '0.00'),
     is_active: form.is_active,
-    image: form.image.trim() || null,
+    // No "image" key here: see saveProduct.
     category_id: form.category_id,
     supplier_id: form.supplier_id,
     unit_id: form.unit_id,
@@ -930,11 +983,16 @@ async function saveProduct() {
 
   try {
     const payload = buildPayload()
+    // The image goes only when the user picked a new file, as a real file in
+    // a multipart body. Without one the request is JSON with no image key,
+    // and the backend leaves the current image untouched.
+    const body = form.imageFile ? toMultipart(payload, { image: form.imageFile }) : payload
+    const config = form.imageFile ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
 
     if (modalMode.value === 'create') {
-      await api.post(ENDPOINTS.PRODUCTS, payload)
+      await api.post(ENDPOINTS.PRODUCTS, body, config)
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await api.put(`${ENDPOINTS.PRODUCTS}${editingId.value}/`, payload)
+      await api.put(`${ENDPOINTS.PRODUCTS}${editingId.value}/`, body, config)
     }
 
     closeModal()
@@ -1717,6 +1775,11 @@ onMounted(() => {
 
 .stock-adjust-link:hover {
   text-decoration: underline;
+}
+
+.btn-clear-image {
+  margin-top: 8px;
+  align-self: flex-start;
 }
 
 .stock-readonly-hint {

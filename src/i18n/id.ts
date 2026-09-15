@@ -462,8 +462,11 @@ productsPage: {
   isActive: 'Status Aktif',
   productIsActive: 'Produk aktif',
   descriptionPlaceholder: 'Masukkan deskripsi produk',
-  imageUrl: 'URL Gambar',
-  imageUrlPlaceholder: 'Masukkan URL gambar',
+  image: 'Gambar',
+  keepCurrentImage: 'Biarkan kosong untuk mempertahankan gambar saat ini.',
+  noImageYet: 'Belum ada gambar. Pilih berkas untuk menambahkannya.',
+  newImageSelected: 'Gambar baru dipilih: {name}. Diunggah saat Anda menyimpan.',
+  undoImageChoice: 'Pertahankan gambar saat ini',
   preview: 'Preview',
 
   saveProduct: 'Simpan Produk',
