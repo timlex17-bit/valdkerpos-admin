@@ -60,6 +60,7 @@ export const ENDPOINTS = {
   BACKUPS: '/api/backups/',
   BACKUPS_RUN: '/api/backups/run/',
   BACKUP_SETTINGS: '/api/backup-settings/',
+  RESTORES: '/api/restores/',
   IMPORT_JOBS: '/api/import-master-data/jobs/',
   IMPORT_TEMPLATE: '/api/import-master-data/template/',
   IMPORT_TEMPLATE_INFO: '/api/import-master-data/template/info/',

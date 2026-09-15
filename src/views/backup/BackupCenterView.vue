@@ -23,7 +23,8 @@
         <button
           class="btn btn-light"
           @click="openRestoreModal"
-          :disabled="successfulBackups.length === 0"
+          :disabled="!!restoreUnavailableReason"
+          :title="restoreUnavailableReason"
         >
           Restore backup
         </button>
@@ -32,10 +33,26 @@
           @click="runBackupNow"
           :disabled="runningBackup"
         >
-          {{ runningBackup ? 'Running...' : 'Run backup now' }}
+          <span v-if="runningBackup" class="spinner" aria-hidden="true"></span>
+          {{ runningBackup ? 'Creating backup...' : 'Run backup now' }}
         </button>
       </div>
     </section>
+
+    <!-- Progress: a backup or restore can take a while on a large shop -->
+    <div v-if="busyState" class="progress-banner" role="status" aria-live="polite">
+      <span class="spinner spinner-dark" aria-hidden="true"></span>
+      <div>
+        <strong>{{ busyState.title }}</strong>
+        <p>{{ busyState.detail }} <span class="elapsed">{{ elapsedLabel }}</span></p>
+      </div>
+    </div>
+
+    <!-- Outcome of the last restore; stays until dismissed -->
+    <div v-if="resultNotice" class="result-notice" :class="resultNotice.type" role="status">
+      <p>{{ resultNotice.text }}</p>
+      <button class="close-btn small" @click="resultNotice = null" aria-label="Dismiss">×</button>
+    </div>
 
     <!-- Top Summary -->
     <section class="stats-grid">
@@ -189,7 +206,8 @@
               {{ savingSettings ? 'Saving...' : 'Save settings' }}
             </button>
             <button class="btn btn-success" @click="runBackupNow" :disabled="runningBackup">
-              {{ runningBackup ? 'Running...' : 'Run backup now' }}
+              <span v-if="runningBackup" class="spinner" aria-hidden="true"></span>
+              {{ runningBackup ? 'Creating backup...' : 'Run backup now' }}
             </button>
           </div>
         </div>
@@ -221,17 +239,18 @@
           <ul class="info-list">
             <li>Available modes: <strong>Restore Master Data</strong> and <strong>Restore Full Data</strong></li>
             <li>Restore Full Data includes database records and mapped media files</li>
-            <li>Always verify the selected backup date and time</li>
-            <li>Make a fresh backup before restore</li>
+            <li>Records added after the backup was taken are deleted by a restore</li>
+            <li>You will see what gets deleted before anything is changed</li>
           </ul>
 
           <button
             class="btn btn-success full-btn"
             @click="openRestoreModal"
-            :disabled="successfulBackups.length === 0"
+            :disabled="!!restoreUnavailableReason"
           >
             Restore Data
           </button>
+          <p v-if="restoreUnavailableReason" class="disabled-hint">{{ restoreUnavailableReason }}</p>
         </div>
       </article>
     </section>
@@ -402,44 +421,153 @@
         <div class="modal-header">
           <div>
             <h2>Restore Data</h2>
-            <p>Choose a backup and restore mode.</p>
+            <p>Choose a backup, check what the restore deletes, then confirm.</p>
           </div>
-          <button class="close-btn" @click="closeRestoreModal">×</button>
+          <button class="close-btn" @click="closeRestoreModal" :disabled="restoreBusy">×</button>
         </div>
 
         <div class="modal-body">
           <div class="restore-form">
             <div class="field-col">
-              <label class="field-label">Select backup</label>
-              <select v-model="restoreForm.backupId" class="form-select">
+              <label class="field-label">1. Select backup</label>
+              <select
+                v-model="restoreForm.backupId"
+                class="form-select"
+                :disabled="restoreBusy"
+                @change="resetDryRun"
+              >
                 <option value="">Choose backup</option>
-                <option v-for="item in successfulBackups" :key="item.id" :value="item.id">
-                  {{ item.dateTime }} — {{ item.fileSize }}
+                <option v-for="item in successfulBackups" :key="item.id" :value="String(item.id)">
+                  #{{ item.id }} · {{ item.dateTime }} — {{ item.fileSize }}
                 </option>
               </select>
             </div>
 
             <div class="field-col">
               <label class="field-label">Restore mode</label>
-              <select v-model="restoreForm.mode" class="form-select">
+              <select
+                v-model="restoreForm.mode"
+                class="form-select"
+                :disabled="restoreBusy"
+                @change="resetDryRun"
+              >
                 <option value="master">Restore Master Data</option>
                 <option value="full">Restore Full Data</option>
               </select>
             </div>
 
             <div class="warning-box">
-              <strong>Warning</strong>
+              <strong>Restore deletes data</strong>
               <p>
-                Restore overwrites data for this shop only. Full restore also restores mapped
-                media files when they are available in the backup package.
+                Restore replaces this shop's data with the contents of the backup. Anything the
+                backup does not contain — for example sales recorded after it was taken — is
+                deleted. Check below exactly what will be deleted before you continue.
+              </p>
+            </div>
+
+            <div class="field-col">
+              <label class="field-label">2. Check what will be deleted</label>
+              <button
+                class="btn btn-primary"
+                @click="runDryRun"
+                :disabled="!restoreForm.backupId || restoreBusy"
+              >
+                <span v-if="dryRunning" class="spinner" aria-hidden="true"></span>
+                {{ dryRunning ? 'Checking backup...' : 'Run dry-run (changes nothing)' }}
+              </button>
+            </div>
+
+            <div v-if="dryRunError" class="error-box" role="alert">
+              <strong>Dry-run failed — restore is not possible with this backup and mode.</strong>
+              <p>{{ dryRunError }}</p>
+              <ul v-if="dryRunReasons.length" class="warning-list">
+                <li v-for="reason in dryRunReasons" :key="reason">{{ reason }}</li>
+              </ul>
+            </div>
+
+            <div v-if="dryRunResult" class="preview-box">
+              <template v-if="!deletionPreview.available">
+                <strong>This server did not report what the restore would delete.</strong>
+                <p>
+                  Restore stays disabled until the backend provides that information, so data is
+                  never deleted without warning.
+                </p>
+              </template>
+
+              <template v-else-if="deletionPreview.totalDeleted === 0">
+                <strong>Nothing currently in this shop will be deleted.</strong>
+                <p>Existing records are still overwritten with the values stored in the backup.</p>
+              </template>
+
+              <template v-else>
+                <p class="danger-headline">
+                  {{ deletionPreview.summary }} currently in this shop will be DELETED.
+                </p>
+                <p class="muted">
+                  Some sections are cleared completely and rebuilt from the backup, so a count can
+                  include records the backup puts back. “In backup” is what the shop will have
+                  afterwards.
+                </p>
+                <div class="table-wrap">
+                  <table class="preview-table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Will be deleted</th>
+                        <th>In backup</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="line in deletionPreview.lines" :key="line.section">
+                        <td>{{ line.label }}</td>
+                        <td class="danger-cell">{{ line.deleted }}</td>
+                        <td>{{ line.inBackup ?? '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+
+              <ul v-if="dryRunResult.warnings?.length" class="warning-list">
+                <li v-for="warning in dryRunResult.warnings" :key="warning">{{ warning }}</li>
+              </ul>
+            </div>
+
+            <label v-if="dryRunReady" class="ack-row">
+              <input v-model="restoreAcknowledged" type="checkbox" :disabled="restoreBusy" />
+              <span>
+                <template v-if="deletionPreview.totalDeleted">
+                  3. I understand that <strong>{{ deletionPreview.summary }}</strong> currently in
+                  {{ shopName || 'this shop' }} will be permanently deleted and replaced with the
+                  contents of the backup.
+                </template>
+                <template v-else>
+                  3. I understand that the current data in {{ shopName || 'this shop' }} will be
+                  overwritten with the contents of the backup.
+                </template>
+              </span>
+            </label>
+
+            <div v-if="restoreError" class="error-box" role="alert">
+              <strong>Restore failed.</strong>
+              <p>{{ restoreError }}</p>
+              <p class="muted">
+                The backup history has been refreshed: a safety backup may have been created
+                before the failure.
               </p>
             </div>
 
             <div class="action-row">
-              <button class="btn btn-light" @click="closeRestoreModal" :disabled="restoring">
+              <button class="btn btn-light" @click="closeRestoreModal" :disabled="restoreBusy">
                 Cancel
               </button>
-              <button class="btn btn-success" @click="confirmRestore" :disabled="restoring">
+              <button
+                class="btn btn-danger"
+                @click="confirmRestore"
+                :disabled="!canRestore"
+                :title="canRestore ? '' : 'Run the dry-run and tick the confirmation first'"
+              >
+                <span v-if="restoring" class="spinner" aria-hidden="true"></span>
                 {{ restoring ? 'Restoring...' : restoreModeLabel(restoreForm.mode) }}
               </button>
             </div>
@@ -458,10 +586,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import api from '@/services/api'
-import { getApiErrorMessage } from '@/utils/apiError'
+import { getApiErrorMessage, looksLikeDebugPage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
+import {
+  buildDeletionPreview,
+  filenameFromContentDisposition,
+  safetyBackupIdFor,
+  type DryRunResponse,
+} from '@/services/backupRestore'
 
 type BackupStatus = 'Success' | 'Failed' | 'Running'
 type BackupType = 'Auto' | 'Manual'
@@ -492,6 +626,8 @@ const BACKUP_ENDPOINTS = {
   detail: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/`,
   download: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/download/`,
   restore: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/restore/`,
+  dryRun: (id: number | string) => `${ENDPOINTS.BACKUPS}${id}/restore/dry-run/`,
+  RESTORES: ENDPOINTS.RESTORES,
 }
 
 const backupSettings = reactive({
@@ -534,6 +670,90 @@ const restoring = ref(false)
 const restoreForm = reactive({
   backupId: '',
   mode: 'master',
+})
+
+const shopName = ref('')
+
+// Dry-run state. A result only counts for the backup and mode it was run
+// with; changing either throws it away.
+const dryRunning = ref(false)
+const dryRunResult = ref<DryRunResponse | null>(null)
+const dryRunKey = ref('')
+const dryRunError = ref('')
+const dryRunReasons = ref<string[]>([])
+const restoreError = ref('')
+const restoreAcknowledged = ref(false)
+const resultNotice = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+
+const currentRestoreKey = computed(() => `${restoreForm.backupId}:${restoreForm.mode}`)
+const deletionPreview = computed(() => buildDeletionPreview(dryRunResult.value))
+const restoreBusy = computed(() => restoring.value || dryRunning.value)
+const dryRunReady = computed(
+  () =>
+    !!dryRunResult.value &&
+    dryRunKey.value === currentRestoreKey.value &&
+    dryRunResult.value.valid === true &&
+    deletionPreview.value.available,
+)
+const canRestore = computed(() => dryRunReady.value && restoreAcknowledged.value && !restoreBusy.value)
+
+const restoreUnavailableReason = computed(() => {
+  if (loadingHistory.value && backupHistory.value.length === 0) return ''
+  if (successfulBackups.value.length > 0) return ''
+  return backupHistory.value.length === 0
+    ? 'Nothing to restore yet: run a backup first. Restore becomes available once a backup has finished successfully.'
+    : 'Nothing to restore: none of the backups below finished successfully. Run a new backup first.'
+})
+
+// Progress while a long request runs.
+const busySince = ref(0)
+const now = ref(Date.now())
+let tickTimer: number | null = null
+
+const busyState = computed(() => {
+  if (restoring.value) {
+    return {
+      title: 'Restoring backup...',
+      detail: 'Current shop data is being deleted and replaced with the backup. Keep this page open until it finishes.',
+    }
+  }
+  if (runningBackup.value) {
+    return {
+      title: 'Creating backup...',
+      detail: 'Collecting shop data and media files into a backup package. Large shops can take a while.',
+    }
+  }
+  if (dryRunning.value) {
+    return {
+      title: 'Checking backup...',
+      detail: 'Reading the backup and counting what a restore would delete. Nothing is changed.',
+    }
+  }
+  return null
+})
+
+const elapsedLabel = computed(() => {
+  if (!busyState.value || !busySince.value) return ''
+  const seconds = Math.max(0, Math.floor((now.value - busySince.value) / 1000))
+  return `(${seconds}s)`
+})
+
+watch(busyState, (state) => {
+  if (state && !tickTimer) {
+    busySince.value = Date.now()
+    now.value = Date.now()
+    tickTimer = window.setInterval(() => {
+      now.value = Date.now()
+    }, 500)
+  } else if (!state && tickTimer) {
+    window.clearInterval(tickTimer)
+    tickTimer = null
+    busySince.value = 0
+  }
+})
+
+onBeforeUnmount(() => {
+  if (tickTimer) window.clearInterval(tickTimer)
 })
 
 const nextScheduledBackup = computed(() => {
@@ -612,6 +832,7 @@ function applySummaryData(data: Record<string, any>) {
 }
 
 function applySettingsData(data: Record<string, any>) {
+  shopName.value = String(data.shop?.name || shopName.value || '')
   backupSettings.enabled = Boolean(data.enabled)
   backupSettings.frequency = normalizeFrequency(data.frequency)
   backupSettings.time = String(data.backup_time_display || data.backup_time || backupSettings.time)
@@ -747,13 +968,26 @@ async function runBackupNow() {
     }
 
     const response = await api.post(BACKUP_ENDPOINTS.RUN, payload)
-
-    showFlash(response.data?.message || 'Manual backup completed successfully.')
-    await Promise.all([fetchSummary(), fetchBackupHistory()])
+    const backupId = response.data?.backup_id
+    showFlash(
+      backupId
+        ? `Backup #${backupId} created (${response.data?.file_size || 'size unknown'}).`
+        : response.data?.message || 'Manual backup completed successfully.',
+    )
   } catch (error: any) {
-    showFlash(getApiErrorMessage(error, 'Failed to run backup.'))
+    showFlash(getApiErrorMessage(error, 'Failed to run backup.'), 8000)
   } finally {
     runningBackup.value = false
+    // A failed run still leaves a history row, so refresh either way.
+    await refreshAfterChange()
+  }
+}
+
+async function refreshAfterChange() {
+  try {
+    await Promise.all([fetchSummary(), fetchBackupHistory()])
+  } catch (error) {
+    showFlash(getApiErrorMessage(error, 'Failed to refresh backup history.'))
   }
 }
 
@@ -772,15 +1006,27 @@ function closeDetailModal() {
   selectedBackup.value = null
 }
 
+function resetDryRun() {
+  dryRunResult.value = null
+  dryRunKey.value = ''
+  dryRunError.value = ''
+  dryRunReasons.value = []
+  restoreError.value = ''
+  restoreAcknowledged.value = false
+}
+
 function openRestoreModal() {
   restoreForm.mode = backupSettings.defaultRestoreMode
+  resetDryRun()
   showRestoreModal.value = true
 }
 
 function closeRestoreModal() {
+  if (restoreBusy.value) return
   showRestoreModal.value = false
   restoreForm.backupId = ''
   restoreForm.mode = backupSettings.defaultRestoreMode
+  resetDryRun()
 }
 
 function prepareRestore(item: BackupHistoryItem) {
@@ -791,32 +1037,127 @@ function prepareRestore(item: BackupHistoryItem) {
 
   restoreForm.backupId = String(item.id)
   restoreForm.mode = backupSettings.defaultRestoreMode
+  resetDryRun()
   showRestoreModal.value = true
 }
 
-async function confirmRestore() {
-  if (!restoreForm.backupId) {
-    showFlash('Please select a backup first.')
-    return
-  }
+function selectedBackupLabel() {
+  const item = backupHistory.value.find((row) => String(row.id) === restoreForm.backupId)
+  return item ? `backup #${item.id} from ${item.dateTime}` : `backup #${restoreForm.backupId}`
+}
 
+async function runDryRun() {
+  if (!restoreForm.backupId) return
+  const key = currentRestoreKey.value
+  resetDryRun()
+  dryRunning.value = true
+  try {
+    const response = await api.post(BACKUP_ENDPOINTS.dryRun(restoreForm.backupId), {
+      mode: restoreForm.mode,
+    })
+    dryRunResult.value = response.data || {}
+    dryRunKey.value = key
+    if (response.data?.valid === false) {
+      applyDryRunFailure({ response }, 'The backup did not pass the dry-run.')
+    }
+  } catch (error) {
+    applyDryRunFailure(error, 'The dry-run could not be completed.')
+  } finally {
+    dryRunning.value = false
+  }
+}
+
+function applyDryRunFailure(error: unknown, fallback: string) {
+  // A refused dry-run answers {message, errors[]}. Which of the two carries
+  // the useful part varies ("only available for full restore" is in
+  // message; "not a valid ZIP package" is in errors), so show both.
+  const response = (error as { response?: { status?: number; data?: unknown } } | null)?.response
+  const body = response?.data as { message?: unknown; errors?: unknown } | undefined
+  const status = response?.status || 0
+  const clean = (value: unknown) =>
+    typeof value === 'string' && value.trim() && !looksLikeDebugPage(value) ? value.trim() : ''
+
+  if (body && typeof body === 'object' && status < 500) {
+    const headline = clean(body.message)
+    const reasons = (Array.isArray(body.errors) ? body.errors : []).map(clean).filter(Boolean)
+    if (headline || reasons.length) {
+      dryRunError.value = headline || reasons[0]
+      dryRunReasons.value = headline ? reasons : reasons.slice(1)
+      return
+    }
+  }
+  dryRunError.value = getApiErrorMessage(error, fallback)
+  dryRunReasons.value = []
+}
+
+async function confirmRestore() {
+  if (!canRestore.value) return
+
+  const preview = deletionPreview.value
+  const what = preview.totalDeleted
+    ? `${preview.summary} currently in this shop will be permanently deleted.`
+    : 'The current shop data will be overwritten with the backup.'
+  const confirmed = window.confirm(
+    `Restore ${selectedBackupLabel()} (${restoreModeLabel(restoreForm.mode)})?\n\n${what}\n\n` +
+      'Deleted records cannot be recovered unless another backup contains them.',
+  )
+  if (!confirmed) return
+
+  const backupLabel = selectedBackupLabel()
+  const modeLabel = restoreModeLabel(restoreForm.mode)
+  restoreError.value = ''
   restoring.value = true
   try {
-    const response = await api.post(
-      BACKUP_ENDPOINTS.restore(restoreForm.backupId),
-      {
-        mode: restoreForm.mode,
-        confirm_overwrite: true,
-      }
-    )
+    const response = await api.post(BACKUP_ENDPOINTS.restore(restoreForm.backupId), {
+      mode: restoreForm.mode,
+      confirm_overwrite: true,
+    })
 
-    showFlash(response.data?.message || `Restore started with mode: ${restoreModeLabel(restoreForm.mode)}.`)
+    const safety = await findSafetyBackup(response.data?.restore_id)
+    let text = `Restore complete: this shop's data was replaced with ${backupLabel} (${modeLabel}).`
+    if (typeof safety === 'number') {
+      text += ` Before restoring, safety backup #${safety} of the previous data was created.`
+    } else if (safety === null) {
+      text += ' No separate safety backup was created for this restore.'
+    }
+    restoring.value = false
     closeRestoreModal()
+    resultNotice.value = { type: 'success', text }
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to restore backup.'))
+    restoreError.value = getApiErrorMessage(error, 'The restore could not be completed.')
   } finally {
     restoring.value = false
+    // Success and failure can both add a safety backup to the history.
+    await refreshAfterChange()
   }
+}
+
+async function findSafetyBackup(restoreId: unknown): Promise<number | null | undefined> {
+  if (restoreId === undefined || restoreId === null) return undefined
+  try {
+    const response = await api.get(BACKUP_ENDPOINTS.RESTORES)
+    const rows = Array.isArray(response.data) ? response.data : response.data?.results
+    return safetyBackupIdFor(rows, Number(restoreId))
+  } catch {
+    // The restore itself succeeded; not knowing the safety backup number
+    // must not turn that into an error.
+    return undefined
+  }
+}
+
+async function readBlobError(error: unknown) {
+  // With responseType 'blob' an error body arrives as a Blob too; turn it
+  // back into JSON so the reason can be shown.
+  const response = (error as { response?: { data?: unknown } } | null)?.response
+  if (response && typeof Blob !== 'undefined' && response.data instanceof Blob) {
+    const text = await response.data.text()
+    try {
+      response.data = JSON.parse(text)
+    } catch {
+      response.data = text
+    }
+  }
+  return error
 }
 
 async function downloadBackup(item: BackupHistoryItem) {
@@ -830,19 +1171,27 @@ async function downloadBackup(item: BackupHistoryItem) {
       responseType: 'blob',
     })
 
+    // The backend names the file in Content-Disposition. Cross-origin, the
+    // browser only lets us read that header if the API lists it in
+    // Access-Control-Expose-Headers; otherwise fall back.
+    const fileName =
+      filenameFromContentDisposition(response.headers?.['content-disposition']) ||
+      item.fileName ||
+      `backup_${item.id}.zip`
+
     const blob = new Blob([response.data])
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = item.fileName || `backup_${item.id}.zip`
+    a.download = fileName
     document.body.appendChild(a)
     a.click()
     a.remove()
     window.URL.revokeObjectURL(url)
 
-    showFlash(`Download started for backup ${item.dateTime}.`)
+    showFlash(`Download started: ${fileName}`)
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to download backup.'))
+    showFlash(getApiErrorMessage(await readBlobError(error), 'Failed to download backup.'), 8000)
   }
 }
 
@@ -868,11 +1217,14 @@ function debouncedFetchHistory() {
   }, 350)
 }
 
-function showFlash(message: string) {
+let flashTimer: number | null = null
+function showFlash(message: string, durationMs = 3500) {
   flashMessage.value = message
-  window.setTimeout(() => {
+  if (flashTimer) window.clearTimeout(flashTimer)
+  flashTimer = window.setTimeout(() => {
     flashMessage.value = ''
-  }, 2200)
+    flashTimer = null
+  }, durationMs)
 }
 
 onMounted(async () => {
@@ -1531,6 +1883,203 @@ onMounted(async () => {
 .warning-box p {
   margin: 0;
   line-height: 1.6;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.spinner-dark {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #bfdbfe;
+  border-top-color: #1d4ed8;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.progress-banner {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(640px, calc(100% - 32px));
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+}
+
+.progress-banner p {
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.elapsed {
+  font-variant-numeric: tabular-nums;
+  color: #3b82f6;
+}
+
+.result-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.result-notice p {
+  margin: 0;
+}
+
+.result-notice.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.result-notice.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.close-btn.small {
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.disabled-hint {
+  margin: 12px 0 0 !important;
+  font-size: 0.9rem;
+  color: #92400e !important;
+  text-align: left;
+}
+
+.error-box {
+  padding: 16px;
+  border-radius: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.error-box p {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+
+.preview-box {
+  padding: 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 2px solid #fca5a5;
+  color: #1f2937;
+}
+
+.preview-box p {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+
+.danger-headline {
+  margin: 0 !important;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.preview-table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.preview-table th,
+.preview-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.preview-table th {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.danger-cell {
+  color: #b91c1c;
+  font-weight: 800;
+}
+
+.warning-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+.ack-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #7c2d12;
+  line-height: 1.6;
+}
+
+.ack-row input {
+  margin-top: 5px;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.modal-container {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .flash-message {

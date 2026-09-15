@@ -43,10 +43,41 @@ describe('getApiErrorMessage', () => {
     expect(getApiErrorMessage(fail(400, 'Shift already open.'), 'Failed.')).toBe('Shift already open.')
   })
 
-  it('prefers detail, then message, then error', () => {
+  it('reads detail, error, errors or message on their own', () => {
     expect(getApiErrorMessage(fail(403, { detail: 'Nope.' }), 'Failed.')).toBe('Nope.')
     expect(getApiErrorMessage(fail(400, { message: 'Bad.' }), 'Failed.')).toBe('Bad.')
     expect(getApiErrorMessage(fail(400, { error: 'Worse.' }), 'Failed.')).toBe('Worse.')
+    expect(getApiErrorMessage(fail(400, { errors: ['One.', 'Two.'] }), 'Failed.')).toBe('One.; Two.')
+  })
+
+  it('shows the reason, not the headline, when a 4xx sends both', () => {
+    // The restore endpoint's refusal, as seen in the dashboard walkthrough:
+    // the screen said only "Restore failed." and hid why.
+    const restore = {
+      message: 'Restore failed.',
+      error: 'Full restore with shifts requires users in backup for cashier mapping.',
+    }
+    expect(getApiErrorMessage(fail(400, restore), 'Failed.')).toBe(
+      'Full restore with shifts requires users in backup for cashier mapping.',
+    )
+    const dryRun = {
+      valid: false,
+      message: 'Full restore dry-run validation failed.',
+      errors: ['Backup file is not a valid ZIP package.'],
+      warnings: [],
+    }
+    expect(getApiErrorMessage(fail(400, dryRun), 'Failed.')).toBe('Backup file is not a valid ZIP package.')
+  })
+
+  it('keeps the headline in front of a raw exception string on a 5xx', () => {
+    const body = { message: 'Backup failed.', error: "[Errno 13] Permission denied: 'D:\\\\media\\\\backups'" }
+    expect(getApiErrorMessage(fail(500, body), 'Failed.')).toBe('Backup failed.')
+  })
+
+  it('still puts detail first', () => {
+    expect(getApiErrorMessage(fail(400, { detail: 'Backup not found.', error: 'x' }), 'Failed.')).toBe(
+      'Backup not found.',
+    )
   })
 
   it('reports the first field error by default', () => {
