@@ -613,13 +613,13 @@ onMounted(() => {
 }
 
 .breadcrumb .active {
-  color: #2563eb;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
 .add-btn {
   border: none;
-  background: #22c55e;
+  background: var(--brand-600);
   color: white;
   padding: 14px 22px;
   border-radius: 16px;
@@ -629,7 +629,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 10px 20px rgba(98, 4, 191, 0.18);
 }
 
 .add-btn span {

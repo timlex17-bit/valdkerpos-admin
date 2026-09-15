@@ -971,7 +971,7 @@ onMounted(() => {
   margin: 0 0 6px;
   font-size: 12px;
   font-weight: 800;
-  color: #059814;
+  color: var(--brand-600);
   text-transform: uppercase;
 }
 
@@ -1032,7 +1032,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #059814;
+  background: var(--brand-600);
   color: #ffffff;
 }
 
@@ -1055,8 +1055,8 @@ onMounted(() => {
 }
 
 .tab-button.active {
-  background: #059814;
-  border-color: #059814;
+  background: var(--brand-600);
+  border-color: var(--brand-600);
   color: #ffffff;
 }
 
@@ -1103,8 +1103,8 @@ onMounted(() => {
 .field input:focus,
 .field select:focus,
 .page-size select:focus {
-  border-color: #059814;
-  box-shadow: 0 0 0 3px rgba(5, 152, 20, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 3px rgba(98, 4, 191, 0.12);
 }
 
 .filter-actions {
@@ -1135,7 +1135,7 @@ onMounted(() => {
 .summary-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #059814;
+  border-left: 4px solid var(--brand-600);
   border-radius: 8px;
   padding: 16px;
 }
@@ -1218,7 +1218,7 @@ onMounted(() => {
 .bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: #059814;
+  background: var(--brand-600);
 }
 
 .empty-chart {

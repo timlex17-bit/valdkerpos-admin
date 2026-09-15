@@ -335,9 +335,9 @@ onMounted(() => {
 .login-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(5, 152, 20, 0.16), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(96, 230, 108, 0.14), transparent 28%),
-    linear-gradient(180deg, #f6fff7 0%, #edf9f0 100%);
+    radial-gradient(circle at top left, rgba(98, 4, 191, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(98, 4, 191, 0.14), transparent 28%),
+    linear-gradient(180deg, #faf6ff 0%, #f1e8fd 100%);
   color: #0f172a;
   transition: background 0.3s ease, color 0.3s ease;
   overflow: hidden;
@@ -345,9 +345,9 @@ onMounted(() => {
 
 .login-page.dark {
   background:
-    radial-gradient(circle at top left, rgba(96, 230, 108, 0.14), transparent 22%),
-    radial-gradient(circle at 85% 85%, rgba(5, 152, 20, 0.18), transparent 26%),
-    linear-gradient(180deg, #03110a 0%, #071b11 100%);
+    radial-gradient(circle at top left, rgba(98, 4, 191, 0.14), transparent 22%),
+    radial-gradient(circle at 85% 85%, rgba(98, 4, 191, 0.18), transparent 26%),
+    linear-gradient(180deg, #0f0520 0%, #1a0a33 100%);
   color: #f8fafc;
 }
 
@@ -386,16 +386,16 @@ onMounted(() => {
   padding: 0 16px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(5, 152, 20, 0.16);
+  border: 1px solid rgba(98, 4, 191, 0.16);
   backdrop-filter: blur(12px);
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 10px 30px rgba(5, 152, 20, 0.08);
+  box-shadow: 0 10px 30px rgba(98, 4, 191, 0.08);
 }
 
 .login-page.dark .brand-badge {
   background: rgba(7, 27, 17, 0.84);
-  border-color: rgba(96, 230, 108, 0.14);
+  border-color: rgba(98, 4, 191, 0.14);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
 }
 
@@ -408,14 +408,14 @@ onMounted(() => {
   cursor: pointer;
   background: rgba(255, 255, 255, 0.76);
   color: inherit;
-  border: 1px solid rgba(5, 152, 20, 0.16);
+  border: 1px solid rgba(98, 4, 191, 0.16);
   backdrop-filter: blur(12px);
-  box-shadow: 0 10px 30px rgba(5, 152, 20, 0.08);
+  box-shadow: 0 10px 30px rgba(98, 4, 191, 0.08);
 }
 
 .login-page.dark .theme-toggle {
   background: rgba(7, 27, 17, 0.84);
-  border-color: rgba(96, 230, 108, 0.14);
+  border-color: rgba(98, 4, 191, 0.14);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
 }
 
@@ -428,12 +428,12 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #059814;
+  color: var(--brand-600);
   margin: 0 0 18px;
 }
 
 .login-page.dark .eyebrow {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .brand-content h1 {
@@ -469,15 +469,15 @@ onMounted(() => {
   padding: 18px 16px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(5, 152, 20, 0.14);
+  border: 1px solid rgba(98, 4, 191, 0.14);
   backdrop-filter: blur(12px);
-  box-shadow: 0 18px 36px rgba(5, 152, 20, 0.08);
+  box-shadow: 0 18px 36px rgba(98, 4, 191, 0.08);
   min-height: 108px;
 }
 
 .login-page.dark .mini-card {
   background: rgba(7, 27, 17, 0.76);
-  border-color: rgba(96, 230, 108, 0.12);
+  border-color: rgba(98, 4, 191, 0.12);
   box-shadow:
     0 18px 36px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.02);
@@ -488,11 +488,11 @@ onMounted(() => {
   margin-bottom: 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #059814;
+  color: var(--brand-600);
 }
 
 .login-page.dark .mini-card-label {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .mini-card strong {
@@ -514,13 +514,13 @@ onMounted(() => {
   width: 380px;
   height: 380px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(5, 152, 20, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(98, 4, 191, 0.14), transparent 70%);
   filter: blur(18px);
   z-index: 0;
 }
 
 .login-page.dark .login-form-panel::before {
-  background: radial-gradient(circle, rgba(96, 230, 108, 0.12), transparent 72%);
+  background: radial-gradient(circle, rgba(98, 4, 191, 0.12), transparent 72%);
 }
 
 .login-card {
@@ -528,9 +528,9 @@ onMounted(() => {
   max-width: 470px;
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(5, 152, 20, 0.14);
+  border: 1px solid rgba(98, 4, 191, 0.14);
   backdrop-filter: blur(16px);
-  box-shadow: 0 32px 70px rgba(5, 152, 20, 0.12);
+  box-shadow: 0 32px 70px rgba(98, 4, 191, 0.12);
   padding: 32px;
   position: relative;
   z-index: 1;
@@ -538,10 +538,10 @@ onMounted(() => {
 
 .login-page.dark .login-card {
   background: rgba(7, 27, 17, 0.84);
-  border-color: rgba(96, 230, 108, 0.12);
+  border-color: rgba(98, 4, 191, 0.12);
   box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.4),
-    0 0 80px rgba(5, 152, 20, 0.1);
+    0 0 80px rgba(98, 4, 191, 0.1);
 }
 
 .login-card-header {
@@ -560,8 +560,8 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 800;
   color: white;
-  background: linear-gradient(135deg, #60e66c, #059814);
-  box-shadow: 0 16px 30px rgba(5, 152, 20, 0.35);
+  background: var(--brand-gradient);
+  box-shadow: 0 16px 30px rgba(98, 4, 191, 0.35);
 }
 
 .login-card-header h2 {
@@ -617,13 +617,13 @@ onMounted(() => {
 }
 
 .form-group input:focus {
-  border-color: #059814;
-  box-shadow: 0 0 0 4px rgba(5, 152, 20, 0.14);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.14);
 }
 
 .login-page.dark .form-group input {
   background: rgba(2, 16, 10, 0.62);
-  border-color: rgba(96, 230, 108, 0.16);
+  border-color: rgba(98, 4, 191, 0.16);
   color: #f8fafc;
 }
 
@@ -646,14 +646,14 @@ onMounted(() => {
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
 }
 
 .login-page.dark .password-toggle {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .form-options {
@@ -678,12 +678,12 @@ onMounted(() => {
 .forgot-link {
   font-size: 14px;
   font-weight: 700;
-  color: #059814;
+  color: var(--brand-600);
   text-decoration: none;
 }
 
 .login-page.dark .forgot-link {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .error-message {
@@ -700,18 +700,18 @@ onMounted(() => {
   height: 56px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: white;
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 18px 30px rgba(5, 152, 20, 0.28);
+  box-shadow: 0 18px 30px rgba(98, 4, 191, 0.28);
   transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
 }
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 22px 36px rgba(5, 152, 20, 0.34);
+  box-shadow: 0 22px 36px rgba(98, 4, 191, 0.34);
 }
 
 .login-button:disabled {

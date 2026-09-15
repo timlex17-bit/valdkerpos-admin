@@ -1282,7 +1282,7 @@ onMounted(async () => {
 }
 
 .breadcrumb .active {
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -1320,7 +1320,7 @@ onMounted(async () => {
 }
 
 .stat-card.primary {
-  border-top: 4px solid #2563eb;
+  border-top: 4px solid var(--brand-600);
 }
 
 .stat-card.warning {
@@ -1334,8 +1334,8 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f0fdf4;
-  color: #059814;
+  background: var(--brand-50);
+  color: var(--brand-600);
   flex-shrink: 0;
 }
 
@@ -1345,8 +1345,8 @@ onMounted(async () => {
 }
 
 .stat-card.primary .stat-icon {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--brand-50);
+  color: var(--brand-600);
 }
 
 .stat-card.warning .stat-icon {
@@ -1484,8 +1484,8 @@ onMounted(async () => {
 
 .form-input:focus,
 .form-select:focus {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.1);
 }
 
 .checkbox-grid {
@@ -1526,7 +1526,7 @@ onMounted(async () => {
 }
 
 .switch.enabled {
-  background: linear-gradient(90deg, #60e66c, #059814);
+  background: var(--brand-gradient);
 }
 
 .switch-thumb {
@@ -1560,8 +1560,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0fdf4;
-  color: #059814;
+  background: var(--brand-50);
+  color: var(--brand-600);
 }
 
 .restore-icon svg {
@@ -1764,16 +1764,16 @@ onMounted(async () => {
 }
 
 .btn-primary {
-  background: #1677ff;
+  background: var(--brand-600);
   color: #fff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0f67ea;
+  background: var(--brand-700);
 }
 
 .btn-success {
-  background: linear-gradient(90deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: #fff;
 }
 

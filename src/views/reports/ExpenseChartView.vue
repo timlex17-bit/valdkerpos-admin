@@ -355,7 +355,7 @@ onMounted(() => {
   font-size: 0.92rem;
 }
 .breadcrumb .active {
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
 }
 .page-actions {

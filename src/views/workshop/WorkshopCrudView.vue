@@ -411,7 +411,7 @@ onMounted(() => {
 
 .breadcrumb .active,
 .id-cell {
-  color: #16a34a;
+  color: var(--brand-600);
   font-weight: 800;
 }
 
@@ -626,7 +626,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: white;
 }
 

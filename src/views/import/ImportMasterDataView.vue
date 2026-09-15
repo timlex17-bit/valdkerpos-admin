@@ -801,7 +801,7 @@ function showFlash(message: string) {
 }
 
 .breadcrumb .active {
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -830,7 +830,7 @@ function showFlash(message: string) {
 }
 
 .stat-card.primary {
-  border-top: 4px solid #2563eb;
+  border-top: 4px solid var(--brand-600);
 }
 
 .stat-card.success {
@@ -852,14 +852,14 @@ function showFlash(message: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f0fdf4;
-  color: #059814;
+  background: var(--brand-50);
+  color: var(--brand-600);
   flex-shrink: 0;
 }
 
 .stat-card.primary .stat-icon {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--brand-50);
+  color: var(--brand-600);
 }
 
 .stat-card.warning .stat-icon {
@@ -939,7 +939,7 @@ function showFlash(message: string) {
 }
 
 .step-item.active .step-number {
-  background: linear-gradient(90deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: #fff;
 }
 
@@ -1030,7 +1030,7 @@ function showFlash(message: string) {
   align-items: center;
   justify-content: center;
   background: #fff;
-  color: #059814;
+  color: var(--brand-600);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
   flex-shrink: 0;
 }
@@ -1299,16 +1299,16 @@ function showFlash(message: string) {
 }
 
 .btn-primary {
-  background: #1677ff;
+  background: var(--brand-600);
   color: #fff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0f67ea;
+  background: var(--brand-700);
 }
 
 .btn-success {
-  background: linear-gradient(90deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: #fff;
 }
 

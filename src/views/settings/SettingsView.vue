@@ -704,8 +704,8 @@ onMounted(() => {
 }
 
 .form-input:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .alert-card {
@@ -942,7 +942,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: white;
 }
 

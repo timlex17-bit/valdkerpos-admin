@@ -666,8 +666,8 @@ onMounted(() => {
 
 .search-input:focus,
 .filter-select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .filter-select {

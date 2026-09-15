@@ -139,11 +139,11 @@ const logout = () => {
   margin: 2px 0 0;
   font-size: 20px;
   font-weight: 700;
-  color: #059814;
+  color: var(--brand-600);
 }
 
 .topbar.dark .topbar-title-wrap p {
-  color: #059814;
+  color: var(--brand-600);
 }
 
 .mobile-menu-btn,
@@ -196,8 +196,8 @@ const logout = () => {
 }
 
 .language-select:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 3px rgba(98, 4, 191, 0.15);
 }
 
 .topbar.dark .language-select {
@@ -235,7 +235,7 @@ const logout = () => {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: white;
   display: inline-flex;
   align-items: center;

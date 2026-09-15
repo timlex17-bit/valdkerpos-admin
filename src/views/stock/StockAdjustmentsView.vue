@@ -681,7 +681,7 @@ onMounted(async () => {
 }
 
 .breadcrumb .active {
-  color: #2563eb;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -706,8 +706,8 @@ onMounted(async () => {
 }
 
 .add-btn {
-  background: #22c55e;
-  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.18);
+  background: var(--brand-600);
+  box-shadow: 0 10px 20px rgba(98, 4, 191, 0.18);
 }
 
 .refresh-btn {

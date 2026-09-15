@@ -574,7 +574,7 @@ onMounted(() => {
 }
 
 .breadcrumb .active {
-  color: #16a34a;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -686,8 +686,8 @@ onMounted(() => {
 .filter-select:focus,
 .form-input:focus,
 .form-textarea:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .results-count {
@@ -926,7 +926,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: white;
 }
 

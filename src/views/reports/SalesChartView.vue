@@ -437,7 +437,7 @@ onMounted(() => {
   font-size: 0.92rem;
 }
 .breadcrumb .active {
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
 }
 .page-actions {
@@ -590,7 +590,7 @@ onMounted(() => {
 .progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #1677ff);
+  background: var(--brand-gradient);
 }
 .payment-meta {
   color: #64748b;
