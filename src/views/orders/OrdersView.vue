@@ -560,12 +560,19 @@
 // the start of an interpolation, so a brace-bearing message fails to compile and
 // throws on every render of this page. They are code examples, not prose, so
 // there is nothing to translate in them either.
-const ITEMS_JSON_SAMPLE = '[{"product":1,"quantity":"2","unit_price":"5.00"}]'
-const PAYMENTS_JSON_SAMPLE = '[{"method":"CASH","amount":"10.00"}]'
+//
+// They show the fields the order endpoint actually reads. Item prices are not
+// sent: the backend always charges the product's current sell price. A paid
+// order needs payments that add up to the order total, each naming a payment
+// method by id (and a bank account for methods that require one).
+const ITEMS_JSON_SAMPLE = '[{"product":1,"quantity":"2"}]'
+const PAYMENTS_JSON_SAMPLE = '[{"payment_method_id":1,"bank_account_id":null,"amount":"10.00"}]'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { getApiErrorMessage } from '@/utils/apiError'
+import { deviceTimeIso } from '@/utils/deviceTime'
 
 type OrderType = 'GENERAL' | 'DINE_IN' | 'TAKE_OUT' | 'DELIVERY'
 
@@ -1009,27 +1016,17 @@ async function saveOrder() {
     const payload = buildPayload()
 
     if (modalMode.value === 'create') {
-      await api.post(ENDPOINTS.ORDERS, payload)
+      // Taken at the moment of saving, not when the form opened: the backend
+      // refuses a device_time more than five minutes off its own clock.
+      await api.post(ENDPOINTS.ORDERS, { ...payload, device_time: deviceTimeIso() })
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
       await api.patch(`${ENDPOINTS.ORDERS}${editingId.value}/`, payload)
     }
 
     await fetchOrders()
     closeModal()
-  } catch (error: any) {
-    const data = error?.response?.data
-
-    if (data && typeof data === 'object') {
-      const firstKey = Object.keys(data)[0]
-      if (firstKey) {
-        const firstValue = data[firstKey as keyof typeof data]
-        formError.value = Array.isArray(firstValue) ? firstValue[0] : String(firstValue)
-      } else {
-        formError.value = t('ordersPage.failedSave')
-      }
-    } else {
-      formError.value = error?.message || t('ordersPage.failedSave')
-    }
+  } catch (error: unknown) {
+    formError.value = getApiErrorMessage(error, t('ordersPage.failedSave'), { allFields: true })
   } finally {
     saving.value = false
   }
