@@ -401,14 +401,36 @@
                   </select>
                 </div>
 
-                <div class="form-group">
+                <div v-if="modalMode === 'create'" class="form-group">
                   <label>{{ t('productsPage.stock') }} <span>*</span></label>
                   <input
                     v-model.number="form.stock"
                     type="number"
                     step="1"
-                    :disabled="modalMode === 'view'"
+                    min="0"
                   />
+                </div>
+
+                <!--
+                  After creation stock only moves through stock adjustments,
+                  sales and purchases, so it is shown, not edited. An input
+                  here would let the user type a new number, press save, see
+                  success, and find the stock unchanged.
+                -->
+                <div v-else class="form-group">
+                  <label>{{ t('productsPage.stock') }}</label>
+                  <div class="stock-readonly" data-testid="product-stock-readonly">
+                    <span class="stock-readonly-value">{{ displayNumber(form.stock) }}</span>
+                    <router-link
+                      v-if="modalMode === 'edit'"
+                      :to="{ name: 'stock-adjustments' }"
+                      class="stock-adjust-link"
+                      @click="closeModal"
+                    >
+                      {{ t('productsPage.adjustStock') }}
+                    </router-link>
+                  </div>
+                  <small class="stock-readonly-hint">{{ t('productsPage.stockReadOnlyHint') }}</small>
                 </div>
 
                 <div class="form-group">
@@ -861,7 +883,7 @@ function validateForm() {
     return false
   }
 
-  if (Number(form.stock) < 0) {
+  if (modalMode.value === 'create' && Number(form.stock) < 0) {
     alert(t('productsPage.stockCannotBeNegative'))
     return false
   }
@@ -875,14 +897,13 @@ function validateForm() {
 }
 
 function buildPayload() {
-  return {
+  const payload: Record<string, unknown> = {
     name: form.name.trim(),
     sku: form.sku.trim() || null,
     code: form.code.trim(),
     item_type: form.item_type,
     track_stock: form.track_stock,
     description: form.description.trim(),
-    stock: Number(form.stock) || 0,
     buy_price: String(form.buy_price || '0.00'),
     sell_price: String(form.sell_price || '0.00'),
     weight: String(form.weight || '0.00'),
@@ -892,6 +913,14 @@ function buildPayload() {
     supplier_id: form.supplier_id,
     unit_id: form.unit_id,
   }
+
+  // Opening stock is only honoured when the product is created. On an update
+  // the backend ignores it, so sending it would only pretend it was saved.
+  if (modalMode.value === 'create') {
+    payload.stock = Number(form.stock) || 0
+  }
+
+  return payload
 }
 
 async function saveProduct() {
@@ -1659,6 +1688,41 @@ onMounted(() => {
   color: #334155;
   font-size: 14px;
   flex-wrap: wrap;
+}
+
+.stock-readonly {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.stock-readonly-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-adjust-link {
+  margin-left: auto;
+  font-weight: 700;
+  color: #1677ff;
+  text-decoration: none;
+}
+
+.stock-adjust-link:hover {
+  text-decoration: underline;
+}
+
+.stock-readonly-hint {
+  display: block;
+  margin-top: 6px;
+  color: #6b7280;
 }
 
 .image-preview-wrap {

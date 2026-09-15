@@ -475,6 +475,8 @@ productsPage: {
   productNameRequired: 'Product name is required.',
   productCodeRequired: 'Product code is required.',
   stockCannotBeNegative: 'Stock cannot be negative.',
+  adjustStock: 'Adjust stock',
+  stockReadOnlyHint: 'Stock changes through stock adjustments, sales and purchases, not by editing the product.',
   numericCannotBeNegative: 'Numeric values cannot be negative.',
 
   deleteConfirm: 'Delete this product?',

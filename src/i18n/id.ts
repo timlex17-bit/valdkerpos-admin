@@ -474,6 +474,8 @@ productsPage: {
   productNameRequired: 'Nama produk wajib diisi.',
   productCodeRequired: 'Kode produk wajib diisi.',
   stockCannotBeNegative: 'Stok tidak boleh negatif.',
+  adjustStock: 'Sesuaikan stok',
+  stockReadOnlyHint: 'Stok berubah lewat penyesuaian stok, penjualan, dan pembelian, bukan dengan mengubah produk.',
   numericCannotBeNegative: 'Nilai numerik tidak boleh negatif.',
 
   deleteConfirm: 'Hapus produk ini?',

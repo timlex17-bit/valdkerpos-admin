@@ -474,6 +474,8 @@ productsPage: {
   productNameRequired: 'Naran produtu tenki iha.',
   productCodeRequired: 'Kode produtu tenki iha.',
   stockCannotBeNegative: 'Stok labele negatívu.',
+  adjustStock: 'Ajusta stok',
+  stockReadOnlyHint: 'Stok muda liuhosi ajustamentu stok, venda no kompra, la liuhosi edita produtu.',
   numericCannotBeNegative: 'Valór numériku labele negatívu.',
 
   deleteConfirm: 'Hapus produtu ida ne’e?',
