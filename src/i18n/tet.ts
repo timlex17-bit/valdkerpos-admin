@@ -71,6 +71,12 @@ const tet = {
     expandSidebar: 'Loke menu',
   },
 
+
+  access: {
+    moduleUnavailable: 'Ita la iha asesu ba pájina ne’e. Husu na’in loja se ita presiza.',
+    noAccessTitle: 'Seidauk iha menu ba ita',
+    noAccessBody: 'Ita-nia konta ativu, maibé na’in loja seidauk fó asesu ba pájina ruma. Husu na’in atu hadia ita-nia asesu menu iha pájina Utilizadór, depois tama fali.',
+  },
   common: {
     home: 'Uma',
     pos: 'POS',

@@ -71,6 +71,12 @@ const id = {
     expandSidebar: 'Buka menu',
   },
 
+
+  access: {
+    moduleUnavailable: 'Anda tidak punya akses ke halaman itu. Minta pemilik toko jika Anda memerlukannya.',
+    noAccessTitle: 'Belum ada menu yang diberikan untuk Anda',
+    noAccessBody: 'Akun Anda aktif, tetapi pemilik toko belum memberi akses ke halaman mana pun. Minta pemilik mengatur hak akses menu Anda di halaman User, lalu login kembali.',
+  },
   common: {
     home: 'Home',
     pos: 'POS',

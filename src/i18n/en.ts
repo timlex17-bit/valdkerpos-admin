@@ -71,6 +71,12 @@ const en = {
     expandSidebar: 'Expand menu',
   },
 
+
+  access: {
+    moduleUnavailable: 'You do not have access to that page. Ask the shop owner if you need it.',
+    noAccessTitle: 'No menu has been given to you yet',
+    noAccessBody: 'Your account is active, but the shop owner has not given you access to any page. Ask the owner to set your menu access on the Users page, then log in again.',
+  },
   common: {
     home: 'Home',
     pos: 'POS',
