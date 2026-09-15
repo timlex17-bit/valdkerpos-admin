@@ -77,8 +77,12 @@ export type ApiErrorOptions = {
  * - A short plain string body is a real message and is shown as sent.
  * - A debug page is never shown; the fallback is, with the status code for
  *   server errors so there is still something to quote to support.
- * - A JSON body yields `detail`, `message` or `error` when present, otherwise
- *   its field errors.
+ * - A JSON body yields `detail`, the reason, or `message` when present,
+ *   otherwise its field errors. Several endpoints answer a refused request
+ *   with a generic headline in `message` ("Restore failed.") and the actual
+ *   reason in `error` or `errors`; for a 4xx the reason wins, because the
+ *   headline alone tells the user nothing they can act on. For a 5xx the
+ *   reason is a raw exception string, so the headline stays in front.
  * - No response at all (network failure, CORS) yields the fallback.
  */
 export function getApiErrorMessage(
@@ -99,11 +103,16 @@ export function getApiErrorMessage(
 
   if (data && typeof data === 'object' && !Array.isArray(data)) {
     const body = data as Record<string, unknown>
+    const reasonsFirst = !status || status < 500
+    const keys = reasonsFirst ? ['detail', 'error', 'errors', 'message'] : ['detail', 'message', 'error', 'errors']
 
-    for (const key of ['detail', 'message', 'error']) {
+    for (const key of keys) {
       const value = body[key]
-      if (typeof value === 'string' && value.trim() && !looksLikeDebugPage(value)) {
-        return value.trim()
+      const text = Array.isArray(value)
+        ? value.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim()).join('; ')
+        : value
+      if (typeof text === 'string' && text.trim() && !looksLikeDebugPage(text)) {
+        return text.trim()
       }
     }
 
