@@ -69,6 +69,9 @@ const id = {
     navigation: 'Navigasi utama',
     collapseSidebar: 'Ciutkan menu',
     expandSidebar: 'Buka menu',
+
+    pos: 'Aplikasi POS',
+    offlineOrders: 'Pesanan offline',
   },
 
 
@@ -1264,6 +1267,20 @@ stockMovementsPage: {
     failedSave: 'Gagal menyimpan user.',
     failedDelete: 'Gagal menghapus user.',
     deleteConfirm: 'Hapus user "{username}"?',
+
+    menuAccessTitle: 'Hak akses menu',
+    menuAccessSubtitle: 'Pilih halaman yang boleh dibuka user ini. Halaman yang dimatikan tidak muncul di menunya.',
+    menuAccessCount: '{on} dari {total} halaman diaktifkan',
+    enableAllMenus: 'Aktifkan semua',
+    disableAllMenus: 'Matikan semua',
+    roleDefaultMenus: 'Default role',
+    loadingMenuAccess: 'Memuat hak akses menu...',
+    failedLoadMenuAccess: 'Gagal memuat daftar menu.',
+    menuAccessNotReady: 'Hak akses menu belum bisa dimuat.',
+    groupAllOn: 'Aktifkan grup',
+    groupAllOff: 'Matikan grup',
+    permissionGroupGeneral: 'Dashboard & aplikasi POS',
+    permissionGroupOther: 'Lainnya',
   },
   expensePage: {
     title: 'Pengeluaran',

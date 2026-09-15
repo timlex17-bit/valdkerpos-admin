@@ -69,6 +69,9 @@ const en = {
     navigation: 'Main navigation',
     collapseSidebar: 'Collapse menu',
     expandSidebar: 'Expand menu',
+
+    pos: 'POS app',
+    offlineOrders: 'Offline orders',
   },
 
 
@@ -1265,6 +1268,20 @@ stockMovementsPage: {
     failedSave: 'Failed to save user.',
     failedDelete: 'Failed to delete user.',
     deleteConfirm: 'Delete user "{username}"?',
+
+    menuAccessTitle: 'Menu access',
+    menuAccessSubtitle: 'Choose the pages this user can open. Pages switched off are hidden from their menu.',
+    menuAccessCount: '{on} of {total} pages switched on',
+    enableAllMenus: 'Turn all on',
+    disableAllMenus: 'Turn all off',
+    roleDefaultMenus: 'Role defaults',
+    loadingMenuAccess: 'Loading menu access...',
+    failedLoadMenuAccess: 'Failed to load the list of menus.',
+    menuAccessNotReady: 'Menu access could not be loaded yet.',
+    groupAllOn: 'Turn group on',
+    groupAllOff: 'Turn group off',
+    permissionGroupGeneral: 'Dashboard & POS app',
+    permissionGroupOther: 'Other',
   },
   expensePage: {
     title: 'Expenses',

@@ -76,6 +76,9 @@ const c = androidModuleColors
 
 export const moduleIcons: Record<string, ModuleIcon> = {
   dashboard: icon(a.home, undefined, '#6204bf'),
+  // Android-only modules, shown on the Users page permission switches.
+  pos: icon(a.pos, c.pos, '#4f46e5'),
+  offline_orders: icon(a.offline_orders, c.offline_orders, '#3b82f6'),
 
   orders: icon(a.orders, c.orders, '#2563eb'),
   purchases: icon(a.purchases, c.purchases, '#d97706'),

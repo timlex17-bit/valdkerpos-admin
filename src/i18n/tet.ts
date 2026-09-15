@@ -69,6 +69,9 @@ const tet = {
     navigation: 'Navegasaun prinsipál',
     collapseSidebar: 'Taka menu',
     expandSidebar: 'Loke menu',
+
+    pos: 'Aplikasaun POS',
+    offlineOrders: 'Pedidu offline',
   },
 
 
@@ -1264,6 +1267,20 @@ stockMovementsPage: {
     failedSave: 'Labele rai utilizadór.',
     failedDelete: 'Labele hapus utilizadór.',
     deleteConfirm: 'Hapus utilizadór "{username}"?',
+
+    menuAccessTitle: 'Asesu menu',
+    menuAccessSubtitle: 'Hili pájina sira ne’ebé utilizadór ne’e bele loke. Pájina ne’ebé mate la mosu iha ninia menu.',
+    menuAccessCount: '{on} husi {total} pájina moris',
+    enableAllMenus: 'Moris hotu',
+    disableAllMenus: 'Mate hotu',
+    roleDefaultMenus: 'Padraun funsaun',
+    loadingMenuAccess: 'Karrega asesu menu...',
+    failedLoadMenuAccess: 'Labele karrega lista menu.',
+    menuAccessNotReady: 'Seidauk bele karrega asesu menu.',
+    groupAllOn: 'Moris grupu',
+    groupAllOff: 'Mate grupu',
+    permissionGroupGeneral: 'Dashboard no aplikasaun POS',
+    permissionGroupOther: 'Seluk',
   },
   expensePage: {
     title: 'Despeza',

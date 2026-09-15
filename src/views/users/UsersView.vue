@@ -350,8 +350,11 @@
           <section v-if="!viewOnly" class="menu-permission-section">
             <div class="menu-permission-header">
               <div>
-                <h3>Hak Akses Menu</h3>
-                <p>Pilih menu yang boleh diakses user ini.</p>
+                <h3>{{ t('usersPage.menuAccessTitle') }}</h3>
+                <p>{{ t('usersPage.menuAccessSubtitle') }}</p>
+                <p class="permission-summary" data-testid="permission-summary">
+                  {{ t('usersPage.menuAccessCount', { on: grantedPermissionCount, total: menuPermissions.length }) }}
+                </p>
               </div>
 
               <div class="menu-permission-actions">
@@ -361,7 +364,7 @@
                   @click="setAllMenuPermissions(true)"
                   :disabled="saving || permissionsLoading || !menuPermissions.length"
                 >
-                  Aktifkan Semua
+                  {{ t('usersPage.enableAllMenus') }}
                 </button>
                 <button
                   type="button"
@@ -369,7 +372,7 @@
                   @click="setAllMenuPermissions(false)"
                   :disabled="saving || permissionsLoading || !menuPermissions.length"
                 >
-                  Matikan Semua
+                  {{ t('usersPage.disableAllMenus') }}
                 </button>
                 <button
                   type="button"
@@ -377,32 +380,44 @@
                   @click="applyDefaultRolePermissions()"
                   :disabled="saving || permissionsLoading || !menuOptions.length"
                 >
-                  Default Role
+                  {{ t('usersPage.roleDefaultMenus') }}
                 </button>
               </div>
             </div>
 
             <div v-if="permissionsLoading" class="permission-loading">
-              Memuat hak akses menu...
+              {{ t('usersPage.loadingMenuAccess') }}
             </div>
 
             <div v-else class="menu-permission-groups">
               <section
                 v-for="group in groupedMenuPermissions"
-                :key="group.name"
+                :key="group.key"
                 class="permission-group"
+                :data-group="group.key"
               >
-                <h4>{{ group.name }}</h4>
+                <div class="permission-group-head">
+                  <h4>{{ group.label }}</h4>
+                  <button
+                    type="button"
+                    class="group-toggle-btn"
+                    :disabled="saving || group.items.every((item) => item.disabled)"
+                    @click="setGroupPermissions(group.key, !group.allOn)"
+                  >
+                    {{ group.allOn ? t('usersPage.groupAllOff') : t('usersPage.groupAllOn') }}
+                  </button>
+                </div>
 
                 <div class="menu-permission-list">
                   <label
                     v-for="permission in group.items"
                     :key="permission.menuKey"
                     class="menu-permission-row"
-                    :class="{ disabled: permission.disabled }"
+                    :class="{ disabled: permission.disabled, on: permission.canAccess }"
                   >
+                    <ModuleIcon :module="permission.menuKey" :size="28" variant="soft" />
                     <span class="permission-copy">
-                      <span>{{ permission.label }}</span>
+                      <span>{{ permissionLabel(permission) }}</span>
                       <small
                         v-if="permission.permissionSource === 'role_default'"
                         class="permission-source"
@@ -449,10 +464,13 @@
 <script setup lang="ts">
 import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { normalizeApiList } from '@/utils/apiData'
 import { ENDPOINTS } from '@/services/endpoints'
+import ModuleIcon from '@/components/icons/ModuleIcon.vue'
+import { adminMenuGroups } from '@/utils/adminMenu'
+import { translatedGroupLabel, translatedModuleLabel } from '@/utils/menuLabels'
 
 type UserRoleApi = 'owner' | 'admin' | 'manager' | 'cashier' | 'inventory_staff' | 'finance'
 
@@ -490,20 +508,25 @@ type MenuPermissionState = {
 }
 
 /**
- * Display order for the groups the backend uses. Any group name not listed
- * here still renders - it is appended in the order the backend sent it - so a
- * new backend group never silently drops its modules off this screen.
+ * The switches are grouped the way the sidebar is (Sales, Inventory,
+ * People, ...), not by the backend's plan tiers (Core, Pro, Enterprise). An
+ * owner thinking "this person handles stock" looks for Inventory; with
+ * plan-tier groups the stock pages were split over Core, Pro and Enterprise
+ * and there was no Inventory to switch on. Which modules exist is still the
+ * backend's list; this only decides where each one is shown.
  */
-const preferredGroupOrder = [
-  'Core',
-  'Reports',
-  'Pro',
-  'Enterprise',
-  'Finance',
-  'Workshop',
-  'Restaurant',
-  'System',
-]
+const GENERAL_GROUP = 'general'
+const OTHER_GROUP = 'other'
+const GENERAL_MODULES = new Set(['dashboard', 'pos', 'offline_orders'])
+const sidebarGroupOf = new Map<string, string>(
+  adminMenuGroups.flatMap((group) => group.items.map((item) => [item.key, group.key] as [string, string]))
+)
+const groupOrder = [GENERAL_GROUP, ...adminMenuGroups.map((group) => group.key), OTHER_GROUP]
+
+function displayGroupOf(moduleKey: string) {
+  if (GENERAL_MODULES.has(moduleKey)) return GENERAL_GROUP
+  return sidebarGroupOf.get(moduleKey) || OTHER_GROUP
+}
 
 type StaffApiItem = {
   id: number
@@ -545,7 +568,7 @@ type ShopUser = {
   menuPermissions: MenuPermissionApiItem[]
 }
 
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 
 const users = ref<ShopUser[]>([])
 const search = ref('')
@@ -567,58 +590,71 @@ const permissionsLoading = ref(false)
 const menuOptions = ref<MenuPermissionOption[]>([])
 const menuPermissions = ref<MenuPermissionState[]>([])
 
-const groupedMenuPermissions = computed(() => {
-  const seen = menuPermissions.value.map((permission) => permission.group)
-  const order = [
-    ...preferredGroupOrder,
-    ...seen.filter((name) => !preferredGroupOrder.includes(name)),
-  ]
+function groupLabel(groupKey: string) {
+  if (groupKey === GENERAL_GROUP) return t('usersPage.permissionGroupGeneral')
+  if (groupKey === OTHER_GROUP) return t('usersPage.permissionGroupOther')
+  const group = adminMenuGroups.find((item) => item.key === groupKey)
+  return translatedGroupLabel({ t, te }, groupKey, group?.label || groupKey)
+}
 
-  return [...new Set(order)]
-    .map((name) => ({
-      name,
-      items: menuPermissions.value.filter((permission) => permission.group === name),
-    }))
+function permissionLabel(permission: MenuPermissionState) {
+  return translatedModuleLabel({ t, te }, permission.menuKey, permission.label)
+}
+
+const groupedMenuPermissions = computed(() =>
+  groupOrder
+    .map((key) => {
+      const items = menuPermissions.value.filter((permission) => displayGroupOf(permission.menuKey) === key)
+      const enabled = items.filter((item) => !item.disabled)
+      return {
+        key,
+        label: groupLabel(key),
+        items,
+        allOn: enabled.length > 0 && enabled.every((item) => item.canAccess),
+      }
+    })
     .filter((group) => group.items.length > 0)
-})
+)
 
-const managerDefaultMenus = new Set([
-  'pos',
-  'orders',
-  'customers',
-  'suppliers',
-  'purchases',
-  'products',
-  'categories',
-  'units',
-  'expenses',
-  'product_returns',
-  'inventory_counts',
-  'stock_adjustments',
-  'stock_movements',
-  'reports',
-])
+const grantedPermissionCount = computed(
+  () => menuPermissions.value.filter((permission) => permission.canAccess && !permission.disabled).length
+)
 
-const cashierDefaultMenus = new Set(['pos', 'orders', 'customers'])
+function setGroupPermissions(groupKey: string, canAccess: boolean) {
+  menuPermissions.value = menuPermissions.value.map((permission) =>
+    displayGroupOf(permission.menuKey) !== groupKey || permission.disabled
+      ? permission
+      : { ...permission, canAccess, permissionSource: 'explicit' as PermissionSource }
+  )
+}
+
+/*
+ * Role defaults, copied from the backend's get_role_default_modules()
+ * (pos/module_registry.py) - the backend applies exactly these when a user
+ * has no explicit switch. They are repeated here only to pre-fill the
+ * switches of a new user and for the "Role defaults" button, because no
+ * endpoint returns them yet; the previous copy had drifted (manager missing
+ * most modules, finance given orders, nobody given the dashboard).
+ * TODO(backend): expose role defaults on /api/menu-permissions/options/ and
+ * read them from there.
+ */
+const cashierDefaultMenus = new Set(['dashboard', 'pos', 'orders', 'customers', 'offline_orders'])
+
+const financeDefaultMenus = new Set(['dashboard', 'reports', 'expenses', 'bank_accounts', 'bank_ledgers'])
 
 const inventoryStaffDefaultMenus = new Set([
+  'dashboard',
   'products',
   'categories',
   'units',
+  'suppliers',
+  'purchases',
+  'inventory_counts',
+  'stock_adjustments',
   'warehouses',
   'warehouse_stocks',
   'stock_transfers',
   'stock_movements',
-  'stock_adjustments',
-  'inventory_counts',
-])
-
-const financeDefaultMenus = new Set([
-  'reports',
-  'expenses',
-  'bank_accounts',
-  'bank_ledgers',
-  'orders',
 ])
 
 const form = reactive({
@@ -631,6 +667,19 @@ const form = reactive({
   password: '',
   confirmPassword: '',
 })
+
+// A new user's switches start as the defaults of the role picked. Before,
+// they were filled once for the form's initial role (cashier) and not
+// refilled when the owner chose another role, so an Inventory Staff user
+// was offered cashier menus. Switches the owner already flipped are kept.
+watch(
+  () => form.role,
+  (role) => {
+    if (isEditMode.value || viewOnly.value || !menuOptions.value.length) return
+    const untouched = menuPermissions.value.every((permission) => permission.permissionSource !== 'explicit')
+    if (untouched) applyDefaultRolePermissions(role)
+  },
+)
 
 const filteredUsers = computed(() => {
   let results = [...users.value]
@@ -816,11 +865,9 @@ function getPermissionSource(
 function canAccessByDefault(role: string, menuKey: string) {
   const normalizedRole = role.toLowerCase()
 
-  if (normalizedRole === 'owner' || normalizedRole === 'admin') {
+  if (normalizedRole === 'owner' || normalizedRole === 'admin' || normalizedRole === 'manager') {
     return true
   }
-
-  if (normalizedRole === 'manager') return managerDefaultMenus.has(menuKey)
 
   if (normalizedRole === 'cashier' || normalizedRole === 'kasir') return cashierDefaultMenus.has(menuKey)
 
@@ -883,7 +930,7 @@ async function fetchMenuOptions() {
 
     return menuOptions.value
   } catch (error: any) {
-    errorMessage.value = getApiErrorMessage(error, 'Gagal memuat daftar hak akses menu.', { allFields: true })
+    errorMessage.value = getApiErrorMessage(error, t('usersPage.failedLoadMenuAccess'), { allFields: true })
     return []
   } finally {
     permissionsLoading.value = false
@@ -912,7 +959,7 @@ async function ensureMenuPermissionsReady() {
     return true
   }
 
-  errorMessage.value = errorMessage.value || 'Hak Akses Menu belum bisa dimuat.'
+  errorMessage.value = errorMessage.value || t('usersPage.menuAccessNotReady')
   return false
 }
 
@@ -1764,10 +1811,45 @@ onMounted(() => {
   padding-right: 4px;
 }
 
-.permission-group h4 {
+.permission-summary {
+  font-weight: 700;
+  color: var(--brand-700) !important;
+}
+
+.permission-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0 0 8px;
+}
+
+.permission-group h4 {
+  margin: 0;
   color: #1f2937;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.group-toggle-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: var(--brand-50);
+  color: var(--brand-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.group-toggle-btn:hover:not(:disabled) {
+  background: var(--brand-100);
+}
+
+.group-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .menu-permission-list {
@@ -1777,17 +1859,27 @@ onMounted(() => {
 }
 
 .menu-permission-row {
-  min-height: 64px;
+  min-height: 56px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 10px;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: white;
   padding: 8px 12px;
   color: #334155;
   font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.menu-permission-row.on {
+  border-color: var(--brand-200);
+  background: var(--brand-25);
+}
+
+.menu-permission-row .permission-copy {
+  flex: 1;
 }
 
 .menu-permission-row.disabled {
@@ -1885,7 +1977,7 @@ onMounted(() => {
 }
 
 .save-btn {
-  background: #22c55e;
+  background: var(--brand-600);
   color: white;
 }
 

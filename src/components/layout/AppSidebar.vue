@@ -5,6 +5,7 @@ import { adminMenuGroups, type MenuGroupConfig } from '@/utils/adminMenu'
 import { canShowModule, getVisibleMenuItems } from '@/utils/moduleVisibility'
 import type { PermissionUser } from '@/utils/menuPermissions'
 import ModuleIcon from '@/components/icons/ModuleIcon.vue'
+import { translatedGroupLabel, translatedModuleLabel } from '@/utils/menuLabels'
 
 type Shop = {
   id: string | number
@@ -65,27 +66,8 @@ const visibleGroups = computed<MenuGroupConfig[]>(() =>
     .filter((group) => group.items.length > 0)
 )
 
-const camel = (key: string) => key.replace(/[-_]([a-z])/g, (_, char: string) => char.toUpperCase())
-
-// Module keys whose label lives under another name. "reports" is both a
-// group and the Dashboard Summary item; without the alias the item read
-// "REPORTS", the group heading.
-const ITEM_LABEL_ALIASES: Record<string, string> = {
-  staff: 'users',
-  stock_transfers: 'transferStocks',
-  backup_center: 'backupRestore',
-  reports: 'dashboardSummary',
-}
-
-const menuLabel = (key: string, fallback: string) => {
-  const translationKey = `menu.${camel(key)}`
-  return te(translationKey) ? t(translationKey) : fallback
-}
-
-const itemLabel = (key: string, fallback: string) => {
-  const translationKey = `menu.${ITEM_LABEL_ALIASES[key] || camel(key)}`
-  return te(translationKey) ? t(translationKey) : fallback
-}
+const menuLabel = (key: string, fallback: string) => translatedGroupLabel({ t, te }, key, fallback)
+const itemLabel = (key: string, fallback: string) => translatedModuleLabel({ t, te }, key, fallback)
 
 const menuBadge = (key: string) => {
   if (key === 'orders' && pendingOrderCount.value > 0) return pendingOrderCount.value
