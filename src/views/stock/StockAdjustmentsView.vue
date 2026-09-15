@@ -1127,7 +1127,7 @@ onMounted(async () => {
 }
 
 .save-btn {
-  background: #22c55e;
+  background: var(--brand-600);
   color: white;
 }
 
