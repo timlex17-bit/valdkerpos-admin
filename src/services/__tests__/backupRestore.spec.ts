@@ -24,16 +24,16 @@ describe('buildDeletionPreview', () => {
     },
   }
 
-  it('lists only sections that lose rows, with the backup count beside each', () => {
+  it('lists only sections that lose rows, products and orders first, the rest in backend order', () => {
     const preview = buildDeletionPreview(dryRun)
     expect(preview.available).toBe(true)
     expect(preview.lines.map((line) => line.section)).toEqual([
+      'products',
+      'orders',
       'bank_ledgers',
       'sale_payments',
-      'orders',
       'order_items',
       'shifts',
-      'products',
     ])
     expect(preview.lines.find((line) => line.section === 'products')).toEqual({
       section: 'products',
@@ -43,6 +43,24 @@ describe('buildDeletionPreview', () => {
     })
     expect(preview.lines.find((line) => line.section === 'bank_ledgers')?.inBackup).toBeNull()
     expect(preview.totalDeleted).toBe(23)
+  })
+
+  it('opens the sentence with products and orders even when the backend lists them last', () => {
+    // The real dry-run of QARETAIL backup #36 on Postgres, in the backend's
+    // own order: products came thirteenth in the headline before this.
+    const real = {
+      would_delete: {
+        bank_ledgers: 9, sale_payments: 9, product_return_items: 4, product_returns: 4,
+        inventory_count_items: 0, inventory_counts: 0, stock_adjustments: 0, stock_movements: 4,
+        stock_transfer_items: 0, stock_transfers: 0, order_items: 9, orders: 9, purchase_items: 3,
+        purchases: 3, warehouse_stocks: 3, expenses: 4, shifts: 1, banners: 0, products: 2,
+        warehouses: 0, customers: 0, suppliers: 0, categories: 0, units: 0, tables: 0,
+      },
+    }
+    const preview = buildDeletionPreview(real)
+    expect(preview.summary.startsWith('2 products, 9 orders, 9 bank ledger entries')).toBe(true)
+    expect(preview.lines).toHaveLength(13)
+    expect(preview.totalDeleted).toBe(64)
   })
 
   it('reads as a sentence with singular and plural labels', () => {

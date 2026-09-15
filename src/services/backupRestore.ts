@@ -67,6 +67,16 @@ const SECTION_LABELS: Record<string, [singular: string, plural: string]> = {
   tables: ['table', 'tables'],
 }
 
+/**
+ * Sections the warning names first. The backend lists `would_delete` in the
+ * order its delete phase runs, which puts bank ledger entries first and
+ * products thirteenth; in one long sentence "2 products" then comes last,
+ * where nobody reads it. The warning only helps if the numbers that matter
+ * are read before the button is pressed. Everything else keeps the backend's
+ * order after these.
+ */
+const LEADING_SECTIONS = ['products', 'orders']
+
 export function sectionLabel(section: string, count: number): string {
   const known = SECTION_LABELS[section]
   if (known) return count === 1 ? known[0] : known[1]
@@ -87,9 +97,15 @@ export function buildDeletionPreview(dryRun: DryRunResponse | null | undefined):
   }
 
   const counts = dryRun?.counts || {}
+  const rank = (section: string) => {
+    const index = LEADING_SECTIONS.indexOf(section)
+    return index === -1 ? LEADING_SECTIONS.length : index
+  }
   const lines = Object.entries(wouldDelete)
-    .map(([section, value]) => ({ section, deleted: Number(value) || 0 }))
+    .map(([section, value], position) => ({ section, deleted: Number(value) || 0, position }))
     .filter((line) => line.deleted > 0)
+    .sort((a, b) => rank(a.section) - rank(b.section) || a.position - b.position)
+    .map(({ section, deleted }) => ({ section, deleted }))
     .map((line) => ({
       ...line,
       label: sectionLabel(line.section, line.deleted),
