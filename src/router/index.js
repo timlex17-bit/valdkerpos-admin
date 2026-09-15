@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoginView from '@/views/LoginView.vue'
-import { canAccessMenu, routeMenuKeys } from '@/utils/menuPermissions'
+import { canAccessMenu, firstAccessibleRoute, routeMenuKeys } from '@/utils/menuPermissions'
 import { loadModuleContract, moduleContract } from '@/services/moduleContract'
 
 const DashboardView = () => import('@/views/dashboard/DashboardView.vue')
@@ -340,6 +340,12 @@ const routes = [
         component: () => import('@/views/import/ImportMasterDataView.vue'),
         meta: { title: 'Import Master Data', section: 'system-tools' },
       },
+      {
+        path: 'no-access',
+        name: 'no-access',
+        component: () => import('@/views/NoAccessView.vue'),
+        meta: { title: 'No access' },
+      },
     ],
   },
 
@@ -357,7 +363,7 @@ const router = createRouter({
   },
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
   const token = localStorage.getItem('token')
 
   if (to.meta.requiresAuth && !token) {
@@ -394,11 +400,15 @@ router.beforeEach(async (to) => {
       }
 
       if (!canAccessMenu(user, menuKeys)) {
-        sessionStorage.setItem(
-          'module_access_message',
-          'This module is not available for your business type, plan, or role.'
-        )
-        return '/dashboard'
+        // An i18n key, not a sentence: AdminLayout shows it in the user's
+        // language on whatever page they land on. Not when the app itself
+        // sent them to the dashboard, after login or on a fresh load: nobody
+        // asked for it, so saying it is refused only confuses.
+        const sentByApp = (!from.name || from.name === 'login') && routeName === 'dashboard'
+        if (!sentByApp) {
+          sessionStorage.setItem('module_access_message', 'access.moduleUnavailable')
+        }
+        return firstAccessibleRoute(user, to.path)
       }
     }
   }

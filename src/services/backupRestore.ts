@@ -85,12 +85,23 @@ export function sectionLabel(section: string, count: number): string {
   return section.replace(/_/g, ' ')
 }
 
-function joinWithAnd(parts: string[]): string {
+function joinWithAnd(parts: string[], andWord = 'and'): string {
   if (parts.length <= 1) return parts.join('')
-  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+  return `${parts.slice(0, -1).join(', ')} ${andWord} ${parts[parts.length - 1]}`
 }
 
-export function buildDeletionPreview(dryRun: DryRunResponse | null | undefined): DeletionPreview {
+export type DeletionPreviewWording = {
+  /** Label for `count` rows of `section`; defaults to the English labels above. */
+  label?: (section: string, count: number) => string
+  /** The word joining the last two parts of the summary ("and"). */
+  andWord?: string
+}
+
+export function buildDeletionPreview(
+  dryRun: DryRunResponse | null | undefined,
+  wording: DeletionPreviewWording = {},
+): DeletionPreview {
+  const labelFor = wording.label || sectionLabel
   const wouldDelete = dryRun?.would_delete
   if (!wouldDelete || typeof wouldDelete !== 'object') {
     return { available: false, totalDeleted: 0, lines: [], summary: '' }
@@ -108,12 +119,15 @@ export function buildDeletionPreview(dryRun: DryRunResponse | null | undefined):
     .map(({ section, deleted }) => ({ section, deleted }))
     .map((line) => ({
       ...line,
-      label: sectionLabel(line.section, line.deleted),
+      label: labelFor(line.section, line.deleted),
       inBackup: typeof counts[line.section] === 'number' ? counts[line.section] : null,
     }))
 
   const totalDeleted = lines.reduce((sum, line) => sum + line.deleted, 0)
-  const summary = joinWithAnd(lines.map((line) => `${line.deleted} ${line.label}`))
+  const summary = joinWithAnd(
+    lines.map((line) => `${line.deleted} ${line.label}`),
+    wording.andWord,
+  )
   return { available: true, totalDeleted, lines, summary }
 }
 

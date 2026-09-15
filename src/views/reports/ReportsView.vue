@@ -2,6 +2,8 @@
 import axios from 'axios'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { getApiErrorMessage } from '@/utils/apiError'
 import reportService, { type ReportParams } from '@/services/reportService'
 
 type BusinessType = 'retail' | 'restaurant' | 'workshop'
@@ -56,6 +58,24 @@ type StoredShop = {
 }
 
 const route = useRoute()
+const { t, te, locale } = useI18n()
+
+// Tabs, summary cards, table columns and chart titles are defined below with
+// an English label that also serves as their stable identity (v-for keys).
+// label() turns that English label into the current language at render time.
+function label(english: string) {
+  const key = `reportCenter.labels.${english
+    .replace(/%/g, ' Percent')
+    .replace(/[^A-Za-z0-9 ]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .map((word, index) => (index ? word[0].toUpperCase() + word.slice(1).toLowerCase() : word.toLowerCase()))
+    .join('')}`
+  return te(key) ? t(key) : english
+}
+
+const numberLocale = computed(() => (locale.value === 'id' || locale.value === 'tet' ? 'id-ID' : 'en-US'))
+const dateLocale = computed(() => (locale.value === 'id' ? 'id-ID' : locale.value === 'tet' ? 'pt-PT' : 'en-US'))
 
 const tabs: Array<{ key: ReportKey; label: string }> = [
   { key: 'dashboard', label: 'Dashboard Summary' },
@@ -76,6 +96,7 @@ const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1
 const loading = ref(false)
 const exportLoading = ref<'pdf' | 'xlsx' | ''>('')
 const errorMessage = ref('')
+const accessDenied = ref(false)
 const activeReport = ref<ReportKey>('dashboard')
 const rawPayload = ref<ReportPayload>({})
 const responseBusinessType = ref('')
@@ -127,7 +148,7 @@ const isPlatformAdmin = computed(() => {
 })
 
 const currentShopName = computed(() => {
-  return rawPayload.value.shop?.name || storedShop.value?.name || storedUser.value?.shop_name || 'Current shop'
+  return rawPayload.value.shop?.name || storedShop.value?.name || storedUser.value?.shop_name || t('reportCenter.currentShop')
 })
 
 const currentShopId = computed(() => {
@@ -146,7 +167,8 @@ const currentBusinessType = computed<BusinessType>(() => {
 const currentBusinessTypeLabel = computed(() => currentBusinessType.value.toUpperCase())
 
 const reportTitle = computed(() => {
-  return tabs.find((tab) => tab.key === activeReport.value)?.label || 'Reports'
+  const tab = tabs.find((item) => item.key === activeReport.value)
+  return tab ? label(tab.label) : t('menu.reports')
 })
 
 const summary = computed(() => rawPayload.value.summary || {})
@@ -436,7 +458,7 @@ function asNumber(value: unknown) {
 }
 
 function formatCurrency(value: unknown) {
-  return new Intl.NumberFormat('id-ID', {
+  return new Intl.NumberFormat(numberLocale.value, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -448,7 +470,7 @@ function formatDate(value: unknown, withTime = false) {
   const date = new Date(String(value))
   if (Number.isNaN(date.getTime())) return String(value)
 
-  return new Intl.DateTimeFormat('id-ID', {
+  return new Intl.DateTimeFormat(dateLocale.value, {
     year: 'numeric',
     month: 'short',
     day: '2-digit',
@@ -459,7 +481,7 @@ function formatDate(value: unknown, withTime = false) {
 function formatTypedValue(value: unknown, type: Column['type']) {
   if (value === null || value === undefined || value === '') return type === 'currency' ? formatCurrency(0) : '-'
   if (type === 'currency') return formatCurrency(value)
-  if (type === 'number') return new Intl.NumberFormat('id-ID').format(asNumber(value))
+  if (type === 'number') return new Intl.NumberFormat(numberLocale.value).format(asNumber(value))
   if (type === 'percent') return `${asNumber(value).toFixed(2)}%`
   if (type === 'date') return formatDate(value)
   if (type === 'datetime') return formatDate(value, true)
@@ -521,6 +543,7 @@ function serviceForReport(report: ReportKey) {
 async function fetchReport() {
   loading.value = true
   errorMessage.value = ''
+  accessDenied.value = false
 
   try {
     const response = await serviceForReport(activeReport.value)(activeParams.value)
@@ -533,19 +556,13 @@ async function fetchReport() {
   } catch (error: unknown) {
     rawPayload.value = {}
 
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
-        errorMessage.value = 'Session expired. Please login again.'
-      } else if (error.response?.status === 403) {
-        errorMessage.value = 'Access denied.'
-      } else if (error.response?.status === 500) {
-        errorMessage.value = 'Server error while loading report.'
-      } else {
-        const data = error.response?.data as { detail?: unknown; message?: unknown; error?: unknown } | undefined
-        errorMessage.value = String(data?.detail || data?.message || data?.error || 'Failed to load report.')
-      }
+    accessDenied.value = axios.isAxiosError(error) && error.response?.status === 403
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      errorMessage.value = t('reportCenter.sessionExpired')
+    } else if (accessDenied.value) {
+      errorMessage.value = t('reportCenter.accessDenied')
     } else {
-      errorMessage.value = 'Failed to load report.'
+      errorMessage.value = getApiErrorMessage(error, t('reportCenter.loadFailed'))
     }
   } finally {
     loading.value = false
@@ -610,18 +627,12 @@ async function exportSales(format: 'pdf' | 'xlsx') {
     link.remove()
     window.URL.revokeObjectURL(url)
   } catch (error: unknown) {
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
-        errorMessage.value = 'Session expired. Please login again.'
-      } else if (error.response?.status === 403) {
-        errorMessage.value = 'Access denied.'
-      } else if (error.response?.status === 500) {
-        errorMessage.value = 'Server error while exporting report.'
-      } else {
-        errorMessage.value = `Failed to export ${format.toUpperCase()} report.`
-      }
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      errorMessage.value = t('reportCenter.sessionExpired')
+    } else if (axios.isAxiosError(error) && error.response?.status === 403) {
+      errorMessage.value = t('reportCenter.accessDenied')
     } else {
-      errorMessage.value = `Failed to export ${format.toUpperCase()} report.`
+      errorMessage.value = t('reportCenter.exportFailed', { format: format.toUpperCase() })
     }
   } finally {
     exportLoading.value = ''
@@ -646,12 +657,12 @@ function normalizeBreakdown(value: unknown) {
         if (item && typeof item === 'object') {
           const record = item as Record<string, unknown>
           return {
-            label: String(record.label || record.name || record.date || record.category || record.payment_method || `Item ${index + 1}`),
+            label: String(record.label || record.name || record.date || record.category || record.payment_method || t('reportCenter.itemNumber', { n: index + 1 })),
             value: asNumber(record.value || record.amount || record.total || record.sales || record.quantity || record.count),
           }
         }
 
-        return { label: `Item ${index + 1}`, value: asNumber(item) }
+        return { label: t('reportCenter.itemNumber', { n: index + 1 }), value: asNumber(item) }
       })
       .filter((item) => item.label)
   }
@@ -688,26 +699,26 @@ onMounted(() => {
   <div class="reports-page">
     <section class="reports-header">
       <div>
-        <p class="eyebrow">Reports / Laporan</p>
+        <p class="eyebrow">{{ t('menu.reports') }}</p>
         <h1>{{ reportTitle }}</h1>
         <div class="header-meta">
           <span>{{ currentShopName }}</span>
           <span class="business-badge">{{ currentBusinessTypeLabel }}</span>
-          <span v-if="currentShopId">Shop ID: {{ currentShopId }}</span>
+          <span v-if="currentShopId">{{ t('reportCenter.shopId', { id: currentShopId }) }}</span>
         </div>
       </div>
 
       <div class="header-actions">
         <button class="btn btn-light" type="button" :disabled="loading" @click="fetchReport">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('dashboardPage.refreshing') : t('common.refresh') }}
         </button>
         <button class="btn btn-light" type="button" :disabled="Boolean(exportLoading)" @click="exportSales('pdf')">
-          {{ exportLoading === 'pdf' ? 'Exporting...' : 'Export PDF' }}
+          {{ exportLoading === 'pdf' ? t('reportCenter.exporting') : t('reportCenter.exportPdf') }}
         </button>
         <button class="btn btn-light" type="button" :disabled="Boolean(exportLoading)" @click="exportSales('xlsx')">
-          {{ exportLoading === 'xlsx' ? 'Exporting...' : 'Export Excel' }}
+          {{ exportLoading === 'xlsx' ? t('reportCenter.exporting') : t('reportCenter.exportExcel') }}
         </button>
-        <button class="btn btn-primary" type="button" @click="printReport">Print</button>
+        <button class="btn btn-primary" type="button" @click="printReport">{{ t('reportCenter.print') }}</button>
       </div>
     </section>
 
@@ -720,152 +731,152 @@ onMounted(() => {
         type="button"
         @click="setActiveReport(tab.key)"
       >
-        {{ tab.label }}
+        {{ label(tab.label) }}
       </button>
     </section>
 
     <section class="filter-panel">
       <div class="filter-grid">
         <label class="field">
-          <span>Start Date</span>
+          <span>{{ t('reportCenter.startDate') }}</span>
           <input v-model="filters.start_date" type="date" />
         </label>
         <label class="field">
-          <span>End Date</span>
+          <span>{{ t('reportCenter.endDate') }}</span>
           <input v-model="filters.end_date" type="date" />
         </label>
         <label class="field wide">
-          <span>Search</span>
-          <input v-model="filters.search" type="search" placeholder="Invoice, customer, product..." />
+          <span>{{ t('common.search') }}</span>
+          <input v-model="filters.search" type="search" :placeholder="t('reportCenter.searchPlaceholder')" />
         </label>
         <label class="field">
-          <span>Payment Method</span>
-          <input v-model="filters.payment_method" type="text" placeholder="Cash, card, transfer" />
+          <span>{{ t('reportCenter.labels.paymentMethod') }}</span>
+          <input v-model="filters.payment_method" type="text" :placeholder="t('reportCenter.paymentPlaceholder')" />
         </label>
         <label class="field">
-          <span>Cashier</span>
-          <input v-model="filters.cashier_id" type="text" placeholder="Cashier ID" />
+          <span>{{ t('reportCenter.labels.cashier') }}</span>
+          <input v-model="filters.cashier_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.cashier') })" />
         </label>
         <label class="field">
-          <span>Customer</span>
-          <input v-model="filters.customer_id" type="text" placeholder="Customer ID" />
+          <span>{{ t('reportCenter.labels.customer') }}</span>
+          <input v-model="filters.customer_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.customer') })" />
         </label>
         <label class="field">
-          <span>Status</span>
+          <span>{{ t('reportCenter.labels.status') }}</span>
           <input v-model="filters.status" type="text" placeholder="PAID, PENDING..." />
         </label>
         <label v-if="isPlatformAdmin" class="field">
-          <span>Shop ID</span>
-          <input v-model="filters.shop_id" type="text" placeholder="Optional shop_id" />
+          <span>{{ t('reportCenter.shopIdLabel') }}</span>
+          <input v-model="filters.shop_id" type="text" :placeholder="t('reportCenter.optional')" />
         </label>
 
         <template v-if="currentBusinessType === 'workshop'">
           <label class="field">
-            <span>Item Type</span>
+            <span>{{ t('reportCenter.labels.itemType') }}</span>
             <select v-model="filters.item_type">
-              <option value="">Semua</option>
+              <option value="">{{ t('reportCenter.all') }}</option>
               <option value="MENU">MENU</option>
               <option value="SERVICE">SERVICE</option>
               <option value="SPAREPART">SPAREPART</option>
             </select>
           </label>
           <label class="field">
-            <span>Vehicle Plate</span>
+            <span>{{ t('reportCenter.labels.vehiclePlate') }}</span>
             <input v-model="filters.vehicle_plate" type="text" />
           </label>
           <label class="field">
-            <span>Mechanic</span>
-            <input v-model="filters.mechanic_id" type="text" placeholder="Mechanic ID" />
+            <span>{{ t('reportCenter.labels.mechanic') }}</span>
+            <input v-model="filters.mechanic_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.mechanic') })" />
           </label>
           <label class="field">
-            <span>Service Status</span>
+            <span>{{ t('reportCenter.serviceStatus') }}</span>
             <input v-model="filters.service_status" type="text" />
           </label>
         </template>
 
         <template v-else-if="currentBusinessType === 'restaurant'">
           <label class="field">
-            <span>Order Type</span>
+            <span>{{ t('reportCenter.labels.orderType') }}</span>
             <select v-model="filters.order_type">
-              <option value="">Semua</option>
+              <option value="">{{ t('reportCenter.all') }}</option>
               <option value="DINE_IN">DINE_IN</option>
               <option value="TAKEAWAY">TAKEAWAY</option>
               <option value="DELIVERY">DELIVERY</option>
             </select>
           </label>
           <label class="field">
-            <span>Table Number</span>
+            <span>{{ t('reportCenter.tableNumber') }}</span>
             <input v-model="filters.table_number" type="text" />
           </label>
           <label class="field">
-            <span>Waiter</span>
-            <input v-model="filters.waiter_id" type="text" placeholder="Waiter ID" />
+            <span>{{ t('reportCenter.labels.waiter') }}</span>
+            <input v-model="filters.waiter_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.waiter') })" />
           </label>
           <label class="field">
-            <span>Menu Category</span>
+            <span>{{ t('reportCenter.menuCategory') }}</span>
             <input v-model="filters.menu_category" type="text" />
           </label>
         </template>
 
         <template v-else>
           <label class="field">
-            <span>Product</span>
-            <input v-model="filters.product_id" type="text" placeholder="Product ID" />
+            <span>{{ t('reportCenter.labels.product') }}</span>
+            <input v-model="filters.product_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.product') })" />
           </label>
           <label class="field">
-            <span>Category</span>
-            <input v-model="filters.category_id" type="text" placeholder="Category ID" />
+            <span>{{ t('reportCenter.labels.category') }}</span>
+            <input v-model="filters.category_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.category') })" />
           </label>
           <label class="field">
-            <span>Supplier</span>
-            <input v-model="filters.supplier_id" type="text" placeholder="Supplier ID" />
+            <span>{{ t('reportCenter.labels.supplier') }}</span>
+            <input v-model="filters.supplier_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.supplier') })" />
           </label>
           <label class="field">
-            <span>Warehouse</span>
-            <input v-model="filters.warehouse_id" type="text" placeholder="Warehouse ID" />
+            <span>{{ t('reportCenter.labels.warehouse') }}</span>
+            <input v-model="filters.warehouse_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.warehouse') })" />
           </label>
           <label class="field">
-            <span>SKU</span>
+            <span>{{ t('reportCenter.labels.sku') }}</span>
             <input v-model="filters.sku" type="text" />
           </label>
           <label class="field">
-            <span>Barcode</span>
+            <span>{{ t('reportCenter.labels.barcode') }}</span>
             <input v-model="filters.barcode" type="text" />
           </label>
           <label class="field">
-            <span>Stock Status</span>
+            <span>{{ t('reportCenter.labels.stockStatus') }}</span>
             <input v-model="filters.stock_status" type="text" />
           </label>
         </template>
       </div>
 
       <div class="filter-actions">
-        <button class="btn btn-primary" type="button" @click="applyFilters">Apply Filter</button>
-        <button class="btn btn-light" type="button" @click="resetFilters">Reset Filter</button>
+        <button class="btn btn-primary" type="button" @click="applyFilters">{{ t('reportCenter.applyFilter') }}</button>
+        <button class="btn btn-light" type="button" @click="resetFilters">{{ t('reportCenter.resetFilter') }}</button>
       </div>
     </section>
 
-    <section v-if="errorMessage" class="alert-card" :class="{ denied: errorMessage === 'Access denied.' }">
+    <section v-if="errorMessage" class="alert-card" :class="{ denied: accessDenied }">
       {{ errorMessage }}
     </section>
 
     <section class="summary-grid">
       <article v-for="item in summaryCards" :key="item.label" class="summary-card">
-        <span>{{ item.label }}</span>
+        <span>{{ label(item.label) }}</span>
         <strong>{{ item.value }}</strong>
       </article>
     </section>
 
     <section class="charts-section">
       <div class="section-heading">
-        <h2>Charts</h2>
-        <p>Breakdown data from the active report response.</p>
+        <h2>{{ t('reportCenter.charts') }}</h2>
+        <p>{{ t('reportCenter.chartsSubtitle') }}</p>
       </div>
 
-      <div v-if="!hasBreakdownData" class="empty-chart">No breakdown data available.</div>
+      <div v-if="!hasBreakdownData" class="empty-chart">{{ t('reportCenter.noBreakdown') }}</div>
       <div v-else class="chart-grid">
         <article v-for="section in chartSections" :key="section.title" class="chart-card">
-          <h3>{{ section.title }}</h3>
+          <h3>{{ label(section.title) }}</h3>
           <div class="bar-list">
             <div v-for="item in section.rows.slice(0, 8)" :key="item.label" class="bar-row">
               <div class="bar-row-head">
@@ -886,13 +897,13 @@ onMounted(() => {
     <section class="table-card">
       <div class="table-head">
         <div>
-          <h2>{{ reportTitle }} Table</h2>
-          <p v-if="hasSummaryData && rows.length === 0">Summary is available, but table rows are empty.</p>
-          <p v-else>{{ totalRows }} row(s)</p>
+          <h2>{{ t('reportCenter.tableTitle', { name: reportTitle }) }}</h2>
+          <p v-if="hasSummaryData && rows.length === 0">{{ t('reportCenter.summaryOnly') }}</p>
+          <p v-else>{{ t('reportCenter.rowCount', { count: totalRows }) }}</p>
         </div>
 
         <label class="page-size">
-          Rows
+          {{ t('reportCenter.rows') }}
           <select v-model.number="filters.page_size" @change="applyFilters">
             <option :value="10">10</option>
             <option :value="25">25</option>
@@ -906,15 +917,15 @@ onMounted(() => {
         <table class="report-table">
           <thead>
             <tr>
-              <th v-for="column in tableColumns" :key="column.label">{{ column.label }}</th>
+              <th v-for="column in tableColumns" :key="column.label">{{ label(column.label) }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td :colspan="tableColumns.length" class="empty-state">Loading report data...</td>
+              <td :colspan="tableColumns.length" class="empty-state">{{ t('reportCenter.loadingData') }}</td>
             </tr>
             <tr v-else-if="rows.length === 0">
-              <td :colspan="tableColumns.length" class="empty-state">No table data found.</td>
+              <td :colspan="tableColumns.length" class="empty-state">{{ t('reportCenter.noTableData') }}</td>
             </tr>
             <tr v-for="(row, rowIndex) in rows" :key="String(row.id || row.pk || rowIndex)">
               <td v-for="column in tableColumns" :key="column.label">
@@ -930,11 +941,11 @@ onMounted(() => {
 
       <div class="pagination">
         <button class="btn btn-light" type="button" :disabled="Number(filters.page) <= 1 || loading" @click="changePage(Number(filters.page) - 1)">
-          Previous
+          {{ t('reportCenter.previous') }}
         </button>
-        <span>Page {{ filters.page }} of {{ pageCount }}</span>
+        <span>{{ t('reportCenter.pageOf', { page: filters.page, total: pageCount }) }}</span>
         <button class="btn btn-light" type="button" :disabled="Number(filters.page) >= pageCount || loading" @click="changePage(Number(filters.page) + 1)">
-          Next
+          {{ t('reportCenter.next') }}
         </button>
       </div>
     </section>
@@ -971,7 +982,7 @@ onMounted(() => {
   margin: 0 0 6px;
   font-size: 12px;
   font-weight: 800;
-  color: #059814;
+  color: var(--brand-600);
   text-transform: uppercase;
 }
 
@@ -1032,7 +1043,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #059814;
+  background: var(--brand-600);
   color: #ffffff;
 }
 
@@ -1055,8 +1066,8 @@ onMounted(() => {
 }
 
 .tab-button.active {
-  background: #059814;
-  border-color: #059814;
+  background: var(--brand-600);
+  border-color: var(--brand-600);
   color: #ffffff;
 }
 
@@ -1103,8 +1114,8 @@ onMounted(() => {
 .field input:focus,
 .field select:focus,
 .page-size select:focus {
-  border-color: #059814;
-  box-shadow: 0 0 0 3px rgba(5, 152, 20, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 3px rgba(98, 4, 191, 0.12);
 }
 
 .filter-actions {
@@ -1135,7 +1146,7 @@ onMounted(() => {
 .summary-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #059814;
+  border-left: 4px solid var(--brand-600);
   border-radius: 8px;
   padding: 16px;
 }
@@ -1218,7 +1229,7 @@ onMounted(() => {
 .bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: #059814;
+  background: var(--brand-600);
 }
 
 .empty-chart {

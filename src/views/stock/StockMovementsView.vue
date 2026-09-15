@@ -511,7 +511,7 @@ onMounted(() => {
 }
 
 .breadcrumb .active {
-  color: #2563eb;
+  color: var(--brand-600);
   font-weight: 700;
 }
 

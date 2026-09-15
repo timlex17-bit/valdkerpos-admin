@@ -4,27 +4,27 @@
     <section class="page-header">
       <div class="page-header__left">
         <div>
-          <h1 class="page-title">Import Master Data</h1>
+          <h1 class="page-title">{{ t('importPage.title') }}</h1>
           <p class="page-subtitle">
-            Migrate categories, units, products, customers, suppliers, and opening stock from your old POS system.
+            {{ t('importPage.subtitle') }}
           </p>
         </div>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>›</span>
-          <span>System Tools</span>
+          <span>{{ t('menu.systemTools') }}</span>
           <span>›</span>
-          <span class="active">Import Master Data</span>
+          <span class="active">{{ t('menu.importMasterData') }}</span>
         </div>
       </div>
 
       <div class="page-header__actions">
         <button class="btn btn-light" :disabled="loadingTemplate" @click="downloadTemplate">
-          {{ loadingTemplate ? 'Downloading...' : 'Download template' }}
+          {{ loadingTemplate ? t('importPage.downloading') : t('importPage.downloadTemplate') }}
         </button>
         <button class="btn btn-success" :disabled="uploading" @click="openUploadDialog">
-          {{ uploading ? 'Uploading...' : 'Upload file' }}
+          {{ uploading ? t('importPage.uploading') : t('importPage.uploadFile') }}
         </button>
       </div>
     </section>
@@ -40,9 +40,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Template Format</p>
-          <h3 class="stat-value">Excel Workbook</h3>
-          <p class="stat-meta">One file with multiple sheets</p>
+          <p class="stat-label">{{ t('importPage.templateFormat') }}</p>
+          <h3 class="stat-value">{{ t('importPage.excelWorkbook') }}</h3>
+          <p class="stat-meta">{{ t('importPage.oneFileSheets') }}</p>
         </div>
       </article>
 
@@ -54,9 +54,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Valid Rows</p>
+          <p class="stat-label">{{ t('importPage.validRows') }}</p>
           <h3 class="stat-value">{{ validationSummary.validRows }}</h3>
-          <p class="stat-meta">Ready to import</p>
+          <p class="stat-meta">{{ t('importPage.readyToImport') }}</p>
         </div>
       </article>
 
@@ -69,9 +69,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Invalid Rows</p>
+          <p class="stat-label">{{ t('importPage.invalidRows') }}</p>
           <h3 class="stat-value">{{ validationSummary.invalidRows }}</h3>
-          <p class="stat-meta">Require correction before import</p>
+          <p class="stat-meta">{{ t('importPage.needCorrection') }}</p>
         </div>
       </article>
 
@@ -85,9 +85,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Total Rows</p>
+          <p class="stat-label">{{ t('importPage.totalRows') }}</p>
           <h3 class="stat-value">{{ validationSummary.totalRows }}</h3>
-          <p class="stat-meta">Detected from uploaded workbook</p>
+          <p class="stat-meta">{{ t('importPage.detectedFromWorkbook') }}</p>
         </div>
       </article>
     </section>
@@ -98,8 +98,8 @@
         <div class="step-item" :class="{ active: currentStep >= 1 }">
           <div class="step-number">1</div>
           <div class="step-text">
-            <strong>Download Template</strong>
-            <span>Get standard Excel file</span>
+            <strong>{{ t('importPage.stepDownload') }}</strong>
+            <span>{{ t('importPage.stepDownloadText') }}</span>
           </div>
         </div>
 
@@ -108,8 +108,8 @@
         <div class="step-item" :class="{ active: currentStep >= 2 }">
           <div class="step-number">2</div>
           <div class="step-text">
-            <strong>Upload File</strong>
-            <span>Select completed workbook</span>
+            <strong>{{ t('importPage.stepUpload') }}</strong>
+            <span>{{ t('importPage.stepUploadText') }}</span>
           </div>
         </div>
 
@@ -118,8 +118,8 @@
         <div class="step-item" :class="{ active: currentStep >= 3 }">
           <div class="step-number">3</div>
           <div class="step-text">
-            <strong>Validation Preview</strong>
-            <span>Review summary and errors</span>
+            <strong>{{ t('importPage.stepValidate') }}</strong>
+            <span>{{ t('importPage.stepValidateText') }}</span>
           </div>
         </div>
 
@@ -128,8 +128,8 @@
         <div class="step-item" :class="{ active: currentStep >= 4 }">
           <div class="step-number">4</div>
           <div class="step-text">
-            <strong>Confirm Import</strong>
-            <span>Start migration to Valora</span>
+            <strong>{{ t('importPage.stepConfirm') }}</strong>
+            <span>{{ t('importPage.stepConfirmText') }}</span>
           </div>
         </div>
       </div>
@@ -142,8 +142,8 @@
         <article class="panel-card">
           <div class="card-header">
             <div>
-              <h2>Step 1 — Download standard template</h2>
-              <p>Use the provided Excel format to avoid import structure errors.</p>
+              <h2>{{ t('importPage.step1Title') }}</h2>
+              <p>{{ t('importPage.step1Text') }}</p>
             </div>
           </div>
 
@@ -159,7 +159,7 @@
               <div class="template-content">
                 <h3>Valora Master Import Template.xlsx</h3>
                 <p>
-                  Recommended sheets:
+                  {{ t('importPage.recommendedSheets') }}
                   <strong>Categories, Units, Products, Customers, Suppliers, OpeningStock</strong>
                 </p>
 
@@ -173,7 +173,7 @@
                 </div>
 
                 <button class="btn btn-success" :disabled="loadingTemplate" @click="downloadTemplate">
-                  {{ loadingTemplate ? 'Downloading...' : 'Download standard Excel template' }}
+                  {{ loadingTemplate ? t('importPage.downloading') : t('importPage.downloadStandardTemplate') }}
                 </button>
               </div>
             </div>
@@ -184,8 +184,8 @@
         <article class="panel-card">
           <div class="card-header">
             <div>
-              <h2>Step 2 — Upload completed file</h2>
-              <p>Drag and drop your Excel workbook or choose it manually.</p>
+              <h2>{{ t('importPage.step2Title') }}</h2>
+              <p>{{ t('importPage.step2Text') }}</p>
             </div>
           </div>
 
@@ -205,29 +205,29 @@
                 </svg>
               </div>
 
-              <h3>{{ uploading ? 'Uploading file...' : 'Drop Excel file here' }}</h3>
-              <p>Supported format: .xlsx</p>
+              <h3>{{ uploading ? t('importPage.uploadingFile') : t('importPage.dropHere') }}</h3>
+              <p>{{ t('importPage.supportedFormat') }}</p>
 
               <div class="upload-actions">
                 <button class="btn btn-light" :disabled="uploading" @click.stop="openUploadDialog">
-                  Choose file
+                  {{ t('importPage.chooseFile') }}
                 </button>
                 <button
                   class="btn btn-primary"
                   :disabled="!importJobId || validating"
                   @click.stop="validatePreview"
                 >
-                  {{ validating ? 'Validating...' : 'Validate preview' }}
+                  {{ validating ? t('importPage.validating') : t('importPage.validatePreview') }}
                 </button>
               </div>
 
               <div v-if="uploadedFileName" class="uploaded-file">
-                Uploaded file: <strong>{{ uploadedFileName }}</strong>
+                {{ t('importPage.uploadedFile') }} <strong>{{ uploadedFileName }}</strong>
               </div>
 
               <div v-if="uploadMeta" class="uploaded-meta">
-                Job ID: <strong>#{{ uploadMeta.id }}</strong>
-                <span v-if="uploadMeta.status"> • Status: <strong>{{ uploadMeta.status }}</strong></span>
+                {{ t('importPage.jobId') }} <strong>#{{ uploadMeta.id }}</strong>
+                <span v-if="uploadMeta.status"> • {{ t('common.status') }}: <strong>{{ uploadMeta.status }}</strong></span>
               </div>
             </div>
 
@@ -245,8 +245,8 @@
         <article class="panel-card">
           <div class="card-header">
             <div>
-              <h2>Step 3 — Validation preview</h2>
-              <p>Review data quality before starting import.</p>
+              <h2>{{ t('importPage.step3Title') }}</h2>
+              <p>{{ t('importPage.step3Text') }}</p>
             </div>
             <button
               v-if="importJobId"
@@ -254,22 +254,22 @@
               :disabled="loadingJob"
               @click="refreshImportJob"
             >
-              {{ loadingJob ? 'Refreshing...' : 'Refresh status' }}
+              {{ loadingJob ? t('dashboardPage.refreshing') : t('importPage.refreshStatus') }}
             </button>
           </div>
 
           <div class="card-body">
             <div class="preview-summary-grid">
               <div class="preview-card">
-                <span class="preview-label">Total rows</span>
+                <span class="preview-label">{{ t('importPage.totalRows') }}</span>
                 <strong>{{ validationSummary.totalRows }}</strong>
               </div>
               <div class="preview-card success">
-                <span class="preview-label">Valid rows</span>
+                <span class="preview-label">{{ t('importPage.validRows') }}</span>
                 <strong>{{ validationSummary.validRows }}</strong>
               </div>
               <div class="preview-card danger">
-                <span class="preview-label">Invalid rows</span>
+                <span class="preview-label">{{ t('importPage.invalidRows') }}</span>
                 <strong>{{ validationSummary.invalidRows }}</strong>
               </div>
             </div>
@@ -278,15 +278,15 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Row</th>
-                    <th>Sheet</th>
-                    <th>Field</th>
-                    <th>Error Message</th>
+                    <th>{{ t('importPage.row') }}</th>
+                    <th>{{ t('importPage.sheet') }}</th>
+                    <th>{{ t('importPage.field') }}</th>
+                    <th>{{ t('importPage.errorMessage') }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="validationErrors.length === 0">
-                    <td colspan="4" class="empty-cell">No validation errors.</td>
+                    <td colspan="4" class="empty-cell">{{ t('importPage.noValidationErrors') }}</td>
                   </tr>
                   <tr v-for="error in validationErrors" :key="error.id">
                     <td>{{ error.row }}</td>
@@ -306,35 +306,34 @@
         <article class="panel-card">
           <div class="card-header">
             <div>
-              <h2>Step 4 — Confirm import</h2>
-              <p>Start importing valid data into your shop database.</p>
+              <h2>{{ t('importPage.step4Title') }}</h2>
+              <p>{{ t('importPage.step4Text') }}</p>
             </div>
           </div>
 
           <div class="card-body">
             <div class="confirm-box">
               <div class="confirm-info">
-                <h3>Ready to import</h3>
+                <h3>{{ t('importPage.readyToImport') }}</h3>
                 <p>
-                  Imported data can include categories, units, products, customers, suppliers,
-                  and opening stock from your old POS file.
+                  {{ t('importPage.importIncludes') }}
                 </p>
 
                 <ul class="confirm-list">
-                  <li>Only validated rows should be imported</li>
-                  <li>Invalid rows should be corrected first</li>
-                  <li>Recommended to make a backup before import</li>
+                  <li>{{ t('importPage.ruleValidated') }}</li>
+                  <li>{{ t('importPage.ruleCorrect') }}</li>
+                  <li>{{ t('importPage.ruleBackup') }}</li>
                 </ul>
               </div>
 
               <div class="confirm-actions">
-                <button class="btn btn-light" @click="resetImportState">Reset</button>
+                <button class="btn btn-light" @click="resetImportState">{{ t('common.reset') }}</button>
                 <button
                   class="btn btn-success"
                   :disabled="!canImport || importing"
                   @click="startImport"
                 >
-                  {{ importing ? 'Importing...' : 'Import now' }}
+                  {{ importing ? t('importPage.importing') : t('importPage.importNow') }}
                 </button>
               </div>
             </div>
@@ -347,30 +346,30 @@
         <article class="panel-card side-panel">
           <div class="card-header">
             <div>
-              <h2>Import tips</h2>
-              <p>Best practice before migrating your old master data.</p>
+              <h2>{{ t('importPage.tipsTitle') }}</h2>
+              <p>{{ t('importPage.tipsText') }}</p>
             </div>
           </div>
 
           <div class="tips-list">
             <div class="tip-item">
-              <strong>1. Use template only</strong>
-              <p>Do not rename sheet names or column headers.</p>
+              <strong>{{ t('importPage.tip1') }}</strong>
+              <p>{{ t('importPage.tip1Text') }}</p>
             </div>
 
             <div class="tip-item">
-              <strong>2. Clean old data</strong>
-              <p>Remove duplicate products, wrong SKU, and incomplete customer names.</p>
+              <strong>{{ t('importPage.tip2') }}</strong>
+              <p>{{ t('importPage.tip2Text') }}</p>
             </div>
 
             <div class="tip-item">
-              <strong>3. Validate first</strong>
-              <p>Always review invalid rows before pressing Import now.</p>
+              <strong>{{ t('importPage.tip3') }}</strong>
+              <p>{{ t('importPage.tip3Text') }}</p>
             </div>
 
             <div class="tip-item">
-              <strong>4. Backup first</strong>
-              <p>Create a backup before importing large master data files.</p>
+              <strong>{{ t('importPage.tip4') }}</strong>
+              <p>{{ t('importPage.tip4Text') }}</p>
             </div>
           </div>
         </article>
@@ -378,35 +377,35 @@
         <article class="panel-card side-panel">
           <div class="card-header">
             <div>
-              <h2>Sheets overview</h2>
-              <p>Expected structure in the workbook.</p>
+              <h2>{{ t('importPage.sheetsTitle') }}</h2>
+              <p>{{ t('importPage.sheetsText') }}</p>
             </div>
           </div>
 
           <div class="sheet-overview">
             <div class="sheet-row">
               <span>Categories</span>
-              <small>Category name, description</small>
+              <small>{{ t('importPage.sheetCategories') }}</small>
             </div>
             <div class="sheet-row">
               <span>Units</span>
-              <small>Unit name, short code</small>
+              <small>{{ t('importPage.sheetUnits') }}</small>
             </div>
             <div class="sheet-row">
               <span>Products</span>
-              <small>Name, SKU, barcode, price, stock</small>
+              <small>{{ t('importPage.sheetProducts') }}</small>
             </div>
             <div class="sheet-row">
               <span>Customers</span>
-              <small>Name, phone, email, address</small>
+              <small>{{ t('importPage.sheetContacts') }}</small>
             </div>
             <div class="sheet-row">
               <span>Suppliers</span>
-              <small>Name, phone, email, address</small>
+              <small>{{ t('importPage.sheetContacts') }}</small>
             </div>
             <div class="sheet-row">
               <span>OpeningStock</span>
-              <small>Product, quantity, warehouse</small>
+              <small>{{ t('importPage.sheetOpeningStock') }}</small>
             </div>
           </div>
         </article>
@@ -426,7 +425,10 @@
 import { computed, ref } from 'vue'
 import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
+import { useI18n } from 'vue-i18n'
 import { ENDPOINTS } from '@/services/endpoints'
+
+const { t } = useI18n()
 
 type ValidationErrorRow = {
   id: number
@@ -567,7 +569,7 @@ function applyValidateResponse(data: ImportValidateResponse) {
         row: Number(item.row ?? item.row_number ?? 0),
         sheet: String(item.sheet ?? item.sheet_name ?? '-'),
         field: String(item.field ?? item.column ?? '-'),
-        message: String(item.message ?? item.error ?? item.error_message ?? 'Unknown validation error.'),
+        message: String(item.message ?? item.error ?? item.error_message ?? t('importPage.unknownValidationError')),
       }))
     : []
 }
@@ -593,9 +595,9 @@ async function downloadTemplate() {
     a.remove()
     window.URL.revokeObjectURL(url)
 
-    showFlash('Template download started.')
+    showFlash(t('importPage.templateDownloadStarted'))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to download template.'))
+    showFlash(getApiErrorMessage(error, t('importPage.templateDownloadFailed')))
   } finally {
     loadingTemplate.value = false
   }
@@ -624,7 +626,7 @@ async function handleDrop(event: DragEvent) {
 async function uploadFile(file: File) {
   const fileName = file.name.toLowerCase()
   if (!fileName.endsWith('.xlsx')) {
-    showFlash('Only .xlsx file is supported.')
+    showFlash(t('importPage.onlyXlsx'))
     return
   }
 
@@ -651,9 +653,9 @@ async function uploadFile(file: File) {
     }
     validationErrors.value = []
 
-    showFlash('File uploaded successfully.')
+    showFlash(t('importPage.uploaded'))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to upload file.'))
+    showFlash(getApiErrorMessage(error, t('importPage.uploadFailed')))
   } finally {
     uploading.value = false
   }
@@ -661,7 +663,7 @@ async function uploadFile(file: File) {
 
 async function validatePreview() {
   if (!importJobId.value) {
-    showFlash('Please upload file first.')
+    showFlash(t('importPage.uploadFirst'))
     return
   }
 
@@ -672,9 +674,9 @@ async function validatePreview() {
     const response = await api.post(IMPORT_ENDPOINTS.validate(importJobId.value), {})
     applyValidateResponse(response.data)
     await refreshImportJob()
-    showFlash('Validation preview generated.')
+    showFlash(t('importPage.validated'))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to validate uploaded file.'))
+    showFlash(getApiErrorMessage(error, t('importPage.validateFailed')))
   } finally {
     validating.value = false
   }
@@ -687,9 +689,9 @@ async function refreshImportJob() {
   try {
     const response = await api.get(IMPORT_ENDPOINTS.detail(importJobId.value))
     applyUploadOrDetailResponse(response.data)
-    showFlash('Import job refreshed.')
+    showFlash(t('importPage.jobRefreshed'))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to refresh import job.'))
+    showFlash(getApiErrorMessage(error, t('importPage.jobRefreshFailed')))
   } finally {
     loadingJob.value = false
   }
@@ -697,12 +699,12 @@ async function refreshImportJob() {
 
 async function startImport() {
   if (!importJobId.value) {
-    showFlash('Please upload and validate file first.')
+    showFlash(t('importPage.uploadAndValidateFirst'))
     return
   }
 
   if (validationSummary.value.validRows <= 0) {
-    showFlash('No valid rows available for import.')
+    showFlash(t('importPage.noValidRows'))
     return
   }
 
@@ -723,9 +725,9 @@ async function startImport() {
       response.data?.imported_rows ?? validationSummary.value.validRows ?? 0
     )
 
-    showFlash(`Import completed. ${importedRows} row(s) processed.`)
+    showFlash(t('importPage.importCompleted', { count: importedRows }))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to start import.'))
+    showFlash(getApiErrorMessage(error, t('importPage.importFailed')))
   } finally {
     importing.value = false
   }
@@ -745,7 +747,7 @@ function resetImportState() {
 
   validationErrors.value = []
 
-  showFlash('Import state reset.')
+  showFlash(t('importPage.stateReset'))
 }
 
 function showFlash(message: string) {
@@ -801,7 +803,7 @@ function showFlash(message: string) {
 }
 
 .breadcrumb .active {
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -830,7 +832,7 @@ function showFlash(message: string) {
 }
 
 .stat-card.primary {
-  border-top: 4px solid #2563eb;
+  border-top: 4px solid var(--brand-600);
 }
 
 .stat-card.success {
@@ -852,14 +854,14 @@ function showFlash(message: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f0fdf4;
-  color: #059814;
+  background: var(--brand-50);
+  color: var(--brand-600);
   flex-shrink: 0;
 }
 
 .stat-card.primary .stat-icon {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--brand-50);
+  color: var(--brand-600);
 }
 
 .stat-card.warning .stat-icon {
@@ -939,7 +941,7 @@ function showFlash(message: string) {
 }
 
 .step-item.active .step-number {
-  background: linear-gradient(90deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: #fff;
 }
 
@@ -1030,7 +1032,7 @@ function showFlash(message: string) {
   align-items: center;
   justify-content: center;
   background: #fff;
-  color: #059814;
+  color: var(--brand-600);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
   flex-shrink: 0;
 }
@@ -1299,16 +1301,16 @@ function showFlash(message: string) {
 }
 
 .btn-primary {
-  background: #1677ff;
+  background: var(--brand-600);
   color: #fff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0f67ea;
+  background: var(--brand-700);
 }
 
 .btn-success {
-  background: linear-gradient(90deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: #fff;
 }
 

@@ -2,8 +2,10 @@
 import { computed, toRefs } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminMenuGroups, type MenuGroupConfig } from '@/utils/adminMenu'
-import { getVisibleMenuItems } from '@/utils/moduleVisibility'
+import { canShowModule, getVisibleMenuItems } from '@/utils/moduleVisibility'
 import type { PermissionUser } from '@/utils/menuPermissions'
+import ModuleIcon from '@/components/icons/ModuleIcon.vue'
+import { translatedGroupLabel, translatedModuleLabel } from '@/utils/menuLabels'
 
 type Shop = {
   id: string | number
@@ -33,7 +35,7 @@ const emit = defineEmits<{
   (e: 'change-shop', shopId: string | number): void
 }>()
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 
 const {
   isCollapsed,
@@ -50,6 +52,11 @@ const {
 const safeShops = computed<Shop[]>(() => shops.value ?? [])
 const safeCurrentShop = computed<Shop | null>(() => currentShop.value ?? null)
 
+// The dashboard is gated like every other module: a user the owner limited
+// to, say, inventory does not get a Dashboard link that only answers
+// "owner, admin, manager only".
+const showDashboard = computed(() => canShowModule('dashboard', currentUser.value))
+
 const visibleGroups = computed<MenuGroupConfig[]>(() =>
   adminMenuGroups
     .map((group) => ({
@@ -59,19 +66,14 @@ const visibleGroups = computed<MenuGroupConfig[]>(() =>
     .filter((group) => group.items.length > 0)
 )
 
-const menuLabel = (key: string, fallback: string) => {
-  const translationKey = `menu.${key.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase())}`
-  const translated = t(translationKey)
-  return translated === translationKey ? fallback : translated
-}
+const menuLabel = (key: string, fallback: string) => translatedGroupLabel({ t, te }, key, fallback)
+const itemLabel = (key: string, fallback: string) => translatedModuleLabel({ t, te }, key, fallback)
 
 const menuBadge = (key: string) => {
   if (key === 'orders' && pendingOrderCount.value > 0) return pendingOrderCount.value
   if (key === 'inventory_counts' && stockAlertCount.value > 0) return stockAlertCount.value
   return 0
 }
-
-const iconClass = (key: string) => key.replace(/_/g, '-')
 
 const handleShopChange = (event: Event) => {
   const target = event.target as HTMLSelectElement | null
@@ -88,21 +90,25 @@ const handleShopChange = (event: Event) => {
       mobileOpen: isMobileOpen,
       dark: isDark,
     }"
+    :aria-label="t('menu.navigation')"
   >
-    <div class="sidebar-top">
-      <div class="brand-box">
-        <div class="brand-icon">V</div>
+    <div class="brand-box">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22">
+          <path d="M4.2,5.2 L12,19.4 L19.8,5.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
 
-        <div v-if="!isCollapsed" class="brand-text">
-          <h2 class="logo">Valora</h2>
-          <p class="brand-subtitle">{{ t('adminPanel') }}</p>
-        </div>
+      <div v-if="!isCollapsed" class="brand-text">
+        <h2 class="logo">Valora</h2>
+        <p class="brand-subtitle">{{ t('adminPanel') }}</p>
       </div>
     </div>
 
-    <div v-if="!isCollapsed" class="shop-switcher">
-      <label class="shop-label">{{ t('shop') }}</label>
+    <div v-if="!isCollapsed && safeShops.length" class="shop-switcher">
+      <label class="shop-label" for="sidebar-shop">{{ t('shop') }}</label>
       <select
+        id="sidebar-shop"
         class="shop-select"
         :value="safeCurrentShop?.id ?? ''"
         @change="handleShopChange"
@@ -118,45 +124,47 @@ const handleShopChange = (event: Event) => {
     </div>
 
     <nav class="menu">
-      <div class="menu-section">
-        <p v-if="!isCollapsed" class="menu-title">{{ t('menu.main') }}</p>
-
-        <RouterLink to="/dashboard" class="menu-link" @click="emit('close-mobile')">
-          <span class="menu-icon dashboard">D</span>
-          <span>{{ t('menu.dashboard') }}</span>
-        </RouterLink>
-      </div>
+      <RouterLink
+        v-if="showDashboard"
+        to="/dashboard"
+        class="menu-link dashboard-link"
+        :title="isCollapsed ? t('menu.dashboard') : undefined"
+        @click="emit('close-mobile')"
+      >
+        <ModuleIcon module="dashboard" :size="34" />
+        <span v-if="!isCollapsed" class="menu-text">{{ t('menu.dashboard') }}</span>
+      </RouterLink>
 
       <div
         v-for="group in visibleGroups"
         :key="group.key"
         class="menu-section"
-        :class="{ 'utility-section': group.key === 'system-tools' }"
       >
-        <button class="group-toggle" type="button" @click="emit('toggle-group', group.key)">
-          <span v-if="!isCollapsed">{{ menuLabel(group.key, group.label) }}</span>
-          <span v-else>*</span>
-          <span
-            v-if="!isCollapsed"
-            class="chevron"
-            :class="{ open: openGroups[group.key] }"
-          >
-            ^
-          </span>
+        <button
+          v-if="!isCollapsed"
+          class="group-toggle"
+          type="button"
+          :aria-expanded="openGroups[group.key] ? 'true' : 'false'"
+          @click="emit('toggle-group', group.key)"
+        >
+          <span>{{ menuLabel(group.key, group.label) }}</span>
+          <svg class="chevron" :class="{ open: openGroups[group.key] }" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M6,9 L12,15 L18,9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </button>
+        <div v-else class="group-divider" aria-hidden="true"></div>
 
-        <div v-show="openGroups[group.key] && !isCollapsed" class="group-items">
+        <div v-show="openGroups[group.key] || isCollapsed" class="group-items">
           <RouterLink
             v-for="item in group.items"
             :key="item.key"
             :to="item.route || '/dashboard'"
             class="menu-link"
+            :title="isCollapsed ? itemLabel(item.key, item.label) : undefined"
             @click="emit('close-mobile')"
           >
-            <span class="menu-icon" :class="iconClass(item.key)">
-              {{ item.label.charAt(0) }}
-            </span>
-            <span>{{ menuLabel(item.key, item.label) }}</span>
+            <ModuleIcon :module="item.key" :size="30" />
+            <span v-if="!isCollapsed" class="menu-text">{{ itemLabel(item.key, item.label) }}</span>
             <span
               v-if="menuBadge(item.key) > 0"
               class="menu-badge"
@@ -168,6 +176,19 @@ const handleShopChange = (event: Event) => {
         </div>
       </div>
     </nav>
+
+    <button
+      type="button"
+      class="collapse-toggle"
+      :aria-label="isCollapsed ? t('menu.expandSidebar') : t('menu.collapseSidebar')"
+      :title="isCollapsed ? t('menu.expandSidebar') : t('menu.collapseSidebar')"
+      @click="emit('toggle-collapse')"
+    >
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" :class="{ flipped: isCollapsed }">
+        <path d="M15,6 L9,12 L15,18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span v-if="!isCollapsed">{{ t('menu.collapseSidebar') }}</span>
+    </button>
   </aside>
 
   <div v-if="isMobileOpen" class="sidebar-overlay" @click="emit('close-mobile')" />
@@ -175,219 +196,274 @@ const handleShopChange = (event: Event) => {
 
 <style scoped>
 .sidebar {
-  width: 290px;
-  min-width: 290px;
+  width: 276px;
+  min-width: 276px;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
-  color: #111827;
-  padding: 18px 14px;
-  border-right: 1px solid #e5e7eb;
+  color: var(--text-primary);
+  padding: 16px 12px 12px;
+  border-right: 1px solid var(--stroke-soft);
   overflow-y: auto;
   position: sticky;
   top: 0;
   height: 100vh;
   z-index: 30;
-  transition: width 0.25s ease, transform 0.25s ease;
+  transition: width 0.25s ease, min-width 0.25s ease, transform 0.25s ease;
+  scrollbar-width: thin;
 }
 
 .sidebar.dark {
-  background: #0f172a;
-  color: #f8fafc;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0f0a1a;
+  color: #f4f0fb;
+  border-right-color: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar.collapsed {
-  width: 88px;
-  min-width: 88px;
+  width: 78px;
+  min-width: 78px;
 }
 
+/* ---------- brand */
 .brand-box {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px;
-  margin-bottom: 20px;
-  border-radius: 14px;
-  background: #f0fdf4;
-  border: 1px solid #dcfce7;
+  padding: 12px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: var(--brand-gradient);
+  color: #fff;
+  box-shadow: var(--brand-shadow);
 }
 
-.sidebar.dark .brand-box {
-  background: rgba(96, 230, 108, 0.08);
-  border-color: rgba(96, 230, 108, 0.18);
+.sidebar.collapsed .brand-box {
+  justify-content: center;
+  padding: 10px 0;
 }
 
-.brand-icon,
-.menu-icon {
+.brand-icon {
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: 800;
-}
-
-.brand-icon {
-  width: 42px;
-  height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #60e66c, #059814);
-  color: white;
-  font-size: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .logo {
   margin: 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .brand-subtitle {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   font-size: 12px;
-  color: #16a34a;
+  color: rgba(255, 255, 255, 0.8);
 }
 
+/* ---------- shop */
 .shop-switcher {
-  margin-bottom: 18px;
+  margin: 0 4px 14px;
 }
 
 .shop-label {
   display: block;
   margin-bottom: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 .shop-select {
   width: 100%;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--stroke);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 9px 12px;
+  font-size: 14px;
   outline: none;
-  background: #fff;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.shop-select:focus {
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 3px rgba(98, 4, 191, 0.12);
 }
 
 .sidebar.dark .shop-select {
-  background: #111827;
+  background: rgba(255, 255, 255, 0.05);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* ---------- menu */
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 6px;
+  flex: 1;
 }
 
-.menu-title,
-.group-toggle {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-}
-
-.menu-title {
-  color: #9ca3af;
-  margin: 0 0 8px;
-  padding: 0 10px;
+.menu-section {
+  display: flex;
+  flex-direction: column;
 }
 
 .group-toggle {
   width: 100%;
-  background: transparent;
-  border: none;
-  color: #6b7280;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 6px;
   padding: 8px 10px;
-  cursor: pointer;
+  border: none;
   border-radius: 10px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
   text-transform: uppercase;
+  cursor: pointer;
 }
 
 .group-toggle:hover {
-  background: #f0fdf4;
-  color: #059814;
+  color: var(--brand-600);
+  background: var(--brand-25);
 }
 
 .sidebar.dark .group-toggle {
-  color: #cbd5e1;
+  color: #8f86a3;
+}
+
+.sidebar.dark .group-toggle:hover {
+  color: #d7b3fa;
+  background: rgba(98, 4, 191, 0.14);
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+  transform: rotate(-90deg);
+}
+
+.chevron.open {
+  transform: rotate(0deg);
+}
+
+.group-divider {
+  height: 1px;
+  margin: 8px 14px;
+  background: var(--stroke-soft);
+}
+
+.sidebar.dark .group-divider {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .group-items {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .menu-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #374151;
-  text-decoration: none;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 7px 10px;
   border-radius: 12px;
-  margin-bottom: 4px;
-  transition: 0.2s;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar.collapsed .menu-link {
+  justify-content: center;
+  padding: 7px 0;
 }
 
 .menu-link:hover {
-  background: #f0fdf4;
-  color: #059814;
-  transform: translateX(2px);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.menu-link:hover :deep(.module-icon) {
+  transform: scale(1.06);
 }
 
 .menu-link.router-link-active {
-  background: linear-gradient(90deg, #60e66c, #059814);
-  color: white;
-  box-shadow: 0 6px 14px rgba(5, 152, 20, 0.25);
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+
+.menu-link.router-link-active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--brand-600);
 }
 
 .sidebar.dark .menu-link {
-  color: #e5e7eb;
+  color: #d9d3e6;
 }
 
-.menu-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 8px;
-  background: #eef2ff;
-  color: #2563eb;
-  font-size: 11px;
+.sidebar.dark .menu-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
 }
 
-.menu-icon.dashboard,
-.menu-icon.products,
-.menu-icon.inventory-counts,
-.menu-icon.reports {
-  background: #dcfce7;
-  color: #16a34a;
+.sidebar.dark .menu-link.router-link-active {
+  background: rgba(98, 4, 191, 0.24);
+  color: #fff;
 }
 
-.menu-icon.orders,
-.menu-icon.stock-transfers,
-.menu-icon.bookings {
-  background: #fef3c7;
-  color: #d97706;
+.dashboard-link {
+  margin-bottom: 2px;
 }
 
-.menu-icon.expenses,
-.menu-icon.product-returns {
-  background: #fee2e2;
-  color: #dc2626;
+.menu-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .menu-badge {
   margin-left: auto;
   min-width: 22px;
   height: 22px;
+  padding: 0 7px;
   border-radius: 999px;
-  padding: 0 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.sidebar.collapsed .menu-badge {
+  position: absolute;
+  top: 2px;
+  right: 10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
 }
 
 .menu-badge.success {
@@ -400,16 +476,47 @@ const handleShopChange = (event: Event) => {
   color: #92400e;
 }
 
-.utility-section {
-  margin-top: 10px;
-  padding-top: 18px;
-  border-top: 1px dashed #dbe4ee;
+/* ---------- collapse */
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--stroke-soft);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.collapse-toggle:hover {
+  color: var(--brand-600);
+  border-color: var(--brand-100);
+  background: var(--brand-25);
+}
+
+.collapse-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.collapse-toggle svg.flipped {
+  transform: rotate(180deg);
+}
+
+.sidebar.dark .collapse-toggle {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #b9b0cc;
 }
 
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 10, 26, 0.45);
   z-index: 20;
 }
 
@@ -424,6 +531,10 @@ const handleShopChange = (event: Event) => {
 
   .sidebar.mobileOpen {
     transform: translateX(0);
+  }
+
+  .collapse-toggle {
+    display: none;
   }
 }
 </style>

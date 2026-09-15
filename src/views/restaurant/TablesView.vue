@@ -507,7 +507,7 @@ onMounted(() => {
 }
 
 .breadcrumb .active {
-  color: #16a34a;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -749,7 +749,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: #fff;
 }
 

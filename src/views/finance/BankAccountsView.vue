@@ -636,7 +636,7 @@ onMounted(() => {
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: white;
   padding: 12px 18px;
   display: inline-flex;
@@ -646,7 +646,7 @@ onMounted(() => {
 
 .primary-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.25);
+  box-shadow: 0 12px 24px rgba(98, 4, 191, 0.25);
 }
 
 .secondary-btn {
@@ -744,8 +744,8 @@ onMounted(() => {
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .filter-select {

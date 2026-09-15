@@ -105,6 +105,8 @@ async function fetchContract(): Promise<ModuleContract | null> {
       })),
     }
 
+    await withdrawRefusedModules(contract)
+
     moduleContract.value = contract
     writeCachedContract(contract)
     return contract
@@ -112,6 +114,42 @@ async function fetchContract(): Promise<ModuleContract | null> {
     // Keep whatever we had. A failed refresh must not widen or narrow access.
     return moduleContract.value
   }
+}
+
+/**
+ * Modules whose page is nothing without one endpoint, and that endpoint.
+ *
+ * The backend's role defaults grant `dashboard` to cashiers, finance and
+ * inventory staff, while `/api/dashboard/summary/` itself admits only owner,
+ * admin and manager. Such a user got a Dashboard menu that opened onto
+ * "Owner, admin, manager, or platform admin only." Rather than restate the
+ * backend's role list here, ask the endpoint once when the contract loads.
+ * GET, not OPTIONS: a proxy in front of the API (the Vite dev proxy does) may
+ * answer OPTIONS itself with 204 and never ask Django.
+ */
+export const MODULE_ENDPOINT_PROBES: Record<string, string> = {
+  dashboard: ENDPOINTS.DASHBOARD_SUMMARY,
+}
+
+/**
+ * Marks a granted module as not granted when its endpoint answers 403. Only a
+ * 403 counts: a network error or a 5xx says nothing about access, so the
+ * contract is left as the backend sent it.
+ */
+export async function withdrawRefusedModules(contract: ModuleContract) {
+  await Promise.all(
+    Object.entries(MODULE_ENDPOINT_PROBES).map(async ([key, endpoint]) => {
+      const entry = contract.modules.find((item) => item.key === key)
+      if (!entry?.granted) return
+
+      try {
+        await api.get(endpoint)
+      } catch (error) {
+        const status = (error as { response?: { status?: number } })?.response?.status
+        if (status === 403) entry.granted = false
+      }
+    })
+  )
 }
 
 export function getModuleEntry(key: string): ModuleContractEntry | null {

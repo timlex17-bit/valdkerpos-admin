@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
 import { loadModuleContract } from '@/services/moduleContract'
@@ -53,6 +54,22 @@ type LoggedShop = {
 }
 
 const router = useRouter()
+const route = useRoute()
+const { t, te } = useI18n()
+
+// Set by the router guard (an i18n key) or by a page that sends the user
+// away (a sentence); shown once, on whatever page the user lands on.
+const accessNotice = ref('')
+watch(
+  () => route.fullPath,
+  () => {
+    const pending = sessionStorage.getItem('module_access_message')
+    if (!pending) return
+    sessionStorage.removeItem('module_access_message')
+    accessNotice.value = te(pending) ? t(pending) : pending
+  },
+  { immediate: true },
+)
 
 const openGroups = ref({
   sales: true,
@@ -216,6 +233,11 @@ onMounted(() => {
       />
 
       <section class="page-content">
+        <div v-if="accessNotice" class="access-notice" role="status">
+          <span class="access-notice-icon" aria-hidden="true">!</span>
+          <span>{{ accessNotice }}</span>
+          <button type="button" class="access-notice-close" :aria-label="t('common.close')" @click="accessNotice = ''">×</button>
+        </div>
         <router-view />
       </section>
     </main>
@@ -245,6 +267,47 @@ onMounted(() => {
 .page-content {
   flex: 1;
   padding: 24px;
+}
+
+.access-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--brand-50);
+  border: 1px solid var(--brand-100);
+  color: var(--brand-900);
+  font-weight: 600;
+}
+
+.access-notice-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--brand-600);
+  color: #fff;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.access-notice-close {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.admin-layout.dark .access-notice {
+  background: rgba(98, 4, 191, 0.18);
+  border-color: rgba(155, 77, 232, 0.35);
+  color: #ebd9fd;
 }
 
 @media (max-width: 1024px) {

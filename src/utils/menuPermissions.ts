@@ -1,4 +1,5 @@
 import { canShowModule } from './moduleVisibility'
+import { adminMenuGroups } from './adminMenu'
 
 export type PermissionUser = {
   role?: string
@@ -27,6 +28,10 @@ type PermissionItem = {
  * fails the build if one is not.
  */
 export const routeMenuKeys: Record<string, string[]> = {
+  // The dashboard is a module like any other: an owner can switch it off for
+  // a user (an inventory clerk has no business seeing today's sales), and
+  // its summary endpoint refuses such a user anyway.
+  dashboard: ['dashboard'],
   customers: ['customers'],
   suppliers: ['suppliers'],
   products: ['products'],
@@ -133,4 +138,26 @@ export function normalizeMenuPermissions(input: unknown) {
 export function canAccessMenu(user: PermissionUser | null | undefined, keys: string | string[]) {
   const menuKeys = Array.isArray(keys) ? keys : [keys]
   return menuKeys.some((key) => canShowModule(key, user))
+}
+
+export const NO_ACCESS_ROUTE = '/no-access'
+
+/**
+ * Where to send a user who may not open the page they asked for, or who just
+ * logged in: the dashboard if they may see it, otherwise the first page of
+ * the sidebar they may open, in sidebar order. Sending everyone to
+ * /dashboard, as before, dropped an inventory-only user on a page that
+ * answers "owner, admin, manager only" and bounced every refused link back to
+ * that same dead end.
+ */
+export function firstAccessibleRoute(user: PermissionUser | null | undefined, exceptPath = ''): string {
+  if (exceptPath !== '/dashboard' && canShowModule('dashboard', user)) return '/dashboard'
+
+  for (const group of adminMenuGroups) {
+    for (const item of group.items) {
+      if (item.route && item.route !== exceptPath && canShowModule(item.key, user)) return item.route
+    }
+  }
+
+  return NO_ACCESS_ROUTE
 }

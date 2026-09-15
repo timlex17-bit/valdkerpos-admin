@@ -2,6 +2,9 @@
 import { getApiErrorMessage } from '@/utils/apiError'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { translatedModuleLabel } from '@/utils/menuLabels'
+import { firstAccessibleRoute } from '@/utils/menuPermissions'
 import {
   createWorkshopRecord,
   deleteWorkshopRecord,
@@ -20,6 +23,20 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+const { t, te, locale } = useI18n()
+
+// The wrappers pass English title and subtitle; the translated module name
+// and description win whenever the current language has them.
+const pageTitle = computed(() => translatedModuleLabel({ t, te }, props.moduleKey, props.title))
+const pageSubtitle = computed(() => {
+  const key = `workshopPage.subtitles.${props.moduleKey}`
+  return te(key) ? t(key) : props.subtitle
+})
+
+function statusLabel(status: string) {
+  const key = `workshopPage.statuses.${String(status || '').toLowerCase()}`
+  return te(key) ? t(key) : status
+}
 
 const records = ref<WorkshopRecord[]>([])
 const search = ref('')
@@ -77,7 +94,7 @@ async function fetchRecords() {
   try {
     records.value = await listWorkshopRecords(props.moduleKey)
   } catch (error: any) {
-    errorMessage.value = getApiErrorMessage(error, `Failed to load ${props.title}.`)
+    errorMessage.value = getApiErrorMessage(error, t('workshopPage.loadFailed', { name: pageTitle.value }))
   } finally {
     loading.value = false
   }
@@ -107,7 +124,7 @@ function closeModal() {
 
 async function saveRecord() {
   if (!form.name.trim()) {
-    window.alert('Name is required.')
+    window.alert(t('workshopPage.nameRequired'))
     return
   }
 
@@ -131,14 +148,14 @@ async function saveRecord() {
     closeModal()
     await fetchRecords()
   } catch (error: any) {
-    window.alert(getApiErrorMessage(error, `Failed to save ${props.title}.`))
+    window.alert(getApiErrorMessage(error, t('workshopPage.saveFailed', { name: pageTitle.value })))
   } finally {
     submitting.value = false
   }
 }
 
 async function removeRecord(record: WorkshopRecord) {
-  const confirmed = window.confirm(`Delete ${record.name}?`)
+  const confirmed = window.confirm(t('workshopPage.deleteConfirm', { name: record.name }))
   if (!confirmed) return
 
   submitting.value = true
@@ -148,7 +165,7 @@ async function removeRecord(record: WorkshopRecord) {
     await deleteWorkshopRecord(props.moduleKey, record.id)
     await fetchRecords()
   } catch (error: any) {
-    window.alert(getApiErrorMessage(error, `Failed to delete ${props.title}.`))
+    window.alert(getApiErrorMessage(error, t('workshopPage.deleteFailed', { name: pageTitle.value })))
   } finally {
     submitting.value = false
   }
@@ -158,7 +175,7 @@ function formatDate(value: string) {
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale.value === 'id' ? 'id-ID' : locale.value === 'tet' ? 'pt-PT' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -168,11 +185,8 @@ function formatDate(value: string) {
 onMounted(() => {
   const user = parseStoredJson<Record<string, any> | null>('user', null)
   if (!canShowModule(props.moduleKey, user)) {
-    sessionStorage.setItem(
-      'module_access_message',
-      'This module is not available for your business type, plan, or role.',
-    )
-    router.replace('/dashboard')
+    sessionStorage.setItem('module_access_message', 'access.moduleUnavailable')
+    router.replace(firstAccessibleRoute(user))
     return
   }
 
@@ -184,26 +198,26 @@ onMounted(() => {
   <div class="workshop-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">{{ title }}</h1>
-        <p class="page-subtitle">{{ subtitle }}</p>
+        <h1 class="page-title">{{ pageTitle }}</h1>
+        <p class="page-subtitle">{{ pageSubtitle }}</p>
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span>Workshop</span>
+          <span>{{ t('menu.workshop') }}</span>
           <span>/</span>
-          <span class="active">{{ title }}</span>
+          <span class="active">{{ pageTitle }}</span>
         </div>
       </div>
 
       <div class="page-actions">
         <button class="btn btn-light" type="button" :disabled="loading" @click="resetFilters">
-          Reset
+          {{ t('common.reset') }}
         </button>
         <button class="btn btn-light" type="button" :disabled="loading" @click="fetchRecords">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('dashboardPage.refreshing') : t('common.refresh') }}
         </button>
         <button class="btn btn-primary" type="button" @click="openAddModal">
-          + Add
+          + {{ t('workshopPage.add') }}
         </button>
       </div>
     </section>
@@ -214,34 +228,34 @@ onMounted(() => {
 
     <section class="summary-grid">
       <article class="summary-card emerald">
-        <p>Total</p>
+        <p>{{ t('common.total') }}</p>
         <h3>{{ records.length }}</h3>
-        <span>{{ title }} records</span>
+        <span>{{ t('workshopPage.records', { name: pageTitle }) }}</span>
       </article>
       <article class="summary-card blue">
-        <p>Active</p>
+        <p>{{ t('workshopPage.statuses.active') }}</p>
         <h3>{{ activeCount }}</h3>
-        <span>Available records</span>
+        <span>{{ t('workshopPage.availableRecords') }}</span>
       </article>
       <article class="summary-card amber">
-        <p>Other Status</p>
+        <p>{{ t('workshopPage.otherStatus') }}</p>
         <h3>{{ inactiveCount }}</h3>
-        <span>Inactive, closed, or pending</span>
+        <span>{{ t('workshopPage.otherStatusNote') }}</span>
       </article>
     </section>
 
     <section class="toolbar-card">
       <div class="toolbar-left">
-        <input v-model="search" type="text" class="search-input" placeholder="Search..." />
+        <input v-model="search" type="text" class="search-input" :placeholder="t('workshopPage.search')" />
         <select v-model="statusFilter" class="filter-select">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
+          <option value="">{{ t('workshopPage.allStatus') }}</option>
+          <option value="active">{{ t('workshopPage.statuses.active') }}</option>
+          <option value="inactive">{{ t('workshopPage.statuses.inactive') }}</option>
+          <option value="pending">{{ t('workshopPage.statuses.pending') }}</option>
+          <option value="completed">{{ t('workshopPage.statuses.completed') }}</option>
         </select>
       </div>
-      <span class="results-count">{{ filteredRecords.length }} results</span>
+      <span class="results-count">{{ t('common.resultsCount', { count: filteredRecords.length }) }}</span>
     </section>
 
     <section class="table-card">
@@ -249,21 +263,21 @@ onMounted(() => {
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Code</th>
-              <th>Status</th>
-              <th>Description</th>
-              <th>Created</th>
-              <th>Actions</th>
+              <th>{{ t('workshopPage.id') }}</th>
+              <th>{{ t('common.name') }}</th>
+              <th>{{ t('workshopPage.code') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('common.description') }}</th>
+              <th>{{ t('workshopPage.created') }}</th>
+              <th>{{ t('common.action') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" class="empty-state">Loading {{ title }}...</td>
+              <td colspan="7" class="empty-state">{{ t('workshopPage.loading', { name: pageTitle }) }}</td>
             </tr>
             <tr v-else-if="filteredRecords.length === 0">
-              <td colspan="7" class="empty-state">No records found.</td>
+              <td colspan="7" class="empty-state">{{ t('workshopPage.noRecords') }}</td>
             </tr>
             <tr v-for="record in filteredRecords" :key="record.id">
               <td class="id-cell">#{{ record.id }}</td>
@@ -276,7 +290,7 @@ onMounted(() => {
               <td>{{ record.code || '-' }}</td>
               <td>
                 <span class="status-badge" :class="`status-${record.status.toLowerCase()}`">
-                  {{ record.status }}
+                  {{ statusLabel(record.status) }}
                 </span>
               </td>
               <td>{{ record.description || '-' }}</td>
@@ -284,7 +298,7 @@ onMounted(() => {
               <td>
                 <div class="table-actions">
                   <button class="action-btn edit" type="button" @click="openEditModal(record)">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     class="action-btn delete"
@@ -292,7 +306,7 @@ onMounted(() => {
                     :disabled="submitting"
                     @click="removeRecord(record)"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -306,44 +320,44 @@ onMounted(() => {
       <div class="modal-card">
         <div class="modal-header">
           <div>
-            <h2>{{ isEditing ? `Edit ${title}` : `Add ${title}` }}</h2>
-            <p>Fill the required fields for this workshop module.</p>
+            <h2>{{ isEditing ? t('workshopPage.editTitle', { name: pageTitle }) : t('workshopPage.addTitle', { name: pageTitle }) }}</h2>
+            <p>{{ t('workshopPage.formSubtitle') }}</p>
           </div>
-          <button class="close-btn" type="button" @click="closeModal">x</button>
+          <button class="close-btn" type="button" @click="closeModal">×</button>
         </div>
 
         <form class="modal-body" @submit.prevent="saveRecord">
           <div class="form-grid">
             <label class="form-group">
-              <span>Name</span>
-              <input v-model="form.name" class="form-input" type="text" placeholder="Name" />
+              <span>{{ t('common.name') }}</span>
+              <input v-model="form.name" class="form-input" type="text" :placeholder="t('common.name')" />
             </label>
 
             <label class="form-group">
-              <span>Code</span>
-              <input v-model="form.code" class="form-input" type="text" placeholder="Code or reference" />
+              <span>{{ t('workshopPage.code') }}</span>
+              <input v-model="form.code" class="form-input" type="text" :placeholder="t('workshopPage.codePlaceholder')" />
             </label>
 
             <label class="form-group">
-              <span>Status</span>
+              <span>{{ t('common.status') }}</span>
               <select v-model="form.status" class="form-input">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
+                <option value="active">{{ t('workshopPage.statuses.active') }}</option>
+                <option value="inactive">{{ t('workshopPage.statuses.inactive') }}</option>
+                <option value="pending">{{ t('workshopPage.statuses.pending') }}</option>
+                <option value="completed">{{ t('workshopPage.statuses.completed') }}</option>
               </select>
             </label>
 
             <label class="form-group full-width">
-              <span>Description</span>
-              <textarea v-model="form.description" class="form-textarea" rows="3" placeholder="Notes" />
+              <span>{{ t('common.description') }}</span>
+              <textarea v-model="form.description" class="form-textarea" rows="3" :placeholder="t('common.notes')" />
             </label>
           </div>
 
           <div class="modal-footer">
-            <button class="btn btn-light" type="button" @click="closeModal">Cancel</button>
+            <button class="btn btn-light" type="button" @click="closeModal">{{ t('common.cancel') }}</button>
             <button class="btn btn-primary" type="submit" :disabled="submitting">
-              {{ submitting ? 'Saving...' : isEditing ? 'Update' : 'Save' }}
+              {{ submitting ? t('settingsPage.saving') : isEditing ? t('common.update') : t('common.save') }}
             </button>
           </div>
         </form>
@@ -411,7 +425,7 @@ onMounted(() => {
 
 .breadcrumb .active,
 .id-cell {
-  color: #16a34a;
+  color: var(--brand-600);
   font-weight: 800;
 }
 
@@ -626,7 +640,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: white;
 }
 

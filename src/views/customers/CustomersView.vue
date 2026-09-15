@@ -640,7 +640,7 @@ onMounted(() => {
 }
 
 .breadcrumb .current {
-  color: #1f6feb;
+  color: var(--brand-600);
   font-weight: 600;
 }
 
@@ -728,9 +728,9 @@ onMounted(() => {
 }
 
 .search-box input:focus {
-  border-color: #3b82f6;
+  border-color: var(--brand-600);
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .search-icon {
@@ -809,7 +809,7 @@ onMounted(() => {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #60a5fa);
+  background: var(--brand-gradient);
   color: white;
   display: grid;
   place-items: center;
@@ -989,11 +989,11 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
+  background: var(--brand-gradient);
   color: #fff;
   height: 48px;
   padding: 0 18px;
-  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 10px 20px rgba(98, 4, 191, 0.18);
 }
 
 .btn-primary:hover {
@@ -1141,9 +1141,9 @@ onMounted(() => {
 
 .form-group input:focus,
 .form-group textarea:focus {
-  border-color: #3b82f6;
+  border-color: var(--brand-600);
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .modal-footer {

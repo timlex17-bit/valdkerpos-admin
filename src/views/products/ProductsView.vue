@@ -1125,7 +1125,7 @@ onMounted(() => {
 }
 
 .breadcrumb .current {
-  color: #22c55e;
+  color: var(--brand-600);
   font-weight: 700;
 }
 
@@ -1155,12 +1155,12 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #22c55e;
+  background: var(--brand-600);
   color: #ffffff;
 }
 
 .btn-primary:hover {
-  background: #16a34a;
+  background: var(--brand-600);
 }
 
 .btn-light {
@@ -1301,9 +1301,9 @@ onMounted(() => {
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: #3b82f6;
+  border-color: var(--brand-600);
   background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .search-icon {

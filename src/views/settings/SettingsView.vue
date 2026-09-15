@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { loadModuleContract } from '@/services/moduleContract'
 import { normalizeBusinessType, normalizePlan } from '@/utils/moduleVisibility'
 
-const warningText =
-  'Changing business type or plan will change visible modules. Existing data will not be deleted.'
+const { t, locale } = useI18n()
 
-const businessTypeOptions = [
-  { value: 'RETAIL', label: 'Retail' },
-  { value: 'WORKSHOP', label: 'Workshop' },
-  { value: 'RESTAURANT', label: 'Restaurant' },
-]
+const businessTypeOptions = computed(() => [
+  { value: 'RETAIL', label: t('settingsPage.retail') },
+  { value: 'WORKSHOP', label: t('settingsPage.workshop') },
+  { value: 'RESTAURANT', label: t('settingsPage.restaurant') },
+])
 
 const planOptions = [
   { value: 'BASIC', label: 'Basic' },
@@ -127,7 +127,7 @@ const sessionsError = ref('')
 const revokingId = ref<number | null>(null)
 
 const businessTypeLabel = computed(
-  () => businessTypeOptions.find((o) => o.value === form.businessType)?.label || form.businessType,
+  () => businessTypeOptions.value.find((o) => o.value === form.businessType)?.label || form.businessType,
 )
 const planLabel = computed(
   () => planOptions.find((o) => o.value === form.plan)?.label || form.plan,
@@ -221,9 +221,7 @@ async function fetchShop() {
     // Falling back to the cached profile is fine, but saying nothing is not:
     // the user would read stale values as current ones.
     loadStoredShop()
-    errorMessage.value =
-      error?.response?.data?.detail ||
-      'Could not load shop settings from the server. Showing the last known values.'
+    errorMessage.value = getApiErrorMessage(error, t('settingsPage.loadFailedShowingCached'))
   } finally {
     loading.value = false
   }
@@ -243,7 +241,7 @@ async function saveSettings() {
   try {
     await api.patch(ENDPOINTS.SHOP_ME, payload)
     persistProfile()
-    successMessage.value = 'Shop settings updated.'
+    successMessage.value = t('settingsPage.shopSaved')
   } catch (error: any) {
     // A rejected save must not look like a successful one. The previous branch
     // reported "saved locally", advanced `original`, and ran persistProfile(),
@@ -251,9 +249,7 @@ async function saveSettings() {
     // localStorage - so a refused upgrade still unlocked the menus client-side.
     form.plan = original.plan
     form.businessType = original.businessType
-    errorMessage.value =
-      error?.response?.data?.detail ||
-      'Could not save shop settings. Please try again.'
+    errorMessage.value = getApiErrorMessage(error, t('settingsPage.shopSaveFailed'))
   } finally {
     saving.value = false
   }
@@ -308,11 +304,11 @@ async function savePosSettings() {
     // Re-read from the response rather than assuming the payload was accepted
     // as sent - the server normalises the prefix and may clamp values.
     applyPosSettings(data?.pos_settings ?? payload.pos_settings)
-    posSuccess.value = 'POS settings updated.'
+    posSuccess.value = t('settingsPage.posSaved')
   } catch (error: any) {
     // Nothing local advances on failure: posForm keeps the rejected input so
     // the user can correct it, and posOriginal still holds what the server has.
-    posError.value = getApiErrorMessage(error, 'Could not save POS settings. Please try again.', { allFields: true })
+    posError.value = getApiErrorMessage(error, t('settingsPage.posSaveFailed'), { allFields: true })
   } finally {
     posSaving.value = false
   }
@@ -327,7 +323,7 @@ function formatDateTime(value: string) {
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString()
+  return date.toLocaleString(locale.value === 'id' ? 'id-ID' : locale.value === 'tet' ? 'pt-PT' : 'en-US')
 }
 
 async function fetchSessions() {
@@ -339,7 +335,7 @@ async function fetchSessions() {
     sessions.value = Array.isArray(data) ? data : []
   } catch (error: any) {
     sessions.value = []
-    sessionsError.value = getApiErrorMessage(error, 'Could not load your active sessions.', { allFields: true })
+    sessionsError.value = getApiErrorMessage(error, t('settingsPage.sessionsLoadFailed'), { allFields: true })
   } finally {
     sessionsLoading.value = false
   }
@@ -360,7 +356,7 @@ async function revokeSession(session: DeviceSession) {
     // the list the server actually has.
     await fetchSessions()
   } catch (error: any) {
-    sessionsError.value = getApiErrorMessage(error, 'Could not revoke that session.', { allFields: true })
+    sessionsError.value = getApiErrorMessage(error, t('settingsPage.revokeFailed'), { allFields: true })
   } finally {
     revokingId.value = null
   }
@@ -377,16 +373,16 @@ onMounted(() => {
   <div class="settings-page">
     <section class="page-header">
       <div>
-        <h1 class="page-title">Shop Settings</h1>
-        <p class="page-subtitle">Manage profile, business type, and subscription plan.</p>
+        <h1 class="page-title">{{ t('settingsPage.title') }}</h1>
+        <p class="page-subtitle">{{ t('settingsPage.subtitle') }}</p>
       </div>
       <button class="btn btn-primary" type="button" :disabled="saving || loading" @click="saveSettings">
-        {{ saving ? 'Saving...' : 'Save Changes' }}
+        {{ saving ? t('settingsPage.saving') : t('settingsPage.saveChanges') }}
       </button>
     </section>
 
     <section v-if="showModuleWarning" class="alert-card warning">
-      {{ warningText }}
+      {{ t('settingsPage.moduleWarning') }}
     </section>
 
     <section v-if="successMessage" class="alert-card success">
@@ -400,21 +396,20 @@ onMounted(() => {
     <section class="settings-card">
       <div class="form-grid">
         <label class="form-group">
-          <span>Shop Name</span>
-          <input v-model="form.name" class="form-input" type="text" placeholder="Shop name" />
+          <span>{{ t('settingsPage.shopName') }}</span>
+          <input v-model="form.name" class="form-input" type="text" :placeholder="t('settingsPage.shopName')" />
         </label>
 
         <div class="form-group">
-          <span>Business Type</span>
+          <span>{{ t('settingsPage.businessType') }}</span>
           <p class="form-readonly">{{ businessTypeLabel }}</p>
         </div>
 
         <div class="form-group">
-          <span>Plan</span>
+          <span>{{ t('settingsPage.plan') }}</span>
           <p class="form-readonly">{{ planLabel }}</p>
           <small class="form-hint">
-            Business type and plan are set by the platform administrator.
-            Contact support to change your subscription.
+            {{ t('settingsPage.planHint') }}
           </small>
         </div>
       </div>
@@ -424,8 +419,8 @@ onMounted(() => {
     <section class="settings-card">
       <div class="card-head">
         <div>
-          <h2>POS Settings</h2>
-          <p>Tax, invoice numbering, and stock rules for this shop.</p>
+          <h2>{{ t('settingsPage.posTitle') }}</h2>
+          <p>{{ t('settingsPage.posSubtitle') }}</p>
         </div>
         <button
           v-if="canEditSettings"
@@ -434,24 +429,24 @@ onMounted(() => {
           :disabled="posSaving || loading || !posLoaded || !posDirty"
           @click="requestPosSave"
         >
-          {{ posSaving ? 'Saving...' : 'Save POS Settings' }}
+          {{ posSaving ? t('settingsPage.saving') : t('settingsPage.savePos') }}
         </button>
       </div>
 
       <p v-if="!canEditSettings" class="alert-card muted inline-alert">
-        Only the shop owner or an admin can change these. Shown read-only.
+        {{ t('settingsPage.readOnlyNotice') }}
       </p>
 
       <p v-if="posError" class="alert-card error inline-alert">{{ posError }}</p>
       <p v-if="posSuccess" class="alert-card success inline-alert">{{ posSuccess }}</p>
 
       <div v-if="!posLoaded && !loading" class="alert-card muted inline-alert">
-        This shop has no POS settings row yet.
+        {{ t('settingsPage.noPosSettings') }}
       </div>
 
       <div v-else class="form-grid">
         <label class="form-group">
-          <span>Tax Percent</span>
+          <span>{{ t('settingsPage.taxPercent') }}</span>
           <input
             v-model="posForm.taxPercent"
             class="form-input"
@@ -460,11 +455,11 @@ onMounted(() => {
             min="0"
             :disabled="!canEditSettings || posSaving"
           />
-          <small class="form-hint">Shop tax rate, e.g. 11.00 for 11%.</small>
+          <small class="form-hint">{{ t('settingsPage.taxHint') }}</small>
         </label>
 
         <label class="form-group">
-          <span>Invoice Prefix</span>
+          <span>{{ t('settingsPage.invoicePrefix') }}</span>
           <input
             v-model="posForm.invoicePrefix"
             class="form-input"
@@ -474,17 +469,15 @@ onMounted(() => {
             :disabled="!canEditSettings || posSaving"
           />
           <small v-if="invoicePrefixChanged" class="form-hint danger">
-            Changing this affects every invoice issued from now on. Invoices
-            already issued keep their current numbers.
+            {{ t('settingsPage.invoicePrefixChangedHint') }}
           </small>
           <small v-else class="form-hint">
-            Prefix for new invoice numbers. It does not have to be unique
-            across shops - invoice numbers are unique per shop.
+            {{ t('settingsPage.invoicePrefixHint') }}
           </small>
         </label>
 
         <label class="form-group">
-          <span>Low Stock Threshold</span>
+          <span>{{ t('settingsPage.lowStockThreshold') }}</span>
           <input
             v-model="posForm.lowStockThreshold"
             class="form-input"
@@ -492,22 +485,21 @@ onMounted(() => {
             min="0"
             :disabled="!canEditSettings || posSaving"
           />
-          <small class="form-hint">Warn when stock falls to this level.</small>
+          <small class="form-hint">{{ t('settingsPage.lowStockHint') }}</small>
         </label>
 
         <label class="form-group toggle-group">
-          <span>Allow Negative Stock</span>
+          <span>{{ t('settingsPage.allowNegativeStock') }}</span>
           <span class="toggle-row">
             <input
               v-model="posForm.allowNegativeStock"
               type="checkbox"
               :disabled="!canEditSettings || posSaving"
             />
-            <span>{{ posForm.allowNegativeStock ? 'Allowed' : 'Blocked' }}</span>
+            <span>{{ posForm.allowNegativeStock ? t('settingsPage.allowed') : t('settingsPage.blocked') }}</span>
           </span>
           <small class="form-hint" :class="{ danger: enablingNegativeStock }">
-            When allowed, items can be sold with no stock left and stock goes
-            negative. Turning this on asks for a separate confirmation.
+            {{ t('settingsPage.negativeStockHint') }}
           </small>
         </label>
       </div>
@@ -517,8 +509,8 @@ onMounted(() => {
     <section class="settings-card">
       <div class="card-head">
         <div>
-          <h2>Active Sessions</h2>
-          <p>Devices currently signed in as you. Revoke any you do not recognise.</p>
+          <h2>{{ t('settingsPage.sessionsTitle') }}</h2>
+          <p>{{ t('settingsPage.sessionsSubtitle') }}</p>
         </div>
         <button
           class="btn btn-ghost"
@@ -526,18 +518,18 @@ onMounted(() => {
           :disabled="sessionsLoading"
           @click="fetchSessions"
         >
-          {{ sessionsLoading ? 'Loading...' : 'Refresh' }}
+          {{ sessionsLoading ? t('common.loading') : t('common.refresh') }}
         </button>
       </div>
 
       <p v-if="sessionsError" class="alert-card error inline-alert">{{ sessionsError }}</p>
 
       <div v-if="sessionsLoading && !sessions.length" class="alert-card muted inline-alert">
-        Loading sessions...
+        {{ t('settingsPage.loadingSessions') }}
       </div>
 
       <div v-else-if="!sessions.length" class="alert-card muted inline-alert">
-        No active sessions returned.
+        {{ t('settingsPage.noSessions') }}
       </div>
 
       <div v-else class="session-list">
@@ -550,12 +542,11 @@ onMounted(() => {
           <div class="session-copy">
             <div class="session-title">
               <span v-if="session.device_label">{{ session.device_label }}</span>
-              <span v-else class="unlabelled">Unlabelled device</span>
-              <span v-if="session.is_current" class="session-badge">This device</span>
+              <span v-else class="unlabelled">{{ t('settingsPage.unlabelledDevice') }}</span>
+              <span v-if="session.is_current" class="session-badge">{{ t('settingsPage.thisDevice') }}</span>
             </div>
             <div class="session-meta">
-              Last used {{ formatDateTime(session.last_used_at) }}
-              &middot; Signed in {{ formatDateTime(session.created_at) }}
+              {{ t('settingsPage.sessionMeta', { lastUsed: formatDateTime(session.last_used_at), signedIn: formatDateTime(session.created_at) }) }}
             </div>
           </div>
 
@@ -563,7 +554,7 @@ onMounted(() => {
             No revoke button for the current session: revoking it is a logout,
             and Logout in the topbar already does that properly.
           -->
-          <span v-if="session.is_current" class="session-note">Use Logout to end this one</span>
+          <span v-if="session.is_current" class="session-note">{{ t('settingsPage.useLogout') }}</span>
           <button
             v-else
             class="btn btn-danger"
@@ -571,7 +562,7 @@ onMounted(() => {
             :disabled="revokingId === session.id"
             @click="revokeSession(session)"
           >
-            {{ revokingId === session.id ? 'Revoking...' : 'Revoke' }}
+            {{ revokingId === session.id ? t('settingsPage.revoking') : t('settingsPage.revoke') }}
           </button>
         </div>
       </div>
@@ -580,44 +571,40 @@ onMounted(() => {
     <!-- Confirmation for consequential POS changes -->
     <div v-if="confirmOpen" class="modal-overlay" @click.self="cancelPosConfirm">
       <div class="modal-card">
-        <h2>Confirm these changes</h2>
+        <h2>{{ t('settingsPage.confirmTitle') }}</h2>
 
         <div v-if="invoicePrefixChanged" class="confirm-block">
-          <h3>Invoice prefix</h3>
+          <h3>{{ t('settingsPage.invoicePrefix') }}</h3>
           <p>
-            <code>{{ posOriginal.invoicePrefix || '(empty)' }}</code>
+            <code>{{ posOriginal.invoicePrefix || t('settingsPage.empty') }}</code>
             &rarr;
-            <code>{{ posForm.invoicePrefix.trim() || '(empty)' }}</code>
+            <code>{{ posForm.invoicePrefix.trim() || t('settingsPage.empty') }}</code>
           </p>
           <p class="confirm-note">
-            Every invoice issued from now on uses the new prefix. Invoices
-            already issued are not renumbered, so this shop will have invoice
-            numbers in two formats. This cannot be undone for orders created
-            after the change.
+            {{ t('settingsPage.confirmInvoicePrefix') }}
           </p>
         </div>
 
         <div v-if="enablingNegativeStock" class="confirm-block danger">
-          <h3>Allow negative stock</h3>
+          <h3>{{ t('settingsPage.allowNegativeStock') }}</h3>
           <p class="confirm-note">
-            This lets staff sell items the shop has none of. Stock counts will
-            go below zero and stop matching what is physically on the shelf.
+            {{ t('settingsPage.confirmNegativeStock') }}
           </p>
           <label class="confirm-check">
             <input v-model="negativeStockAcknowledged" type="checkbox" />
-            <span>I understand and want to allow selling with no stock.</span>
+            <span>{{ t('settingsPage.confirmNegativeStockCheck') }}</span>
           </label>
         </div>
 
         <div class="modal-actions">
-          <button class="btn btn-ghost" type="button" @click="cancelPosConfirm">Cancel</button>
+          <button class="btn btn-ghost" type="button" @click="cancelPosConfirm">{{ t('common.cancel') }}</button>
           <button
             class="btn btn-primary"
             type="button"
             :disabled="confirmBlocked || posSaving"
             @click="savePosSettings"
           >
-            Save changes
+            {{ t('settingsPage.saveChanges') }}
           </button>
         </div>
       </div>
@@ -704,8 +691,8 @@ onMounted(() => {
 }
 
 .form-input:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.12);
 }
 
 .alert-card {
@@ -942,7 +929,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--brand-gradient);
   color: white;
 }
 

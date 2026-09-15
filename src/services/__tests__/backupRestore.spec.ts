@@ -68,6 +68,15 @@ describe('buildDeletionPreview', () => {
     expect(preview.summary).toBe('2 products and 1 order')
   })
 
+  it('builds the sentence in another language when given the wording', () => {
+    const labels: Record<string, string> = { products: 'produk', orders: 'pesanan' }
+    const preview = buildDeletionPreview(
+      { would_delete: { orders: 1, products: 2 } },
+      { label: (section) => labels[section], andWord: 'dan' },
+    )
+    expect(preview.summary).toBe('2 produk dan 1 pesanan')
+  })
+
   it('reports nothing to delete as available with no lines', () => {
     const preview = buildDeletionPreview({ would_delete: { products: 0, orders: 0 } })
     expect(preview).toEqual({ available: true, totalDeleted: 0, lines: [], summary: '' })

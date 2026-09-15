@@ -419,7 +419,7 @@ onUnmounted(() => {
 }
 
 .breadcrumb .active {
-  color: #16a34a;
+  color: var(--brand-600);
   font-weight: 700;
 }
 

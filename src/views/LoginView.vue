@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
+import { getApiErrorMessage } from '@/utils/apiError'
+
+type AppLocale = 'en' | 'id' | 'tet'
 
 type LoginUser = {
   id: number | string
@@ -59,17 +63,29 @@ type LoginResponse = {
 }
 
 const router = useRouter()
+const { t, locale } = useI18n()
 
 const shopCode = ref('')
 const username = ref('')
 const password = ref('')
 const rememberMe = ref(false)
 const showPassword = ref(false)
+const showForgotHint = ref(false)
 const isDark = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
 const API_LOGIN_URL = ENDPOINTS.AUTH_LOGIN
+
+// The login page has no topbar, so it carries its own language picker; the
+// choice is stored where the topbar reads it, so it stays after login.
+const currentLanguage = computed<AppLocale>({
+  get: () => (locale.value as AppLocale) || 'en',
+  set: (value) => {
+    locale.value = value
+    localStorage.setItem('lang', value)
+  },
+})
 
 const canSubmit = computed(() => {
   return (
@@ -154,7 +170,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   if (!canSubmit.value) {
-    errorMessage.value = 'Shop Code, Naran Uzuáriu, no Password tenke prenxe hotu.'
+    errorMessage.value = t('loginPage.fillAllFields')
     return
   }
 
@@ -170,18 +186,16 @@ const handleLogin = async () => {
     const { data } = await api.post<LoginResponse>(API_LOGIN_URL, payload)
 
     if (!data?.token) {
-      throw new Error('Token login la hetan husi server.')
+      throw new Error('missing token')
     }
 
     saveAuthToStorage(data)
 
+    // The router guard forwards a user who may not see the dashboard to the
+    // first page they may open.
     router.replace('/dashboard')
-  } catch (error: any) {
-    errorMessage.value =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      error?.response?.data?.error ||
-      'Login la konsege. Favor haree fali Shop Code, Naran Uzuáriu, no Password.'
+  } catch (error: unknown) {
+    errorMessage.value = getApiErrorMessage(error, t('loginPage.failed'))
   } finally {
     isLoading.value = false
   }
@@ -214,32 +228,39 @@ onMounted(() => {
         <div class="brand-top">
           <div class="brand-badge">ValoraPOS</div>
 
-          <button class="theme-toggle" type="button" @click="toggleDark">
-            {{ isDark ? '☀ Klaru' : '🌙 Lakan' }}
-          </button>
+          <div class="brand-controls">
+            <select v-model="currentLanguage" class="language-select" :aria-label="t('loginPage.language')">
+              <option value="en">English</option>
+              <option value="id">Indonesia</option>
+              <option value="tet">Tetun</option>
+            </select>
+            <button class="theme-toggle" type="button" @click="toggleDark">
+              {{ isDark ? t('loginPage.lightMode') : t('loginPage.darkMode') }}
+            </button>
+          </div>
         </div>
 
         <div class="brand-content">
-          <p class="eyebrow">POS Negósiu Multi-Tipu Modernu</p>
-          <h1>Solusaun kompletu ba jere ita-nia negósiu.</h1>
+          <p class="eyebrow">{{ t('loginPage.eyebrow') }}</p>
+          <h1>{{ t('loginPage.headline') }}</h1>
           <p class="brand-description">
-            Jere venda, stok, no relatóriu iha sistema ida de’it.
+            {{ t('loginPage.description') }}
           </p>
 
           <div class="brand-cards">
             <div class="mini-card">
-              <span class="mini-card-label">Retail</span>
-              <strong>Venda lorloron, stok, no relatóriu</strong>
+              <span class="mini-card-label">{{ t('loginPage.retail') }}</span>
+              <strong>{{ t('loginPage.retailText') }}</strong>
             </div>
 
             <div class="mini-card">
-              <span class="mini-card-label">Restorante</span>
-              <strong>Pedido lalais, fluxo cozinha, tranzasaun</strong>
+              <span class="mini-card-label">{{ t('loginPage.restaurant') }}</span>
+              <strong>{{ t('loginPage.restaurantText') }}</strong>
             </div>
 
             <div class="mini-card">
-              <span class="mini-card-label">Workshop</span>
-              <strong>Ordem servisu, pessa sobresalente, kliente</strong>
+              <span class="mini-card-label">{{ t('loginPage.workshop') }}</span>
+              <strong>{{ t('loginPage.workshopText') }}</strong>
             </div>
           </div>
         </div>
@@ -248,45 +269,49 @@ onMounted(() => {
       <div class="login-form-panel">
         <div class="login-card">
           <div class="login-card-header">
-            <div class="logo-circle">V</div>
+            <div class="logo-circle" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="26" height="26">
+                <path d="M4.2,5.2 L12,19.4 L19.8,5.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
             <div>
-              <h2>Tama</h2>
-              <p>Favor halo login atu tama ba sistema.</p>
+              <h2>{{ t('loginPage.title') }}</h2>
+              <p>{{ t('loginPage.subtitle') }}</p>
             </div>
           </div>
 
           <form class="login-form" @submit.prevent="handleLogin">
             <div class="form-group">
-              <label for="shopCode">Shop Code</label>
+              <label for="shopCode">{{ t('loginPage.shopCode') }}</label>
               <input
                 id="shopCode"
                 v-model="shopCode"
                 type="text"
-                placeholder="Hatama Shop Code"
+                :placeholder="t('loginPage.shopCodePlaceholder')"
                 autocomplete="organization"
               />
             </div>
 
             <div class="form-group">
-              <label for="username">Naran Uzuáriu</label>
+              <label for="username">{{ t('loginPage.username') }}</label>
               <input
                 id="username"
                 v-model="username"
                 type="text"
-                placeholder="Hatama Naran Uzuáriu"
+                :placeholder="t('loginPage.usernamePlaceholder')"
                 autocomplete="username"
               />
             </div>
 
             <div class="form-group">
-              <label for="password">Password</label>
+              <label for="password">{{ t('loginPage.password') }}</label>
 
               <div class="password-wrap">
                 <input
                   id="password"
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Hatama Password"
+                  :placeholder="t('loginPage.passwordPlaceholder')"
                   autocomplete="current-password"
                 />
                 <button
@@ -294,7 +319,7 @@ onMounted(() => {
                   class="password-toggle"
                   @click="togglePassword"
                 >
-                  {{ showPassword ? 'Subar' : 'Haree' }}
+                  {{ showPassword ? t('loginPage.hidePassword') : t('loginPage.showPassword') }}
                 </button>
               </div>
             </div>
@@ -302,13 +327,17 @@ onMounted(() => {
             <div class="form-options">
               <label class="remember-box">
                 <input v-model="rememberMe" type="checkbox" />
-                <span>Hatudu nafatin hau-nia konta</span>
+                <span>{{ t('loginPage.rememberMe') }}</span>
               </label>
 
-              <a href="#" class="forgot-link">Haluha password?</a>
+              <button type="button" class="forgot-link" @click="showForgotHint = !showForgotHint">
+                {{ t('loginPage.forgotPassword') }}
+              </button>
             </div>
 
-            <p v-if="errorMessage" class="error-message">
+            <p v-if="showForgotHint" class="forgot-hint">{{ t('loginPage.forgotPasswordHint') }}</p>
+
+            <p v-if="errorMessage" class="error-message" role="alert">
               {{ errorMessage }}
             </p>
 
@@ -317,13 +346,13 @@ onMounted(() => {
               class="login-button"
               :disabled="isLoading || !canSubmit"
             >
-              <span v-if="!isLoading">Tama</span>
-              <span v-else>Hein hela...</span>
+              <span v-if="!isLoading">{{ t('loginPage.submit') }}</span>
+              <span v-else>{{ t('loginPage.submitting') }}</span>
             </button>
           </form>
 
           <div class="login-footer">
-            <p>Asesu seguru ba Owner no Manager.</p>
+            <p>{{ t('loginPage.footer') }}</p>
           </div>
         </div>
       </div>
@@ -335,9 +364,9 @@ onMounted(() => {
 .login-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(5, 152, 20, 0.16), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(96, 230, 108, 0.14), transparent 28%),
-    linear-gradient(180deg, #f6fff7 0%, #edf9f0 100%);
+    radial-gradient(circle at top left, rgba(98, 4, 191, 0.16), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(98, 4, 191, 0.14), transparent 28%),
+    linear-gradient(180deg, #faf6ff 0%, #f1e8fd 100%);
   color: #0f172a;
   transition: background 0.3s ease, color 0.3s ease;
   overflow: hidden;
@@ -345,9 +374,9 @@ onMounted(() => {
 
 .login-page.dark {
   background:
-    radial-gradient(circle at top left, rgba(96, 230, 108, 0.14), transparent 22%),
-    radial-gradient(circle at 85% 85%, rgba(5, 152, 20, 0.18), transparent 26%),
-    linear-gradient(180deg, #03110a 0%, #071b11 100%);
+    radial-gradient(circle at top left, rgba(98, 4, 191, 0.14), transparent 22%),
+    radial-gradient(circle at 85% 85%, rgba(98, 4, 191, 0.18), transparent 26%),
+    linear-gradient(180deg, #0f0520 0%, #1a0a33 100%);
   color: #f8fafc;
 }
 
@@ -386,16 +415,16 @@ onMounted(() => {
   padding: 0 16px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(5, 152, 20, 0.16);
+  border: 1px solid rgba(98, 4, 191, 0.16);
   backdrop-filter: blur(12px);
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 10px 30px rgba(5, 152, 20, 0.08);
+  box-shadow: 0 10px 30px rgba(98, 4, 191, 0.08);
 }
 
 .login-page.dark .brand-badge {
-  background: rgba(7, 27, 17, 0.84);
-  border-color: rgba(96, 230, 108, 0.14);
+  background: rgba(20, 10, 36, 0.84);
+  border-color: rgba(98, 4, 191, 0.14);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
 }
 
@@ -408,14 +437,14 @@ onMounted(() => {
   cursor: pointer;
   background: rgba(255, 255, 255, 0.76);
   color: inherit;
-  border: 1px solid rgba(5, 152, 20, 0.16);
+  border: 1px solid rgba(98, 4, 191, 0.16);
   backdrop-filter: blur(12px);
-  box-shadow: 0 10px 30px rgba(5, 152, 20, 0.08);
+  box-shadow: 0 10px 30px rgba(98, 4, 191, 0.08);
 }
 
 .login-page.dark .theme-toggle {
-  background: rgba(7, 27, 17, 0.84);
-  border-color: rgba(96, 230, 108, 0.14);
+  background: rgba(20, 10, 36, 0.84);
+  border-color: rgba(98, 4, 191, 0.14);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
 }
 
@@ -428,12 +457,12 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #059814;
+  color: var(--brand-600);
   margin: 0 0 18px;
 }
 
 .login-page.dark .eyebrow {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .brand-content h1 {
@@ -449,12 +478,12 @@ onMounted(() => {
   margin-top: 22px;
   font-size: 17px;
   line-height: 1.8;
-  color: #3d4b42;
+  color: #475569;
   max-width: 520px;
 }
 
 .login-page.dark .brand-description {
-  color: #cfe6d4;
+  color: #d9d3e6;
 }
 
 .brand-cards {
@@ -469,15 +498,15 @@ onMounted(() => {
   padding: 18px 16px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(5, 152, 20, 0.14);
+  border: 1px solid rgba(98, 4, 191, 0.14);
   backdrop-filter: blur(12px);
-  box-shadow: 0 18px 36px rgba(5, 152, 20, 0.08);
+  box-shadow: 0 18px 36px rgba(98, 4, 191, 0.08);
   min-height: 108px;
 }
 
 .login-page.dark .mini-card {
-  background: rgba(7, 27, 17, 0.76);
-  border-color: rgba(96, 230, 108, 0.12);
+  background: rgba(20, 10, 36, 0.76);
+  border-color: rgba(98, 4, 191, 0.12);
   box-shadow:
     0 18px 36px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.02);
@@ -488,11 +517,11 @@ onMounted(() => {
   margin-bottom: 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #059814;
+  color: var(--brand-600);
 }
 
 .login-page.dark .mini-card-label {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .mini-card strong {
@@ -514,13 +543,13 @@ onMounted(() => {
   width: 380px;
   height: 380px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(5, 152, 20, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(98, 4, 191, 0.14), transparent 70%);
   filter: blur(18px);
   z-index: 0;
 }
 
 .login-page.dark .login-form-panel::before {
-  background: radial-gradient(circle, rgba(96, 230, 108, 0.12), transparent 72%);
+  background: radial-gradient(circle, rgba(98, 4, 191, 0.12), transparent 72%);
 }
 
 .login-card {
@@ -528,20 +557,20 @@ onMounted(() => {
   max-width: 470px;
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(5, 152, 20, 0.14);
+  border: 1px solid rgba(98, 4, 191, 0.14);
   backdrop-filter: blur(16px);
-  box-shadow: 0 32px 70px rgba(5, 152, 20, 0.12);
+  box-shadow: 0 32px 70px rgba(98, 4, 191, 0.12);
   padding: 32px;
   position: relative;
   z-index: 1;
 }
 
 .login-page.dark .login-card {
-  background: rgba(7, 27, 17, 0.84);
-  border-color: rgba(96, 230, 108, 0.12);
+  background: rgba(20, 10, 36, 0.84);
+  border-color: rgba(98, 4, 191, 0.12);
   box-shadow:
     0 30px 60px rgba(0, 0, 0, 0.4),
-    0 0 80px rgba(5, 152, 20, 0.1);
+    0 0 80px rgba(98, 4, 191, 0.1);
 }
 
 .login-card-header {
@@ -560,8 +589,8 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 800;
   color: white;
-  background: linear-gradient(135deg, #60e66c, #059814);
-  box-shadow: 0 16px 30px rgba(5, 152, 20, 0.35);
+  background: var(--brand-gradient);
+  box-shadow: 0 16px 30px rgba(98, 4, 191, 0.35);
 }
 
 .login-card-header h2 {
@@ -574,11 +603,11 @@ onMounted(() => {
 .login-card-header p {
   margin: 6px 0 0;
   font-size: 14px;
-  color: #5f6f65;
+  color: #64748b;
 }
 
 .login-page.dark .login-card-header p {
-  color: #b7ccc0;
+  color: #b9b0cc;
 }
 
 .login-form {
@@ -602,7 +631,7 @@ onMounted(() => {
   width: 100%;
   height: 54px;
   border-radius: 16px;
-  border: 1px solid #d6ead9;
+  border: 1px solid #e2dcef;
   background: rgba(255, 255, 255, 0.92);
   padding: 0 16px;
   font-size: 15px;
@@ -613,22 +642,22 @@ onMounted(() => {
 }
 
 .form-group input::placeholder {
-  color: #7a897f;
+  color: #94a3b8;
 }
 
 .form-group input:focus {
-  border-color: #059814;
-  box-shadow: 0 0 0 4px rgba(5, 152, 20, 0.14);
+  border-color: var(--brand-600);
+  box-shadow: 0 0 0 4px rgba(98, 4, 191, 0.14);
 }
 
 .login-page.dark .form-group input {
-  background: rgba(2, 16, 10, 0.62);
-  border-color: rgba(96, 230, 108, 0.16);
+  background: rgba(15, 8, 28, 0.62);
+  border-color: rgba(98, 4, 191, 0.16);
   color: #f8fafc;
 }
 
 .login-page.dark .form-group input::placeholder {
-  color: #8ea194;
+  color: #8f86a3;
 }
 
 .password-wrap {
@@ -646,14 +675,14 @@ onMounted(() => {
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: #059814;
+  color: var(--brand-600);
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
 }
 
 .login-page.dark .password-toggle {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .form-options {
@@ -675,15 +704,51 @@ onMounted(() => {
   color: #cbd5e1;
 }
 
+.brand-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.language-select {
+  height: 42px;
+  border-radius: 999px;
+  padding: 0 14px;
+  border: 1px solid rgba(98, 4, 191, 0.16);
+  background: rgba(255, 255, 255, 0.76);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-page.dark .language-select {
+  background: rgba(20, 10, 36, 0.84);
+  color: #f8fafc;
+}
+
+.forgot-hint {
+  margin: -6px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--brand-50);
+  color: var(--brand-900);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .forgot-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 700;
-  color: #059814;
+  color: var(--brand-600);
   text-decoration: none;
 }
 
 .login-page.dark .forgot-link {
-  color: #60e66c;
+  color: var(--brand-600);
 }
 
 .error-message {
@@ -700,18 +765,18 @@ onMounted(() => {
   height: 56px;
   border: none;
   border-radius: 16px;
-  background: linear-gradient(135deg, #60e66c, #059814);
+  background: var(--brand-gradient);
   color: white;
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 18px 30px rgba(5, 152, 20, 0.28);
+  box-shadow: 0 18px 30px rgba(98, 4, 191, 0.28);
   transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
 }
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 22px 36px rgba(5, 152, 20, 0.34);
+  box-shadow: 0 22px 36px rgba(98, 4, 191, 0.34);
 }
 
 .login-button:disabled {
@@ -727,11 +792,11 @@ onMounted(() => {
 .login-footer p {
   margin: 0;
   font-size: 13px;
-  color: #5f6f65;
+  color: #64748b;
 }
 
 .login-page.dark .login-footer p {
-  color: #b7ccc0;
+  color: #b9b0cc;
 }
 
 @media (max-width: 1280px) {
