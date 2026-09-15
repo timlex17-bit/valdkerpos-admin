@@ -401,14 +401,36 @@
                   </select>
                 </div>
 
-                <div class="form-group">
+                <div v-if="modalMode === 'create'" class="form-group">
                   <label>{{ t('productsPage.stock') }} <span>*</span></label>
                   <input
                     v-model.number="form.stock"
                     type="number"
                     step="1"
-                    :disabled="modalMode === 'view'"
+                    min="0"
                   />
+                </div>
+
+                <!--
+                  After creation stock only moves through stock adjustments,
+                  sales and purchases, so it is shown, not edited. An input
+                  here would let the user type a new number, press save, see
+                  success, and find the stock unchanged.
+                -->
+                <div v-else class="form-group">
+                  <label>{{ t('productsPage.stock') }}</label>
+                  <div class="stock-readonly" data-testid="product-stock-readonly">
+                    <span class="stock-readonly-value">{{ displayNumber(form.stock) }}</span>
+                    <router-link
+                      v-if="modalMode === 'edit'"
+                      :to="{ name: 'stock-adjustments' }"
+                      class="stock-adjust-link"
+                      @click="closeModal"
+                    >
+                      {{ t('productsPage.adjustStock') }}
+                    </router-link>
+                  </div>
+                  <small class="stock-readonly-hint">{{ t('productsPage.stockReadOnlyHint') }}</small>
                 </div>
 
                 <div class="form-group">
@@ -475,14 +497,39 @@
                   />
                 </div>
 
-                <div class="form-group full">
-                  <label>{{ t('productsPage.imageUrl') }}</label>
+                <!--
+                  The image is a file upload. It is sent only when a new file
+                  is chosen; otherwise the field is left out and the backend
+                  keeps the current image. Sending the existing image URL
+                  back as text is what made products with an image
+                  impossible to save.
+                -->
+                <div v-if="modalMode !== 'view'" class="form-group full">
+                  <label>{{ t('productsPage.image') }}</label>
                   <input
-                    v-model="form.image"
-                    type="text"
-                    :placeholder="t('productsPage.imageUrlPlaceholder')"
-                    :disabled="modalMode === 'view'"
+                    ref="imageInput"
+                    type="file"
+                    accept="image/*"
+                    data-testid="product-image-input"
+                    @change="onImageSelected"
                   />
+                  <small class="stock-readonly-hint">
+                    {{
+                      form.imageFile
+                        ? t('productsPage.newImageSelected', { name: form.imageFile.name })
+                        : form.image
+                          ? t('productsPage.keepCurrentImage')
+                          : t('productsPage.noImageYet')
+                    }}
+                  </small>
+                  <button
+                    v-if="form.imageFile"
+                    type="button"
+                    class="btn btn-light btn-clear-image"
+                    @click="clearSelectedImage"
+                  >
+                    {{ t('productsPage.undoImageChoice') }}
+                  </button>
                 </div>
 
                 <div class="form-group full" v-if="currentPreviewImage">
@@ -520,11 +567,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
+import { toMultipart } from '@/utils/multipart'
 
 type ModalMode = 'create' | 'edit' | 'view'
 
@@ -613,12 +661,38 @@ const form = reactive({
   buy_price: '0.00',
   sell_price: '0.00',
   weight: '0.00',
+  // URL of the image the product already has; display only, never sent.
   image: '',
+  // A newly chosen file; the only way an image is ever sent.
+  imageFile: null as File | null,
   is_active: true,
   category_id: null as number | null,
   supplier_id: null as number | null,
   unit_id: null as number | null,
 })
+
+const imageInput = ref<HTMLInputElement | null>(null)
+const selectedImagePreview = ref('')
+
+function releaseSelectedPreview() {
+  if (selectedImagePreview.value) URL.revokeObjectURL(selectedImagePreview.value)
+  selectedImagePreview.value = ''
+}
+
+function onImageSelected(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0] || null
+  releaseSelectedPreview()
+  form.imageFile = file
+  if (file) selectedImagePreview.value = URL.createObjectURL(file)
+}
+
+function clearSelectedImage() {
+  releaseSelectedPreview()
+  form.imageFile = null
+  if (imageInput.value) imageInput.value.value = ''
+}
+
+onBeforeUnmount(releaseSelectedPreview)
 
 const filteredProducts = computed(() => {
   let result = [...products.value]
@@ -659,7 +733,7 @@ const totalStockUnits = computed(() => {
 })
 
 const currentPreviewImage = computed(() => {
-  return form.image || ''
+  return selectedImagePreview.value || form.image || ''
 })
 
 function normalizeLookupRows(payload: any): LookupOption[] {
@@ -784,6 +858,7 @@ function resetForm() {
   form.sell_price = '0.00'
   form.weight = '0.00'
   form.image = ''
+  clearSelectedImage()
   form.is_active = true
   form.category_id = null
   form.supplier_id = null
@@ -861,7 +936,7 @@ function validateForm() {
     return false
   }
 
-  if (Number(form.stock) < 0) {
+  if (modalMode.value === 'create' && Number(form.stock) < 0) {
     alert(t('productsPage.stockCannotBeNegative'))
     return false
   }
@@ -875,23 +950,30 @@ function validateForm() {
 }
 
 function buildPayload() {
-  return {
+  const payload: Record<string, unknown> = {
     name: form.name.trim(),
     sku: form.sku.trim() || null,
     code: form.code.trim(),
     item_type: form.item_type,
     track_stock: form.track_stock,
     description: form.description.trim(),
-    stock: Number(form.stock) || 0,
     buy_price: String(form.buy_price || '0.00'),
     sell_price: String(form.sell_price || '0.00'),
     weight: String(form.weight || '0.00'),
     is_active: form.is_active,
-    image: form.image.trim() || null,
+    // No "image" key here: see saveProduct.
     category_id: form.category_id,
     supplier_id: form.supplier_id,
     unit_id: form.unit_id,
   }
+
+  // Opening stock is only honoured when the product is created. On an update
+  // the backend ignores it, so sending it would only pretend it was saved.
+  if (modalMode.value === 'create') {
+    payload.stock = Number(form.stock) || 0
+  }
+
+  return payload
 }
 
 async function saveProduct() {
@@ -901,11 +983,16 @@ async function saveProduct() {
 
   try {
     const payload = buildPayload()
+    // The image goes only when the user picked a new file, as a real file in
+    // a multipart body. Without one the request is JSON with no image key,
+    // and the backend leaves the current image untouched.
+    const body = form.imageFile ? toMultipart(payload, { image: form.imageFile }) : payload
+    const config = form.imageFile ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
 
     if (modalMode.value === 'create') {
-      await api.post(ENDPOINTS.PRODUCTS, payload)
+      await api.post(ENDPOINTS.PRODUCTS, body, config)
     } else if (modalMode.value === 'edit' && editingId.value !== null) {
-      await api.put(`${ENDPOINTS.PRODUCTS}${editingId.value}/`, payload)
+      await api.put(`${ENDPOINTS.PRODUCTS}${editingId.value}/`, body, config)
     }
 
     closeModal()
@@ -1659,6 +1746,46 @@ onMounted(() => {
   color: #334155;
   font-size: 14px;
   flex-wrap: wrap;
+}
+
+.stock-readonly {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.stock-readonly-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-adjust-link {
+  margin-left: auto;
+  font-weight: 700;
+  color: #1677ff;
+  text-decoration: none;
+}
+
+.stock-adjust-link:hover {
+  text-decoration: underline;
+}
+
+.btn-clear-image {
+  margin-top: 8px;
+  align-self: flex-start;
+}
+
+.stock-readonly-hint {
+  display: block;
+  margin-top: 6px;
+  color: #6b7280;
 }
 
 .image-preview-wrap {
