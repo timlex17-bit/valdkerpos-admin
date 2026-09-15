@@ -4,18 +4,18 @@
     <section class="page-header">
       <div class="page-header__left">
         <div>
-          <h1 class="page-title">Backup & Restore Center</h1>
+          <h1 class="page-title">{{ t('backupPage.title') }}</h1>
           <p class="page-subtitle">
-            Manage automatic backups, monitor history, and restore your store data safely.
+            {{ t('backupPage.subtitle') }}
           </p>
         </div>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>›</span>
-          <span>System Tools</span>
+          <span>{{ t('menu.systemTools') }}</span>
           <span>›</span>
-          <span class="active">Backup & Restore</span>
+          <span class="active">{{ t('menu.backupRestore') }}</span>
         </div>
       </div>
 
@@ -26,7 +26,7 @@
           :disabled="!!restoreUnavailableReason"
           :title="restoreUnavailableReason"
         >
-          Restore backup
+          {{ t('backupPage.restoreBackup') }}
         </button>
         <button
           class="btn btn-success"
@@ -34,7 +34,7 @@
           :disabled="runningBackup"
         >
           <span v-if="runningBackup" class="spinner" aria-hidden="true"></span>
-          {{ runningBackup ? 'Creating backup...' : 'Run backup now' }}
+          {{ runningBackup ? t('backupPage.creatingBackup') : t('backupPage.runBackupNow') }}
         </button>
       </div>
     </section>
@@ -51,7 +51,7 @@
     <!-- Outcome of the last restore; stays until dismissed -->
     <div v-if="resultNotice" class="result-notice" :class="resultNotice.type" role="status">
       <p>{{ resultNotice.text }}</p>
-      <button class="close-btn small" @click="resultNotice = null" aria-label="Dismiss">×</button>
+      <button class="close-btn small" @click="resultNotice = null" :aria-label="t('common.close')">×</button>
     </div>
 
     <!-- Top Summary -->
@@ -65,9 +65,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Auto Backup Status</p>
-          <h3 class="stat-value">{{ backupSettings.enabled ? 'Enabled' : 'Disabled' }}</h3>
-          <p class="stat-meta">Automatic protection for shop data</p>
+          <p class="stat-label">{{ t('backupPage.autoBackupStatus') }}</p>
+          <h3 class="stat-value">{{ backupSettings.enabled ? t('backupPage.enabled') : t('backupPage.disabled') }}</h3>
+          <p class="stat-meta">{{ t('backupPage.autoProtection') }}</p>
         </div>
       </article>
 
@@ -79,9 +79,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Next Scheduled Backup</p>
+          <p class="stat-label">{{ t('backupPage.nextScheduled') }}</p>
           <h3 class="stat-value">{{ nextScheduledBackup }}</h3>
-          <p class="stat-meta">{{ backupSettings.frequency }} at {{ backupSettings.time }}</p>
+          <p class="stat-meta">{{ t('backupPage.frequencyAt', { frequency: t(`backupPage.frequencies.${backupSettings.frequency}`), time: backupSettings.time }) }}</p>
         </div>
       </article>
 
@@ -93,9 +93,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Last Successful Backup</p>
+          <p class="stat-label">{{ t('backupPage.lastSuccessful') }}</p>
           <h3 class="stat-value">{{ lastSuccessfulBackup }}</h3>
-          <p class="stat-meta">Latest completed backup</p>
+          <p class="stat-meta">{{ t('backupPage.latestCompleted') }}</p>
         </div>
       </article>
 
@@ -108,9 +108,9 @@
           </svg>
         </div>
         <div>
-          <p class="stat-label">Retention Policy</p>
-          <h3 class="stat-value">Keep {{ backupSettings.keepLast }}</h3>
-          <p class="stat-meta">Old backups are removed automatically</p>
+          <p class="stat-label">{{ t('backupPage.retentionPolicy') }}</p>
+          <h3 class="stat-value">{{ t('backupPage.keepCount', { count: backupSettings.keepLast }) }}</h3>
+          <p class="stat-meta">{{ t('backupPage.oldRemoved') }}</p>
         </div>
       </article>
     </section>
@@ -120,19 +120,19 @@
       <article class="panel-card">
         <div class="card-header">
           <div>
-            <h2>Backup settings</h2>
-            <p>Configure automatic backup schedule and backup contents.</p>
+            <h2>{{ t('backupPage.settingsTitle') }}</h2>
+            <p>{{ t('backupPage.settingsSubtitle') }}</p>
           </div>
           <span class="status-pill" :class="backupSettings.enabled ? 'active' : 'inactive'">
-            {{ backupSettings.enabled ? 'Active' : 'Inactive' }}
+            {{ backupSettings.enabled ? t('backupPage.active') : t('backupPage.inactive') }}
           </span>
         </div>
 
         <div class="settings-grid">
           <div class="field-row switch-row">
             <div>
-              <label class="field-label">Enable automatic backup</label>
-              <p class="field-help">Automatically create backups based on the selected schedule.</p>
+              <label class="field-label">{{ t('backupPage.enableAutomatic') }}</label>
+              <p class="field-help">{{ t('backupPage.enableAutomaticHelp') }}</p>
             </div>
 
             <button
@@ -146,23 +146,23 @@
 
           <div class="field-row">
             <div class="field-col">
-              <label class="field-label">Frequency</label>
+              <label class="field-label">{{ t('backupPage.frequency') }}</label>
               <select v-model="backupSettings.frequency" class="form-select">
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="daily">{{ t('backupPage.frequencies.daily') }}</option>
+                <option value="weekly">{{ t('backupPage.frequencies.weekly') }}</option>
+                <option value="monthly">{{ t('backupPage.frequencies.monthly') }}</option>
               </select>
             </div>
 
             <div class="field-col">
-              <label class="field-label">Backup time</label>
+              <label class="field-label">{{ t('backupPage.backupTime') }}</label>
               <input v-model="backupSettings.time" type="time" class="form-input" />
             </div>
           </div>
 
           <div class="field-row">
             <div class="field-col">
-              <label class="field-label">Keep last N backups</label>
+              <label class="field-label">{{ t('backupPage.keepLastN') }}</label>
               <input
                 v-model.number="backupSettings.keepLast"
                 type="number"
@@ -173,10 +173,10 @@
             </div>
 
             <div class="field-col">
-              <label class="field-label">Default restore mode</label>
+              <label class="field-label">{{ t('backupPage.defaultRestoreMode') }}</label>
               <select v-model="backupSettings.defaultRestoreMode" class="form-select">
-                <option value="master">Restore Master Data</option>
-                <option value="full">Restore Full Data</option>
+                <option value="master">{{ t('backupPage.modeMaster') }}</option>
+                <option value="full">{{ t('backupPage.modeFull') }}</option>
               </select>
             </div>
           </div>
@@ -184,30 +184,30 @@
           <div class="checkbox-grid">
             <label class="check-item">
               <input v-model="backupSettings.includeMedia" type="checkbox" />
-              <span>Include media / logo</span>
+              <span>{{ t('backupPage.includeMedia') }}</span>
             </label>
 
             <label class="check-item">
               <input v-model="backupSettings.includeUsers" type="checkbox" />
-              <span>Include users</span>
+              <span>{{ t('backupPage.includeUsers') }}</span>
             </label>
 
             <label class="check-item">
               <input v-model="backupSettings.includeSettings" type="checkbox" />
-              <span>Include settings</span>
+              <span>{{ t('backupPage.includeSettings') }}</span>
             </label>
           </div>
 
           <div class="action-row">
             <button class="btn btn-light" @click="resetBackupSettings" :disabled="savingSettings">
-              Reset
+              {{ t('common.reset') }}
             </button>
             <button class="btn btn-primary" @click="saveBackupSettings" :disabled="savingSettings">
-              {{ savingSettings ? 'Saving...' : 'Save settings' }}
+              {{ savingSettings ? t('settingsPage.saving') : t('backupPage.saveSettings') }}
             </button>
             <button class="btn btn-success" @click="runBackupNow" :disabled="runningBackup">
               <span v-if="runningBackup" class="spinner" aria-hidden="true"></span>
-              {{ runningBackup ? 'Creating backup...' : 'Run backup now' }}
+              {{ runningBackup ? t('backupPage.creatingBackup') : t('backupPage.runBackupNow') }}
             </button>
           </div>
         </div>
@@ -217,8 +217,8 @@
       <article class="panel-card side-panel">
         <div class="card-header">
           <div>
-            <h2>Restore Data</h2>
-            <p>Restore master data or full tenant data from a backup.</p>
+            <h2>{{ t('backupPage.restoreData') }}</h2>
+            <p>{{ t('backupPage.restorePanelSubtitle') }}</p>
           </div>
         </div>
 
@@ -230,17 +230,16 @@
             </svg>
           </div>
 
-          <h3>Restore carefully</h3>
+          <h3>{{ t('backupPage.restoreCarefully') }}</h3>
           <p>
-            Restoring a backup can replace existing store data. Use this feature only when
-            necessary.
+            {{ t('backupPage.restoreCarefullyText') }}
           </p>
 
           <ul class="info-list">
-            <li>Available modes: <strong>Restore Master Data</strong> and <strong>Restore Full Data</strong></li>
-            <li>Restore Full Data includes database records and mapped media files</li>
-            <li>Records added after the backup was taken are deleted by a restore</li>
-            <li>You will see what gets deleted before anything is changed</li>
+            <li>{{ t('backupPage.infoModes') }}</li>
+            <li>{{ t('backupPage.infoFull') }}</li>
+            <li>{{ t('backupPage.infoDeletes') }}</li>
+            <li>{{ t('backupPage.infoPreview') }}</li>
           </ul>
 
           <button
@@ -248,7 +247,7 @@
             @click="openRestoreModal"
             :disabled="!!restoreUnavailableReason"
           >
-            Restore Data
+            {{ t('backupPage.restoreData') }}
           </button>
           <p v-if="restoreUnavailableReason" class="disabled-hint">{{ restoreUnavailableReason }}</p>
         </div>
@@ -259,8 +258,8 @@
     <section class="panel-card table-panel">
       <div class="card-header">
         <div>
-          <h2>Backup history</h2>
-          <p>Track backup jobs, file size, status, and available actions.</p>
+          <h2>{{ t('backupPage.historyTitle') }}</h2>
+          <p>{{ t('backupPage.historySubtitle') }}</p>
         </div>
 
         <div class="history-filters">
@@ -268,15 +267,15 @@
             v-model="search"
             type="text"
             class="form-input search-input"
-            placeholder="Search by trigger or status..."
+            :placeholder="t('backupPage.searchPlaceholder')"
             @input="debouncedFetchHistory"
           />
 
           <select v-model="statusFilter" class="form-select filter-select" @change="fetchBackupHistory">
-            <option value="">All status</option>
-            <option value="Success">Success</option>
-            <option value="Failed">Failed</option>
-            <option value="Running">Running</option>
+            <option value="">{{ t('backupPage.allStatus') }}</option>
+            <option value="Success">{{ t('backupPage.statuses.success') }}</option>
+            <option value="Failed">{{ t('backupPage.statuses.failed') }}</option>
+            <option value="Running">{{ t('backupPage.statuses.running') }}</option>
           </select>
         </div>
       </div>
@@ -285,23 +284,23 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Date & Time</th>
-              <th>Type</th>
-              <th>Triggered By</th>
-              <th>Status</th>
-              <th>File Size</th>
-              <th>Included</th>
-              <th class="action-col">Actions</th>
+              <th>{{ t('backupPage.dateTime') }}</th>
+              <th>{{ t('common.type') }}</th>
+              <th>{{ t('backupPage.triggeredBy') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('backupPage.fileSize') }}</th>
+              <th>{{ t('backupPage.included') }}</th>
+              <th class="action-col">{{ t('common.action') }}</th>
             </tr>
           </thead>
 
           <tbody>
             <tr v-if="loadingHistory">
-              <td colspan="7" class="empty-cell">Loading backup history...</td>
+              <td colspan="7" class="empty-cell">{{ t('backupPage.loadingHistory') }}</td>
             </tr>
 
             <tr v-else-if="filteredHistory.length === 0">
-              <td colspan="7" class="empty-cell">No backup history found.</td>
+              <td colspan="7" class="empty-cell">{{ t('backupPage.noHistory') }}</td>
             </tr>
 
             <tr v-for="item in filteredHistory" :key="item.id">
@@ -310,40 +309,40 @@
               </td>
               <td>
                 <span class="type-badge" :class="item.type.toLowerCase()">
-                  {{ item.type }}
+                  {{ typeLabel(item.type) }}
                 </span>
               </td>
               <td>{{ item.triggeredBy }}</td>
               <td>
                 <span class="status-badge" :class="statusClass(item.status)">
-                  {{ item.status }}
+                  {{ statusLabel(item.status) }}
                 </span>
               </td>
               <td>{{ item.fileSize }}</td>
-              <td>{{ item.included.length ? item.included.join(', ') : '-' }}</td>
+              <td>{{ includedLabel(item.included) }}</td>
               <td>
                 <div class="actions">
-                  <button class="btn-action view" @click="viewBackup(item)">View</button>
+                  <button class="btn-action view" @click="viewBackup(item)">{{ t('common.view') }}</button>
                   <button
                     class="btn-action download"
                     @click="downloadBackup(item)"
                     :disabled="!item.canDownload"
                   >
-                    Download
+                    {{ t('backupPage.download') }}
                   </button>
                   <button
                     class="btn-action restore"
                     @click="prepareRestore(item)"
                     :disabled="!item.canRestore"
                   >
-                    Restore
+                    {{ t('backupPage.restore') }}
                   </button>
                   <button
                     class="btn-action delete"
                     @click="deleteBackup(item.id)"
                     :disabled="!item.canDelete"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </td>
@@ -358,8 +357,8 @@
       <div class="modal-container modal-sm">
         <div class="modal-header">
           <div>
-            <h2>Backup detail</h2>
-            <p>Review selected backup information.</p>
+            <h2>{{ t('backupPage.detailTitle') }}</h2>
+            <p>{{ t('backupPage.detailSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeDetailModal">×</button>
         </div>
@@ -367,47 +366,47 @@
         <div class="modal-body">
           <div class="detail-grid">
             <div class="detail-item">
-              <span class="detail-label">Date & Time</span>
+              <span class="detail-label">{{ t('backupPage.dateTime') }}</span>
               <strong>{{ selectedBackup.dateTime }}</strong>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Type</span>
-              <strong>{{ selectedBackup.type }}</strong>
+              <span class="detail-label">{{ t('common.type') }}</span>
+              <strong>{{ typeLabel(selectedBackup.type) }}</strong>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Triggered By</span>
+              <span class="detail-label">{{ t('backupPage.triggeredBy') }}</span>
               <strong>{{ selectedBackup.triggeredBy }}</strong>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <strong>{{ selectedBackup.status }}</strong>
+              <span class="detail-label">{{ t('common.status') }}</span>
+              <strong>{{ statusLabel(selectedBackup.status) }}</strong>
             </div>
             <div class="detail-item">
-              <span class="detail-label">File Size</span>
+              <span class="detail-label">{{ t('backupPage.fileSize') }}</span>
               <strong>{{ selectedBackup.fileSize }}</strong>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Included</span>
-              <strong>{{ selectedBackup.included.length ? selectedBackup.included.join(', ') : '-' }}</strong>
+              <span class="detail-label">{{ t('backupPage.included') }}</span>
+              <strong>{{ includedLabel(selectedBackup.included) }}</strong>
             </div>
             <div class="detail-item" v-if="selectedBackup.fileName">
-              <span class="detail-label">File Name</span>
+              <span class="detail-label">{{ t('backupPage.fileName') }}</span>
               <strong>{{ selectedBackup.fileName }}</strong>
             </div>
             <div class="detail-item" v-if="selectedBackup.durationSeconds !== null">
-              <span class="detail-label">Duration</span>
-              <strong>{{ selectedBackup.durationSeconds }} sec</strong>
+              <span class="detail-label">{{ t('backupPage.duration') }}</span>
+              <strong>{{ t('backupPage.seconds', { count: selectedBackup.durationSeconds }) }}</strong>
             </div>
             <div class="detail-item" v-if="selectedBackup.restoreCount !== null">
-              <span class="detail-label">Restore Count</span>
+              <span class="detail-label">{{ t('backupPage.restoreCount') }}</span>
               <strong>{{ selectedBackup.restoreCount }}</strong>
             </div>
             <div class="detail-item" v-if="selectedBackup.note">
-              <span class="detail-label">Note</span>
+              <span class="detail-label">{{ t('common.note') }}</span>
               <strong>{{ selectedBackup.note }}</strong>
             </div>
             <div class="detail-item" v-if="selectedBackup.errorMessage">
-              <span class="detail-label">Error</span>
+              <span class="detail-label">{{ t('backupPage.error') }}</span>
               <strong>{{ selectedBackup.errorMessage }}</strong>
             </div>
           </div>
@@ -420,8 +419,8 @@
       <div class="modal-container">
         <div class="modal-header">
           <div>
-            <h2>Restore Data</h2>
-            <p>Choose a backup, check what the restore deletes, then confirm.</p>
+            <h2>{{ t('backupPage.restoreData') }}</h2>
+            <p>{{ t('backupPage.restoreModalSubtitle') }}</p>
           </div>
           <button class="close-btn" @click="closeRestoreModal" :disabled="restoreBusy">×</button>
         </div>
@@ -429,14 +428,14 @@
         <div class="modal-body">
           <div class="restore-form">
             <div class="field-col">
-              <label class="field-label">1. Select backup</label>
+              <label class="field-label">{{ t('backupPage.stepSelect') }}</label>
               <select
                 v-model="restoreForm.backupId"
                 class="form-select"
                 :disabled="restoreBusy"
                 @change="resetDryRun"
               >
-                <option value="">Choose backup</option>
+                <option value="">{{ t('backupPage.chooseBackup') }}</option>
                 <option v-for="item in successfulBackups" :key="item.id" :value="String(item.id)">
                   #{{ item.id }} · {{ item.dateTime }} — {{ item.fileSize }}
                 </option>
@@ -444,41 +443,39 @@
             </div>
 
             <div class="field-col">
-              <label class="field-label">Restore mode</label>
+              <label class="field-label">{{ t('backupPage.restoreMode') }}</label>
               <select
                 v-model="restoreForm.mode"
                 class="form-select"
                 :disabled="restoreBusy"
                 @change="resetDryRun"
               >
-                <option value="master">Restore Master Data</option>
-                <option value="full">Restore Full Data</option>
+                <option value="master">{{ t('backupPage.modeMaster') }}</option>
+                <option value="full">{{ t('backupPage.modeFull') }}</option>
               </select>
             </div>
 
             <div class="warning-box">
-              <strong>Restore deletes data</strong>
+              <strong>{{ t('backupPage.warningTitle') }}</strong>
               <p>
-                Restore replaces this shop's data with the contents of the backup. Anything the
-                backup does not contain — for example sales recorded after it was taken — is
-                deleted. Check below exactly what will be deleted before you continue.
+                {{ t('backupPage.warningText') }}
               </p>
             </div>
 
             <div class="field-col">
-              <label class="field-label">2. Check what will be deleted</label>
+              <label class="field-label">{{ t('backupPage.stepCheck') }}</label>
               <button
                 class="btn btn-primary"
                 @click="runDryRun"
                 :disabled="!restoreForm.backupId || restoreBusy"
               >
                 <span v-if="dryRunning" class="spinner" aria-hidden="true"></span>
-                {{ dryRunning ? 'Checking backup...' : 'Run dry-run (changes nothing)' }}
+                {{ dryRunning ? t('backupPage.checkingBackup') : t('backupPage.runDryRun') }}
               </button>
             </div>
 
             <div v-if="dryRunError" class="error-box" role="alert">
-              <strong>Dry-run failed — restore is not possible with this backup and mode.</strong>
+              <strong>{{ t('backupPage.dryRunFailed') }}</strong>
               <p>{{ dryRunError }}</p>
               <ul v-if="dryRunReasons.length" class="warning-list">
                 <li v-for="reason in dryRunReasons" :key="reason">{{ reason }}</li>
@@ -487,34 +484,31 @@
 
             <div v-if="dryRunResult" class="preview-box">
               <template v-if="!deletionPreview.available">
-                <strong>This server did not report what the restore would delete.</strong>
+                <strong>{{ t('backupPage.previewUnavailable') }}</strong>
                 <p>
-                  Restore stays disabled until the backend provides that information, so data is
-                  never deleted without warning.
+                  {{ t('backupPage.previewUnavailableText') }}
                 </p>
               </template>
 
               <template v-else-if="deletionPreview.totalDeleted === 0">
-                <strong>Nothing currently in this shop will be deleted.</strong>
-                <p>Existing records are still overwritten with the values stored in the backup.</p>
+                <strong>{{ t('backupPage.nothingDeleted') }}</strong>
+                <p>{{ t('backupPage.nothingDeletedText') }}</p>
               </template>
 
               <template v-else>
                 <p class="danger-headline">
-                  {{ deletionPreview.summary }} currently in this shop will be DELETED.
+                  {{ t('backupPage.willBeDeleted', { summary: deletionPreview.summary }) }}
                 </p>
                 <p class="muted">
-                  Some sections are cleared completely and rebuilt from the backup, so a count can
-                  include records the backup puts back. “In backup” is what the shop will have
-                  afterwards.
+                  {{ t('backupPage.countsExplain') }}
                 </p>
                 <div class="table-wrap">
                   <table class="preview-table">
                     <thead>
                       <tr>
-                        <th>Data</th>
-                        <th>Will be deleted</th>
-                        <th>In backup</th>
+                        <th>{{ t('backupPage.data') }}</th>
+                        <th>{{ t('backupPage.willBeDeletedColumn') }}</th>
+                        <th>{{ t('backupPage.inBackup') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -537,38 +531,34 @@
               <input v-model="restoreAcknowledged" type="checkbox" :disabled="restoreBusy" />
               <span>
                 <template v-if="deletionPreview.totalDeleted">
-                  3. I understand that <strong>{{ deletionPreview.summary }}</strong> currently in
-                  {{ shopName || 'this shop' }} will be permanently deleted and replaced with the
-                  contents of the backup.
+                  {{ t('backupPage.ackDelete', { summary: deletionPreview.summary, shop: shopName || t('backupPage.thisShop') }) }}
                 </template>
                 <template v-else>
-                  3. I understand that the current data in {{ shopName || 'this shop' }} will be
-                  overwritten with the contents of the backup.
+                  {{ t('backupPage.ackOverwrite', { shop: shopName || t('backupPage.thisShop') }) }}
                 </template>
               </span>
             </label>
 
             <div v-if="restoreError" class="error-box" role="alert">
-              <strong>Restore failed.</strong>
+              <strong>{{ t('backupPage.restoreFailed') }}</strong>
               <p>{{ restoreError }}</p>
               <p class="muted">
-                The backup history has been refreshed: a safety backup may have been created
-                before the failure.
+                {{ t('backupPage.restoreFailedNote') }}
               </p>
             </div>
 
             <div class="action-row">
               <button class="btn btn-light" @click="closeRestoreModal" :disabled="restoreBusy">
-                Cancel
+                {{ t('common.cancel') }}
               </button>
               <button
                 class="btn btn-danger"
                 @click="confirmRestore"
                 :disabled="!canRestore"
-                :title="canRestore ? '' : 'Run the dry-run and tick the confirmation first'"
+                :title="canRestore ? '' : t('backupPage.restoreDisabledHint')"
               >
                 <span v-if="restoring" class="spinner" aria-hidden="true"></span>
-                {{ restoring ? 'Restoring...' : restoreModeLabel(restoreForm.mode) }}
+                {{ restoring ? t('backupPage.restoring') : restoreModeLabel(restoreForm.mode) }}
               </button>
             </div>
           </div>
@@ -587,6 +577,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { getApiErrorMessage, looksLikeDebugPage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
@@ -596,6 +587,8 @@ import {
   safetyBackupIdFor,
   type DryRunResponse,
 } from '@/services/backupRestore'
+
+const { t, te } = useI18n()
 
 type BackupStatus = 'Success' | 'Failed' | 'Running'
 type BackupType = 'Auto' | 'Manual'
@@ -686,7 +679,15 @@ const restoreAcknowledged = ref(false)
 const resultNotice = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 const currentRestoreKey = computed(() => `${restoreForm.backupId}:${restoreForm.mode}`)
-const deletionPreview = computed(() => buildDeletionPreview(dryRunResult.value))
+const deletionPreview = computed(() =>
+  buildDeletionPreview(dryRunResult.value, {
+    label: (section, count) => {
+      const key = `backupPage.sections.${section}`
+      return te(key) ? t(key, count) : section.replace(/_/g, ' ')
+    },
+    andWord: t('backupPage.and'),
+  }),
+)
 const restoreBusy = computed(() => restoring.value || dryRunning.value)
 const dryRunReady = computed(
   () =>
@@ -701,8 +702,8 @@ const restoreUnavailableReason = computed(() => {
   if (loadingHistory.value && backupHistory.value.length === 0) return ''
   if (successfulBackups.value.length > 0) return ''
   return backupHistory.value.length === 0
-    ? 'Nothing to restore yet: run a backup first. Restore becomes available once a backup has finished successfully.'
-    : 'Nothing to restore: none of the backups below finished successfully. Run a new backup first.'
+    ? t('backupPage.nothingToRestoreYet')
+    : t('backupPage.nothingToRestore')
 })
 
 // Progress while a long request runs.
@@ -713,20 +714,20 @@ let tickTimer: number | null = null
 const busyState = computed(() => {
   if (restoring.value) {
     return {
-      title: 'Restoring backup...',
-      detail: 'Current shop data is being deleted and replaced with the backup. Keep this page open until it finishes.',
+      title: t('backupPage.restoring'),
+      detail: t('backupPage.busyRestoring'),
     }
   }
   if (runningBackup.value) {
     return {
-      title: 'Creating backup...',
-      detail: 'Collecting shop data and media files into a backup package. Large shops can take a while.',
+      title: t('backupPage.creatingBackup'),
+      detail: t('backupPage.busyBackup'),
     }
   }
   if (dryRunning.value) {
     return {
-      title: 'Checking backup...',
-      detail: 'Reading the backup and counting what a restore would delete. Nothing is changed.',
+      title: t('backupPage.checkingBackup'),
+      detail: t('backupPage.busyDryRun'),
     }
   }
   return null
@@ -757,11 +758,11 @@ onBeforeUnmount(() => {
 })
 
 const nextScheduledBackup = computed(() => {
-  return summaryRaw.value?.next_scheduled_backup || 'Disabled'
+  return summaryRaw.value?.next_scheduled_backup || t('backupPage.disabled')
 })
 
 const lastSuccessfulBackup = computed(() => {
-  return summaryRaw.value?.last_successful_backup || 'No successful backup yet'
+  return summaryRaw.value?.last_successful_backup || t('backupPage.noSuccessfulYet')
 })
 
 const filteredHistory = computed(() => backupHistory.value)
@@ -778,8 +779,8 @@ function normalizeStatus(value: any): BackupStatus {
 }
 
 function normalizeType(value: any): BackupType {
-  const t = String(value || '').trim().toLowerCase()
-  if (t === 'auto') return 'Auto'
+  const kind = String(value || '').trim().toLowerCase()
+  if (kind === 'auto') return 'Auto'
   return 'Manual'
 }
 
@@ -810,7 +811,27 @@ function toArrayStrings(value: any): string[] {
 
 
 function restoreModeLabel(value: string): string {
-  return value === 'master' ? 'Restore Master Data' : 'Restore Full Data'
+  return value === 'master' ? t('backupPage.modeMaster') : t('backupPage.modeFull')
+}
+
+function statusLabel(status: BackupStatus) {
+  return t(`backupPage.statuses.${status.toLowerCase()}`)
+}
+
+function typeLabel(type: BackupType) {
+  return t(`backupPage.types.${type.toLowerCase()}`)
+}
+
+// Backend names for what a backup contains ("Database", "Media", ...),
+// translated when known and shown as sent otherwise.
+function includedLabel(included: string[]) {
+  if (!included.length) return '-'
+  return included
+    .map((part) => {
+      const key = `backupPage.includedParts.${part.trim().toLowerCase()}`
+      return te(key) ? t(key) : part
+    })
+    .join(', ')
 }
 
 function statusClass(status: BackupStatus) {
@@ -863,7 +884,7 @@ function resetBackupSettings() {
   backupSettings.includeUsers = initialBackupSettings.includeUsers
   backupSettings.includeSettings = initialBackupSettings.includeSettings
   backupSettings.defaultRestoreMode = initialBackupSettings.defaultRestoreMode
-  showFlash('Backup settings reset.')
+  showFlash(t('backupPage.settingsReset'))
 }
 
 function mapBackupHistoryItem(item: any): BackupHistoryItem {
@@ -925,7 +946,7 @@ async function fetchBackupHistory() {
 
     backupHistory.value = rows.map(mapBackupHistoryItem)
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to load backup history.'))
+    showFlash(getApiErrorMessage(error, t('backupPage.historyLoadFailed')))
   } finally {
     loadingHistory.value = false
   }
@@ -950,9 +971,9 @@ async function saveBackupSettings() {
     applySettingsData(response.data || {})
     snapshotInitialSettings()
     await fetchSummary()
-    showFlash('Backup settings saved successfully.')
+    showFlash(t('backupPage.settingsSaved'))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to save backup settings.'))
+    showFlash(getApiErrorMessage(error, t('backupPage.settingsSaveFailed')))
   } finally {
     savingSettings.value = false
   }
@@ -971,11 +992,11 @@ async function runBackupNow() {
     const backupId = response.data?.backup_id
     showFlash(
       backupId
-        ? `Backup #${backupId} created (${response.data?.file_size || 'size unknown'}).`
-        : response.data?.message || 'Manual backup completed successfully.',
+        ? t('backupPage.backupCreated', { id: backupId, size: response.data?.file_size || t('backupPage.sizeUnknown') })
+        : t('backupPage.backupCompleted'),
     )
   } catch (error: any) {
-    showFlash(getApiErrorMessage(error, 'Failed to run backup.'), 8000)
+    showFlash(getApiErrorMessage(error, t('backupPage.backupFailed')), 8000)
   } finally {
     runningBackup.value = false
     // A failed run still leaves a history row, so refresh either way.
@@ -987,7 +1008,7 @@ async function refreshAfterChange() {
   try {
     await Promise.all([fetchSummary(), fetchBackupHistory()])
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to refresh backup history.'))
+    showFlash(getApiErrorMessage(error, t('backupPage.historyRefreshFailed')))
   }
 }
 
@@ -997,7 +1018,7 @@ async function viewBackup(item: BackupHistoryItem) {
     selectedBackup.value = mapBackupHistoryItem(response.data)
     showDetailModal.value = true
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to load backup detail.'))
+    showFlash(getApiErrorMessage(error, t('backupPage.detailLoadFailed')))
   }
 }
 
@@ -1031,7 +1052,7 @@ function closeRestoreModal() {
 
 function prepareRestore(item: BackupHistoryItem) {
   if (!item.canRestore) {
-    showFlash('Only allowed successful backups can be restored.')
+    showFlash(t('backupPage.onlySuccessfulRestorable'))
     return
   }
 
@@ -1043,7 +1064,9 @@ function prepareRestore(item: BackupHistoryItem) {
 
 function selectedBackupLabel() {
   const item = backupHistory.value.find((row) => String(row.id) === restoreForm.backupId)
-  return item ? `backup #${item.id} from ${item.dateTime}` : `backup #${restoreForm.backupId}`
+  return item
+    ? t('backupPage.backupFrom', { id: item.id, date: item.dateTime })
+    : t('backupPage.backupNumber', { id: restoreForm.backupId })
 }
 
 async function runDryRun() {
@@ -1058,10 +1081,10 @@ async function runDryRun() {
     dryRunResult.value = response.data || {}
     dryRunKey.value = key
     if (response.data?.valid === false) {
-      applyDryRunFailure({ response }, 'The backup did not pass the dry-run.')
+      applyDryRunFailure({ response }, t('backupPage.dryRunNotPassed'))
     }
   } catch (error) {
-    applyDryRunFailure(error, 'The dry-run could not be completed.')
+    applyDryRunFailure(error, t('backupPage.dryRunNotCompleted'))
   } finally {
     dryRunning.value = false
   }
@@ -1095,11 +1118,11 @@ async function confirmRestore() {
 
   const preview = deletionPreview.value
   const what = preview.totalDeleted
-    ? `${preview.summary} currently in this shop will be permanently deleted.`
-    : 'The current shop data will be overwritten with the backup.'
+    ? t('backupPage.confirmDeleted', { summary: preview.summary })
+    : t('backupPage.confirmOverwrite')
   const confirmed = window.confirm(
-    `Restore ${selectedBackupLabel()} (${restoreModeLabel(restoreForm.mode)})?\n\n${what}\n\n` +
-      'Deleted records cannot be recovered unless another backup contains them.',
+    `${t('backupPage.confirmQuestion', { backup: selectedBackupLabel(), mode: restoreModeLabel(restoreForm.mode) })}\n\n${what}\n\n` +
+      t('backupPage.confirmNoRecovery'),
   )
   if (!confirmed) return
 
@@ -1114,17 +1137,17 @@ async function confirmRestore() {
     })
 
     const safety = await findSafetyBackup(response.data?.restore_id)
-    let text = `Restore complete: this shop's data was replaced with ${backupLabel} (${modeLabel}).`
+    let text = t('backupPage.restoreComplete', { backup: backupLabel, mode: modeLabel })
     if (typeof safety === 'number') {
-      text += ` Before restoring, safety backup #${safety} of the previous data was created.`
+      text += ` ${t('backupPage.safetyCreated', { id: safety })}`
     } else if (safety === null) {
-      text += ' No separate safety backup was created for this restore.'
+      text += ` ${t('backupPage.noSafety')}`
     }
     restoring.value = false
     closeRestoreModal()
     resultNotice.value = { type: 'success', text }
   } catch (error) {
-    restoreError.value = getApiErrorMessage(error, 'The restore could not be completed.')
+    restoreError.value = getApiErrorMessage(error, t('backupPage.restoreNotCompleted'))
   } finally {
     restoring.value = false
     // Success and failure can both add a safety backup to the history.
@@ -1162,7 +1185,7 @@ async function readBlobError(error: unknown) {
 
 async function downloadBackup(item: BackupHistoryItem) {
   if (!item.canDownload) {
-    showFlash('This backup cannot be downloaded.')
+    showFlash(t('backupPage.cannotDownload'))
     return
   }
 
@@ -1189,23 +1212,23 @@ async function downloadBackup(item: BackupHistoryItem) {
     a.remove()
     window.URL.revokeObjectURL(url)
 
-    showFlash(`Download started: ${fileName}`)
+    showFlash(t('backupPage.downloadStarted', { name: fileName }))
   } catch (error) {
-    showFlash(getApiErrorMessage(await readBlobError(error), 'Failed to download backup.'), 8000)
+    showFlash(getApiErrorMessage(await readBlobError(error), t('backupPage.downloadFailed')), 8000)
   }
 }
 
 async function deleteBackup(id: number) {
-  const confirmed = window.confirm('Delete this backup?')
+  const confirmed = window.confirm(t('backupPage.deleteConfirm'))
   if (!confirmed) return
 
   try {
     await api.delete(BACKUP_ENDPOINTS.detail(id))
     backupHistory.value = backupHistory.value.filter((item) => item.id !== id)
     await fetchSummary()
-    showFlash('Backup deleted successfully.')
+    showFlash(t('backupPage.deleted'))
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to delete backup.'))
+    showFlash(getApiErrorMessage(error, t('backupPage.deleteFailed')))
   }
 }
 
@@ -1232,7 +1255,7 @@ onMounted(async () => {
     await Promise.all([fetchSummary(), fetchSettings(), fetchBackupHistory()])
     restoreForm.mode = backupSettings.defaultRestoreMode
   } catch (error) {
-    showFlash(getApiErrorMessage(error, 'Failed to load backup center data.'))
+    showFlash(getApiErrorMessage(error, t('backupPage.loadFailed')))
   }
 })
 </script>
