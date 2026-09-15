@@ -3,96 +3,91 @@
     <!-- Header -->
     <section class="page-header">
       <div>
-        <h1 class="page-title">Dashboard</h1>
-        <p class="page-subtitle">Welcome back. Here is your business overview for today.</p>
+        <h1 class="page-title">{{ t('dashboardPage.title') }}</h1>
+        <p class="page-subtitle">{{ t('dashboardPage.subtitle') }}</p>
 
         <div class="breadcrumb">
-          <span>Home</span>
+          <span>{{ t('common.home') }}</span>
           <span>/</span>
-          <span class="active">Dashboard</span>
+          <span class="active">{{ t('dashboardPage.title') }}</span>
         </div>
       </div>
 
       <div class="header-actions">
         <button class="secondary-btn" type="button" @click="loadDashboard" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
+          {{ loading ? t('dashboardPage.refreshing') : t('common.refresh') }}
         </button>
         <button class="add-btn" type="button" @click="exportSummary">
-          Export Summary
+          {{ t('dashboardPage.exportSummary') }}
         </button>
       </div>
     </section>
 
     <section v-if="errorMessage" class="alert-card error">
       <div>{{ errorMessage }}</div>
-      <button type="button" class="ghost-btn" @click="loadDashboard">Retry</button>
-    </section>
-
-    <section v-if="moduleAccessMessage" class="alert-card warning">
-      <div>{{ moduleAccessMessage }}</div>
-      <button type="button" class="ghost-btn" @click="moduleAccessMessage = ''">Dismiss</button>
+      <button type="button" class="ghost-btn" @click="loadDashboard">{{ t('dashboardPage.retry') }}</button>
     </section>
 
     <!-- KPI Cards -->
     <section class="stats-grid stats-grid-6">
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-icon icon-green">💵</span>
+          <ModuleIcon module="sales_chart" :size="40" variant="soft" />
           <span class="trend" :class="salesTrendClass">{{ salesTrendLabel }}</span>
         </div>
-        <div class="stat-label">Sales Today</div>
+        <div class="stat-label">{{ t('dashboardPage.salesToday') }}</div>
         <div class="stat-value">${{ salesToday.toFixed(2) }}</div>
-        <div class="stat-note">Compared with yesterday</div>
+        <div class="stat-note">{{ t('dashboardPage.comparedWithYesterday') }}</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-icon icon-blue">🧾</span>
+          <ModuleIcon module="orders" :size="40" variant="soft" />
           <span class="trend" :class="ordersTrendClass">{{ ordersTrendLabel }}</span>
         </div>
-        <div class="stat-label">Orders Today</div>
+        <div class="stat-label">{{ t('dashboardPage.ordersToday') }}</div>
         <div class="stat-value">{{ ordersToday }}</div>
-        <div class="stat-note">Transactions created today</div>
+        <div class="stat-note">{{ t('dashboardPage.transactionsToday') }}</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-icon icon-purple">📈</span>
+          <ModuleIcon module="reports" :size="40" variant="soft" />
           <span class="trend" :class="profitTrendClass">{{ profitTrendLabel }}</span>
         </div>
-        <div class="stat-label">Profit Estimate</div>
+        <div class="stat-label">{{ t('dashboardPage.profitEstimate') }}</div>
         <div class="stat-value">${{ profitEstimate.toFixed(2) }}</div>
-        <div class="stat-note">Sales minus expenses</div>
+        <div class="stat-note">{{ t('dashboardPage.salesMinusExpenses') }}</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-icon icon-orange">💸</span>
+          <ModuleIcon module="expenses" :size="40" variant="soft" />
           <span class="trend" :class="expensesTrendClass">{{ expensesTrendLabel }}</span>
         </div>
-        <div class="stat-label">Expenses Today</div>
+        <div class="stat-label">{{ t('dashboardPage.expensesToday') }}</div>
         <div class="stat-value">${{ expensesToday.toFixed(2) }}</div>
-        <div class="stat-note">Operational expenses today</div>
+        <div class="stat-note">{{ t('dashboardPage.operationalExpensesToday') }}</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-icon icon-red">⚠️</span>
-          <span class="trend flat">Need action</span>
+          <ModuleIcon module="low_stock_report" :size="40" variant="soft" />
+          <span class="trend flat">{{ t('dashboardPage.needAction') }}</span>
         </div>
-        <div class="stat-label">Low Stock Alerts</div>
+        <div class="stat-label">{{ t('dashboardPage.lowStockAlerts') }}</div>
         <div class="stat-value">{{ lowStockItems.length }}</div>
-        <div class="stat-note">Products below minimum stock</div>
+        <div class="stat-note">{{ t('dashboardPage.productsBelowMinimum') }}</div>
       </div>
 
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-icon icon-yellow">⏳</span>
-          <span class="trend flat">Follow up</span>
+          <ModuleIcon module="shift_report" :size="40" variant="soft" />
+          <span class="trend flat">{{ t('dashboardPage.followUp') }}</span>
         </div>
-        <div class="stat-label">Pending Orders</div>
+        <div class="stat-label">{{ t('dashboardPage.pendingOrders') }}</div>
         <div class="stat-value">{{ pendingOrders }}</div>
-        <div class="stat-note">Orders waiting to complete</div>
+        <div class="stat-note">{{ t('dashboardPage.ordersWaiting') }}</div>
       </div>
     </section>
 
@@ -101,10 +96,10 @@
       <div class="panel-card">
         <div class="panel-header">
           <div>
-            <h2>Sales Last 7 Days</h2>
-            <p>Daily sales performance overview</p>
+            <h2>{{ t('dashboardPage.salesLast7Days') }}</h2>
+            <p>{{ t('dashboardPage.dailySalesOverview') }}</p>
           </div>
-          <button class="ghost-btn" type="button" @click="goTo('/sales-chart')">View Report</button>
+          <button class="ghost-btn" type="button" @click="goTo('/sales-chart')">{{ t('dashboardPage.viewReport') }}</button>
         </div>
 
         <div class="chart-card">
@@ -130,23 +125,23 @@
       <div class="panel-card">
         <div class="panel-header">
           <div>
-            <h2>Payment Methods</h2>
-            <p>Sales distribution by payment type</p>
+            <h2>{{ t('dashboardPage.paymentMethods') }}</h2>
+            <p>{{ t('dashboardPage.salesByPaymentType') }}</p>
           </div>
-          <button class="ghost-btn" type="button" @click="goTo('/sales-chart')">Details</button>
+          <button class="ghost-btn" type="button" @click="goTo('/sales-chart')">{{ t('dashboardPage.details') }}</button>
         </div>
 
         <div class="payment-summary">
           <div class="donut-placeholder" :style="paymentDonutStyle">
             <div class="donut-center">
               <strong>${{ totalPaymentSummary.toFixed(2) }}</strong>
-              <span>Total</span>
+              <span>{{ t('common.total') }}</span>
             </div>
           </div>
 
           <div class="payment-list">
             <div v-if="paymentMethods.length === 0" class="empty-row">
-              No payment data yet.
+              {{ t('dashboardPage.noPaymentData') }}
             </div>
             <div
               v-for="item in paymentMethods"
@@ -157,7 +152,7 @@
                 <span class="payment-dot" :class="item.colorClass"></span>
                 <div>
                   <div class="payment-name">{{ item.label }}</div>
-                  <div class="payment-sub">{{ item.percent }}% of sales</div>
+                  <div class="payment-sub">{{ t('dashboardPage.percentOfSales', { percent: item.percent }) }}</div>
                 </div>
               </div>
               <div class="payment-amount">${{ item.amount.toFixed(2) }}</div>
@@ -172,15 +167,15 @@
       <div class="panel-card">
         <div class="panel-header">
           <div>
-            <h2>Low Stock Products</h2>
-            <p>Products that need immediate restock</p>
+            <h2>{{ t('dashboardPage.lowStockProducts') }}</h2>
+            <p>{{ t('dashboardPage.needRestock') }}</p>
           </div>
-          <button class="ghost-btn" type="button" @click="goTo('/products')">Inventory</button>
+          <button class="ghost-btn" type="button" @click="goTo('/products')">{{ t('menu.products') }}</button>
         </div>
 
         <div class="list-stack">
           <div v-if="lowStockItems.length === 0" class="empty-row">
-            No low stock products.
+            {{ t('dashboardPage.noLowStock') }}
           </div>
           <div
             v-for="item in lowStockItems"
@@ -193,13 +188,13 @@
               </div>
               <div>
                 <div class="list-title">{{ item.name }}</div>
-                <div class="list-sub">SKU: {{ item.sku }}</div>
+                <div class="list-sub">{{ t('dashboardPage.sku', { sku: item.sku }) }}</div>
               </div>
             </div>
 
             <div class="list-row__right">
-              <span class="status-badge cancelled">Stock {{ item.stock }}</span>
-              <span class="mini-note">Min {{ item.minStock }}</span>
+              <span class="status-badge cancelled">{{ t('dashboardPage.stockCount', { count: item.stock }) }}</span>
+              <span class="mini-note">{{ t('dashboardPage.minCount', { count: item.minStock }) }}</span>
             </div>
           </div>
         </div>
@@ -208,15 +203,15 @@
       <div class="panel-card">
         <div class="panel-header">
           <div>
-            <h2>Top Selling Products</h2>
-            <p>Best performing products today</p>
+            <h2>{{ t('dashboardPage.topSellingProducts') }}</h2>
+            <p>{{ t('dashboardPage.bestProductsToday') }}</p>
           </div>
-          <button class="ghost-btn" type="button" @click="goTo('/sales-report')">Products</button>
+          <button class="ghost-btn" type="button" @click="goTo('/sales-report')">{{ t('dashboardPage.viewReport') }}</button>
         </div>
 
         <div class="list-stack">
           <div v-if="topProducts.length === 0" class="empty-row">
-            No sales data yet.
+            {{ t('dashboardPage.noSalesData') }}
           </div>
           <div
             v-for="item in topProducts"
@@ -229,7 +224,7 @@
               </div>
               <div>
                 <div class="list-title">{{ item.name }}</div>
-                <div class="list-sub">{{ item.qty }} items sold</div>
+                <div class="list-sub">{{ t('dashboardPage.itemsSold', { count: item.qty }) }}</div>
               </div>
             </div>
 
@@ -246,27 +241,27 @@
       <div class="table-card">
         <div class="table-header">
           <div>
-            <h2>Recent Orders</h2>
-            <p>Latest sales transactions from your shop</p>
+            <h2>{{ t('dashboardPage.recentOrders') }}</h2>
+            <p>{{ t('dashboardPage.latestSales') }}</p>
           </div>
-          <button class="ghost-btn" type="button" @click="goTo('/orders')">All Orders</button>
+          <button class="ghost-btn" type="button" @click="goTo('/orders')">{{ t('dashboardPage.allOrders') }}</button>
         </div>
 
         <div class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Total</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th>Served By</th>
+                <th>{{ t('common.invoice') }}</th>
+                <th>{{ t('common.customer') }}</th>
+                <th>{{ t('common.total') }}</th>
+                <th>{{ t('common.payment') }}</th>
+                <th>{{ t('common.status') }}</th>
+                <th>{{ t('dashboardPage.servedBy') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="recentOrders.length === 0">
-                <td colspan="6" class="empty-cell">No recent orders.</td>
+                <td colspan="6" class="empty-cell">{{ t('dashboardPage.noRecentOrders') }}</td>
               </tr>
               <tr v-for="order in recentOrders" :key="order.id">
                 <td>
@@ -278,7 +273,7 @@
                 <td>{{ order.payment }}</td>
                 <td>
                   <span class="status-badge" :class="order.status === 'Paid' ? 'paid' : 'unpaid'">
-                    {{ order.status }}
+                    {{ order.status === 'Paid' ? t('dashboardPage.paid') : t('dashboardPage.unpaid') }}
                   </span>
                 </td>
                 <td>{{ order.servedBy }}</td>
@@ -291,25 +286,25 @@
       <div class="table-card">
         <div class="table-header">
           <div>
-            <h2>Recent Expenses</h2>
-            <p>Latest operational expenses recorded</p>
+            <h2>{{ t('dashboardPage.recentExpenses') }}</h2>
+            <p>{{ t('dashboardPage.latestExpenses') }}</p>
           </div>
-          <button class="ghost-btn" type="button" @click="goTo('/expenses')">All Expenses</button>
+          <button class="ghost-btn" type="button" @click="goTo('/expenses')">{{ t('dashboardPage.allExpenses') }}</button>
         </div>
 
         <div class="table-wrap">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Created By</th>
+                <th>{{ t('common.name') }}</th>
+                <th>{{ t('common.amount') }}</th>
+                <th>{{ t('common.date') }}</th>
+                <th>{{ t('dashboardPage.createdBy') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="recentExpenses.length === 0">
-                <td colspan="4" class="empty-cell">No recent expenses.</td>
+                <td colspan="4" class="empty-cell">{{ t('dashboardPage.noRecentExpenses') }}</td>
               </tr>
               <tr v-for="expense in recentExpenses" :key="expense.id">
                 <td>
@@ -330,15 +325,15 @@
     <section class="panel-card">
       <div class="panel-header">
         <div>
-          <h2>Recent Activity</h2>
-          <p>Latest important activities in your shop</p>
+          <h2>{{ t('dashboardPage.recentActivity') }}</h2>
+          <p>{{ t('dashboardPage.latestActivity') }}</p>
         </div>
-        <button class="ghost-btn" type="button" @click="goTo('/stock-movements')">View All</button>
+        <button class="ghost-btn" type="button" @click="goTo('/stock-movements')">{{ t('dashboardPage.viewAll') }}</button>
       </div>
 
       <div class="activity-list">
         <div v-if="dynamicRecentActivities.length === 0" class="empty-row">
-          No recent activity.
+          {{ t('dashboardPage.noRecentActivity') }}
         </div>
         <div
           v-for="activity in dynamicRecentActivities"
@@ -364,6 +359,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import ModuleIcon from '@/components/icons/ModuleIcon.vue'
+import { getApiErrorMessage } from '@/utils/apiError'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 
@@ -444,10 +442,12 @@ type ActivityRow = {
 }
 
 const router = useRouter()
+const { t, locale } = useI18n()
+
+const dateLocale = computed(() => (locale.value === 'id' ? 'id-ID' : locale.value === 'tet' ? 'pt-PT' : 'en-US'))
 
 const loading = ref(false)
 const errorMessage = ref('')
-const moduleAccessMessage = ref('')
 const dashboardOrders = ref<OrderRow[]>([])
 const dashboardExpenses = ref<ExpenseRow[]>([])
 const dashboardProducts = ref<ProductRow[]>([])
@@ -585,8 +585,8 @@ const dynamicRecentActivities = computed(() => {
   const orderActivities = recentOrders.value.slice(0, 2).map((order) => ({
     id: `order-${order.id}`,
     icon: '#',
-    title: `${order.servedBy} created order ${order.invoice}`,
-    description: `A new order was added with total $${order.total.toFixed(2)}.`,
+    title: t('dashboardPage.activityOrderTitle', { user: order.servedBy, invoice: order.invoice }),
+    description: t('dashboardPage.activityOrderText', { total: order.total.toFixed(2) }),
     time: relativeTime(order.createdAt),
     colorClass: 'activity-blue',
   }))
@@ -602,8 +602,8 @@ const dynamicRecentActivities = computed(() => {
     .map((expense) => ({
       id: `expense-${expense.id}`,
       icon: '$',
-      title: `Expense added: ${expense.name}`,
-      description: `New expense of $${expense.amount.toFixed(2)} recorded.`,
+      title: t('dashboardPage.activityExpenseTitle', { name: expense.name }),
+      description: t('dashboardPage.activityExpenseText', { amount: expense.amount.toFixed(2) }),
       time: relativeTime(`${expense.date}T${expense.time || '00:00:00'}`),
       colorClass: 'activity-red',
     }))
@@ -611,9 +611,9 @@ const dynamicRecentActivities = computed(() => {
   const stockActivities = lowStockItems.value.slice(0, 1).map((product) => ({
     id: `stock-${product.id}`,
     icon: '!',
-    title: `Low stock alert: ${product.name}`,
-    description: `Current stock is ${product.stock}; minimum is ${product.minStock}.`,
-    time: 'Now',
+    title: t('dashboardPage.activityLowStockTitle', { name: product.name }),
+    description: t('dashboardPage.activityLowStockText', { stock: product.stock, min: product.minStock }),
+    time: t('dashboardPage.now'),
     colorClass: 'activity-orange',
   }))
 
@@ -795,11 +795,7 @@ async function loadDashboard() {
     dashboardExpenses.value = normalizeArray(data.recent_expenses).map(normalizeExpense)
     dashboardActivities.value = normalizeArray(data.recent_activities).map(normalizeActivity)
   } catch (error: any) {
-    errorMessage.value =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      error?.message ||
-      'Failed to load dashboard data.'
+    errorMessage.value = getApiErrorMessage(error, t('dashboardPage.failedLoad'))
   } finally {
     loading.value = false
   }
@@ -823,7 +819,7 @@ function lastDays(count: number) {
     date.setDate(date.getDate() - (count - index - 1))
     return {
       key: dateKey(date),
-      label: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date),
+      label: new Intl.DateTimeFormat(dateLocale.value, { weekday: 'short' }).format(date),
     }
   })
 }
@@ -838,7 +834,7 @@ function formatDate(value: string): string {
   if (!value) return '-'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(dateLocale.value, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -851,25 +847,25 @@ function relativeTime(value: string): string {
 
   const diffMs = Date.now() - timestamp
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60000))
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  if (diffMinutes < 1) return t('dashboardPage.justNow')
+  if (diffMinutes < 60) return t('dashboardPage.minutesAgo', { count: diffMinutes })
 
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  if (diffHours < 24) return t('dashboardPage.hoursAgo', { count: diffHours }, diffHours)
 
   const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return t('dashboardPage.daysAgo', { count: diffDays }, diffDays)
 }
 
 function trendLabel(current: number, previous: number, mode: '%' | 'count', inverted = false): string {
-  if (previous === 0 && current === 0) return 'No change'
+  if (previous === 0 && current === 0) return t('dashboardPage.noChange')
   if (mode === 'count') {
     const diff = current - previous
-    if (diff === 0) return 'No change'
+    if (diff === 0) return t('dashboardPage.noChange')
     return `${diff > 0 ? '+' : ''}${diff}`
   }
 
-  if (previous === 0) return current > 0 ? '+100%' : 'No change'
+  if (previous === 0) return current > 0 ? '+100%' : t('dashboardPage.noChange')
   const diff = ((current - previous) / Math.abs(previous)) * 100
   const adjusted = inverted ? -diff : diff
   return `${adjusted > 0 ? '+' : ''}${adjusted.toFixed(1)}%`
@@ -883,15 +879,15 @@ function trendClass(current: number, previous: number, inverted = false): 'up' |
 }
 
 function normalizeCustomer(value: any): string {
-  if (!value) return 'Walk In'
+  if (!value) return t('ordersPage.walkIn')
   if (typeof value === 'object') {
-    return String(value.name || value.full_name || value.username || `Customer #${value.id ?? 'NA'}`)
+    return String(value.name || value.full_name || value.username || t('ordersPage.customerLabel', { id: value.id ?? '-' }))
   }
-  return `Customer #${value}`
+  return t('ordersPage.customerLabel', { id: value })
 }
 
 function normalizeUser(value: any): string {
-  if (!value) return 'System'
+  if (!value) return t('dashboardPage.system')
   if (typeof value === 'object') {
     return String(value.full_name || value.username || value.name || `User #${value.id ?? 'NA'}`)
   }
@@ -913,8 +909,6 @@ function getInitial(value: string) {
 }
 
 onMounted(() => {
-  moduleAccessMessage.value = sessionStorage.getItem('module_access_message') || ''
-  sessionStorage.removeItem('module_access_message')
   loadDashboard()
 })
 </script>
