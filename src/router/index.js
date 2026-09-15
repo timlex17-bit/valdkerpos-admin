@@ -363,7 +363,7 @@ const router = createRouter({
   },
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
   const token = localStorage.getItem('token')
 
   if (to.meta.requiresAuth && !token) {
@@ -401,8 +401,13 @@ router.beforeEach(async (to) => {
 
       if (!canAccessMenu(user, menuKeys)) {
         // An i18n key, not a sentence: AdminLayout shows it in the user's
-        // language on whatever page they land on.
-        sessionStorage.setItem('module_access_message', 'access.moduleUnavailable')
+        // language on whatever page they land on. Not when the app itself
+        // sent them to the dashboard, after login or on a fresh load: nobody
+        // asked for it, so saying it is refused only confuses.
+        const sentByApp = (!from.name || from.name === 'login') && routeName === 'dashboard'
+        if (!sentByApp) {
+          sessionStorage.setItem('module_access_message', 'access.moduleUnavailable')
+        }
         return firstAccessibleRoute(user, to.path)
       }
     }
