@@ -5,6 +5,17 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getApiErrorMessage } from '@/utils/apiError'
 import reportService, { type ReportParams } from '@/services/reportService'
+import {
+  PERIOD_PRESETS,
+  comparisonPeriod,
+  matchPreset,
+  resolvePeriod,
+  toIsoDate,
+  type Change,
+  type DateRange,
+  type PeriodPreset,
+} from '@/utils/reportPeriods'
+import { collectFigures, type Figure, type FigureKey } from '@/utils/reportFigures'
 
 type BusinessType = 'retail' | 'restaurant' | 'workshop'
 type ReportKey =
@@ -88,10 +99,11 @@ const tabs: Array<{ key: ReportKey; label: string }> = [
   { key: 'shifts', label: 'Shifts' },
 ]
 
-const today = new Date().toISOString().slice(0, 10)
-const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  .toISOString()
-  .slice(0, 10)
+// Local calendar dates, not UTC. toISOString() turned "1 September" into
+// "31 August" for a shop in Dili (UTC+9), so the default range quietly began a
+// day early and "this month" never matched the month it claimed to show.
+const today = toIsoDate(new Date())
+const startOfMonth = toIsoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 
 const loading = ref(false)
 const exportLoading = ref<'pdf' | 'xlsx' | ''>('')
@@ -100,6 +112,9 @@ const accessDenied = ref(false)
 const activeReport = ref<ReportKey>('dashboard')
 const rawPayload = ref<ReportPayload>({})
 const responseBusinessType = ref('')
+/** The same report over the comparison period, for the overview only. */
+const previousSummary = ref<Record<string, unknown> | null>(null)
+const customDatesOpen = ref(false)
 
 const filters = ref<Record<string, string | number>>({
   start_date: startOfMonth,
@@ -243,6 +258,163 @@ const activeParams = computed<ReportParams>(() => {
   return params
 })
 
+/**
+ * The overview: the four figures an owner actually asks about, each measured
+ * against the same stretch of the previous period, and the same numbers
+ * written out as a sentence above them. Everything is read from the backend
+ * summary and nothing is recomputed here, so the sentence cannot disagree with
+ * the cards or with the tables below it.
+ */
+const PRIMARY_FIGURES: FigureKey[] = ['revenue', 'grossProfit', 'expenses', 'netIncome']
+const SECONDARY_FIGURES: FigureKey[] = [
+  'orders',
+  'averageOrder',
+  'productSold',
+  'margin',
+  'lowStock',
+  'outOfStock',
+]
+
+const FIGURE_TYPES: Record<FigureKey, 'currency' | 'number' | 'percent'> = {
+  revenue: 'currency',
+  grossProfit: 'currency',
+  expenses: 'currency',
+  netIncome: 'currency',
+  orders: 'number',
+  averageOrder: 'currency',
+  productSold: 'number',
+  discount: 'currency',
+  tax: 'currency',
+  cost: 'currency',
+  margin: 'percent',
+  lowStock: 'number',
+  outOfStock: 'number',
+}
+
+const isOverview = computed(() => activeReport.value === 'dashboard')
+
+const currentRange = computed<DateRange>(() => ({
+  start: String(filters.value.start_date),
+  end: String(filters.value.end_date),
+}))
+
+const activePreset = computed<PeriodPreset>(() => matchPreset(currentRange.value))
+const comparisonRange = computed(() => comparisonPeriod(currentRange.value))
+
+const primaryFigures = computed(() =>
+  collectFigures(summary.value, previousSummary.value, PRIMARY_FIGURES)
+)
+const secondaryFigures = computed(() =>
+  collectFigures(summary.value, previousSummary.value, SECONDARY_FIGURES)
+)
+
+function figureOf(key: FigureKey) {
+  return [...primaryFigures.value, ...secondaryFigures.value].find((figure) => figure.key === key)
+}
+
+function figureValue(figure: Figure) {
+  // Percentages go through formatPercent so a margin reads the same in the
+  // card as in the sentence above it.
+  return FIGURE_TYPES[figure.key] === 'percent'
+    ? formatPercent(figure.value)
+    : formatTypedValue(figure.value, FIGURE_TYPES[figure.key])
+}
+
+function figureLabel(key: FigureKey) {
+  return t(`reportCenter.figures.${key}`)
+}
+
+function formatPercent(value: number) {
+  return `${new Intl.NumberFormat(numberLocale.value, { maximumFractionDigits: 1 }).format(Math.abs(value))}%`
+}
+
+/** "up 12.5%", or only "up" when a percentage would be dishonest. */
+function changeText(change: Change | null) {
+  if (!change) return ''
+  if (change.direction === 'flat') return t('reportCenter.change.flat')
+  // "up from nothing" says what happened; "up 100%" from zero would not.
+  if (change.fromNothing) return t(`reportCenter.change.${change.direction}FromZero`)
+  if (change.percent === null) return t(`reportCenter.change.${change.direction}Plain`)
+  return t(`reportCenter.change.${change.direction}`, { percent: formatPercent(change.percent) })
+}
+
+const periodLabel = computed(() =>
+  activePreset.value === 'custom'
+    ? `${formatDate(currentRange.value.start)} - ${formatDate(currentRange.value.end)}`
+    : t(`reportCenter.period.${activePreset.value}`)
+)
+
+const comparisonLabel = computed(
+  () => `${formatDate(comparisonRange.value.start)} - ${formatDate(comparisonRange.value.end)}`
+)
+
+/**
+ * The overview in words. Each sentence is built only from figures the backend
+ * sent, so a shop that records no expenses gets a shorter summary rather than
+ * a confident sentence about zero.
+ */
+const headlineSentences = computed(() => {
+  if (!isOverview.value || !hasSummaryData.value) return []
+
+  const sentences: string[] = []
+  const revenue = figureOf('revenue')
+  const orders = figureOf('orders')
+  const grossProfit = figureOf('grossProfit')
+  const margin = figureOf('margin')
+  const expenses = figureOf('expenses')
+  const net = figureOf('netIncome')
+
+  if (revenue) {
+    const amount = formatCurrency(revenue.value)
+    const base = orders
+      ? t('reportCenter.headline.revenueWithOrders', {
+          period: periodLabel.value,
+          amount,
+          orders: t('reportCenter.headline.orderCount', orders.value),
+        })
+      : t('reportCenter.headline.revenue', { period: periodLabel.value, amount })
+
+    const comparison = changeText(revenue.change)
+    sentences.push(
+      comparison
+        ? t('reportCenter.headline.comparedTo', {
+            base,
+            change: comparison,
+            period: comparisonLabel.value,
+          })
+        : t('reportCenter.headline.plain', { base })
+    )
+  }
+
+  if (grossProfit) {
+    sentences.push(
+      margin
+        ? t('reportCenter.headline.profitWithMargin', {
+            amount: formatCurrency(grossProfit.value),
+            margin: formatPercent(margin.value),
+          })
+        : t('reportCenter.headline.profit', { amount: formatCurrency(grossProfit.value) })
+    )
+  }
+
+  if (expenses) {
+    const spent = formatCurrency(expenses.value)
+    if (!net) {
+      sentences.push(t('reportCenter.headline.expensesOnly', { amount: spent }))
+    } else {
+      const key = net.value < 0 ? 'expensesNetLoss' : 'expensesNetProfit'
+      sentences.push(
+        t(`reportCenter.headline.${key}`, {
+          expenses: spent,
+          net: formatCurrency(Math.abs(net.value)),
+        })
+      )
+    }
+  }
+
+  return sentences
+})
+
 const summaryCards = computed(() => {
   const universal = [
     card('Total Revenue', ['total_revenue', 'revenue', 'total_sales', 'sales'], 'currency'),
@@ -279,7 +451,7 @@ const summaryCards = computed(() => {
     ],
   }
 
-  return [...universal, ...specific[currentBusinessType.value]]
+  return [...universal, ...specific[currentBusinessType.value]].filter((item) => item.present)
 })
 
 const tableColumns = computed<Column[]>(() => {
@@ -427,11 +599,16 @@ function normalizeBusinessType(value: unknown): BusinessType {
 }
 
 function card(label: string, keys: string[], type: 'currency' | 'number' | 'percent') {
+  const raw = readFirst(summary.value, keys)
+
   return {
     label,
     keys,
     type,
-    value: formatTypedValue(readFirst(summary.value, keys), type),
+    // A card for a number the backend never sent says nothing; `present`
+    // keeps it off the page instead of showing a dash or a made-up zero.
+    present: raw !== null,
+    value: formatTypedValue(raw, type),
   }
 }
 
@@ -553,8 +730,11 @@ async function fetchReport() {
     if (payload.shop?.business_type) {
       responseBusinessType.value = payload.shop.business_type
     }
+
+    await fetchComparison()
   } catch (error: unknown) {
     rawPayload.value = {}
+    previousSummary.value = null
 
     accessDenied.value = axios.isAxiosError(error) && error.response?.status === 403
     if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -567,6 +747,48 @@ async function fetchReport() {
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * The overview also asks for the comparison period. It is a second read of the
+ * same endpoint, so a failure here costs only the little "up or down" line: the
+ * report itself stays on screen with no comparison rather than an error.
+ */
+async function fetchComparison() {
+  if (!isOverview.value) {
+    previousSummary.value = null
+    return
+  }
+
+  try {
+    const range = comparisonRange.value
+    const response = await serviceForReport(activeReport.value)({
+      ...activeParams.value,
+      start_date: range.start,
+      end_date: range.end,
+      page: 1,
+      page_size: 1,
+    })
+    previousSummary.value = ((response.data || {}) as ReportPayload).summary || null
+  } catch {
+    previousSummary.value = null
+  }
+}
+
+function setPeriodPreset(preset: PeriodPreset) {
+  if (preset === 'custom') {
+    customDatesOpen.value = true
+    return
+  }
+
+  const range = resolvePeriod(preset)
+  if (!range) return
+
+  customDatesOpen.value = false
+  filters.value.start_date = range.start
+  filters.value.end_date = range.end
+  filters.value.page = 1
+  void fetchReport()
 }
 
 function setActiveReport(report: ReportKey) {
@@ -722,6 +944,53 @@ onMounted(() => {
       </div>
     </section>
 
+    <section class="period-bar">
+      <span class="period-caption">{{ t('reportCenter.period.caption') }}</span>
+      <div class="period-buttons">
+        <button
+          v-for="preset in PERIOD_PRESETS"
+          :key="preset"
+          class="period-button"
+          :class="{ active: activePreset === preset || (preset === 'custom' && customDatesOpen) }"
+          type="button"
+          :disabled="loading"
+          @click="setPeriodPreset(preset)"
+        >
+          {{ t(`reportCenter.period.${preset}`) }}
+        </button>
+      </div>
+      <div v-if="activePreset === 'custom' || customDatesOpen" class="period-dates">
+        <input v-model="filters.start_date" type="date" :aria-label="t('reportCenter.startDate')" />
+        <span>-</span>
+        <input v-model="filters.end_date" type="date" :aria-label="t('reportCenter.endDate')" />
+        <button class="btn btn-primary btn-sm" type="button" :disabled="loading" @click="applyFilters">
+          {{ t('reportCenter.applyFilter') }}
+        </button>
+      </div>
+    </section>
+
+    <section v-if="isOverview && headlineSentences.length" class="headline-card">
+      <p v-for="sentence in headlineSentences" :key="sentence">{{ sentence }}</p>
+    </section>
+
+    <section v-if="isOverview && primaryFigures.length" class="figure-grid">
+      <article v-for="figure in primaryFigures" :key="figure.key" class="figure-card">
+        <span class="figure-label">{{ figureLabel(figure.key) }}</span>
+        <strong class="figure-value" :class="{ negative: figure.value < 0 }">{{ figureValue(figure) }}</strong>
+        <span v-if="figure.change" class="figure-change" :class="figure.change.direction">
+          {{ changeText(figure.change) }}
+          <span class="figure-compare">{{ t('reportCenter.change.versus', { period: comparisonLabel }) }}</span>
+        </span>
+        <span v-else class="figure-change none">{{ t('reportCenter.change.noComparison') }}</span>
+      </article>
+    </section>
+
+    <section v-if="isOverview && secondaryFigures.length" class="figure-strip">
+      <span v-for="figure in secondaryFigures" :key="figure.key">
+        {{ figureLabel(figure.key) }}: <strong>{{ figureValue(figure) }}</strong>
+      </span>
+    </section>
+
     <section class="tabs-wrap">
       <button
         v-for="tab in tabs"
@@ -860,7 +1129,7 @@ onMounted(() => {
       {{ errorMessage }}
     </section>
 
-    <section class="summary-grid">
+    <section v-if="!isOverview" class="summary-grid">
       <article v-for="item in summaryCards" :key="item.label" class="summary-card">
         <span>{{ label(item.label) }}</span>
         <strong>{{ item.value }}</strong>
@@ -1137,6 +1406,161 @@ onMounted(() => {
   color: #9a3412;
 }
 
+.period-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.period-caption {
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.period-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.period-button {
+  padding: 8px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.period-button:hover:not(:disabled) {
+  border-color: var(--brand-200);
+  color: var(--brand-700);
+}
+
+.period-button.active {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.period-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.period-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.period-dates input {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.headline-card {
+  padding: 18px 20px;
+  background: var(--brand-25, #faf6ff);
+  border: 1px solid var(--brand-100, #ebd9fd);
+  border-radius: 10px;
+}
+
+.headline-card p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #1f2937;
+}
+
+.headline-card p + p {
+  margin-top: 6px;
+}
+
+.figure-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.figure-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid var(--brand-600);
+  border-radius: 10px;
+}
+
+.figure-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.figure-value {
+  font-size: 22px;
+  color: #111827;
+}
+
+.figure-value.negative {
+  color: #b91c1c;
+}
+
+.figure-change {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.figure-change.up {
+  color: #15803d;
+}
+
+.figure-change.down {
+  color: #b91c1c;
+}
+
+.figure-compare {
+  display: block;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.figure-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 12px 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.figure-strip strong {
+  color: #111827;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1330,6 +1754,7 @@ onMounted(() => {
 
 @media (max-width: 1180px) {
   .filter-grid,
+  .figure-grid,
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1348,6 +1773,7 @@ onMounted(() => {
   }
 
   .filter-grid,
+  .figure-grid,
   .summary-grid,
   .chart-grid {
     grid-template-columns: 1fr;
