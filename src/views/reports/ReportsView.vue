@@ -16,6 +16,11 @@ import {
   type PeriodPreset,
 } from '@/utils/reportPeriods'
 import { collectFigures, type Figure, type FigureKey } from '@/utils/reportFigures'
+import {
+  loadFilterOptions,
+  type FilterOption,
+  type FilterOptionKind,
+} from '@/services/filterOptions'
 
 type BusinessType = 'retail' | 'restaurant' | 'workshop'
 type ReportKey =
@@ -115,6 +120,15 @@ const responseBusinessType = ref('')
 /** The same report over the comparison period, for the overview only. */
 const previousSummary = ref<Record<string, unknown> | null>(null)
 const customDatesOpen = ref(false)
+const advancedOpen = ref(false)
+/** Names for the pickers; a kind missing here falls back to an ID box. */
+const filterOptions = ref<Partial<Record<FilterOptionKind, FilterOption[]>>>({})
+
+// The values the backend accepts, taken from pos/api_reports.py rather than
+// guessed: `status` is only paid/unpaid there, and the old free-text box
+// suggesting "PAID, PENDING..." silently matched nothing for PENDING.
+const ITEM_TYPES = ['product', 'menu', 'service', 'sparepart'] as const
+const ORDER_TYPES = ['GENERAL', 'DINE_IN', 'TAKE_OUT', 'DELIVERY'] as const
 
 const filters = ref<Record<string, string | number>>({
   start_date: startOfMonth,
@@ -128,9 +142,6 @@ const filters = ref<Record<string, string | number>>({
   page_size: 25,
   shop_id: '',
   item_type: '',
-  vehicle_plate: '',
-  mechanic_id: '',
-  service_status: '',
   order_type: '',
   table_number: '',
   waiter_id: '',
@@ -226,12 +237,10 @@ const activeParams = computed<ReportParams>(() => {
   }
 
   if (currentBusinessType.value === 'workshop') {
-    Object.assign(params, {
-      item_type: String(filters.value.item_type || '').toUpperCase(),
-      vehicle_plate: filters.value.vehicle_plate,
-      mechanic_id: filters.value.mechanic_id,
-      service_status: filters.value.service_status,
-    })
+    // Only item_type: pos/api_reports.py accepts vehicle_plate, mechanic_id
+    // and service_status but never filters on them, so offering those boxes
+    // promised a narrowing that never happened.
+    Object.assign(params, { item_type: filters.value.item_type })
   }
 
   if (currentBusinessType.value === 'restaurant') {
@@ -775,6 +784,78 @@ async function fetchComparison() {
   }
 }
 
+/** Which pickers this shop's advanced filters need. */
+const filterKindsForShop = computed<FilterOptionKind[]>(() => {
+  const shared: FilterOptionKind[] = ['cashier', 'customer']
+
+  if (currentBusinessType.value === 'restaurant') return [...shared, 'waiter']
+  if (currentBusinessType.value === 'workshop') return shared
+  return [...shared, 'product', 'category', 'supplier', 'warehouse']
+})
+
+function optionsFor(kind: FilterOptionKind) {
+  return filterOptions.value[kind] || null
+}
+
+/** False only while the shop has nothing of this kind to filter by. */
+function showsFilter(kind: FilterOptionKind) {
+  const options = filterOptions.value[kind]
+  return options === undefined || options.length > 0
+}
+
+/**
+ * Names are fetched when the advanced filters are opened, not on page load:
+ * most visits never open them, and a report page should not pull the whole
+ * product list to show four cards.
+ */
+async function loadFilterNames() {
+  const kinds = filterKindsForShop.value.filter((kind) => !(kind in filterOptions.value))
+
+  await Promise.all(
+    kinds.map(async (kind) => {
+      const options = await loadFilterOptions(kind)
+      // null means the list is not readable for this user: leave the kind
+      // unset so the template keeps the plain ID box for it. An empty list
+      // means the shop has none of these yet, and the filter is dropped.
+      if (options) filterOptions.value = { ...filterOptions.value, [kind]: options }
+    })
+  )
+}
+
+function toggleAdvanced() {
+  advancedOpen.value = !advancedOpen.value
+  if (advancedOpen.value) void loadFilterNames()
+}
+
+/** Filters in force beyond the period and the search box. */
+const ADVANCED_FILTER_KEYS = [
+  'payment_method',
+  'cashier_id',
+  'customer_id',
+  'status',
+  'shop_id',
+  'item_type',
+  'order_type',
+  'table_number',
+  'waiter_id',
+  'menu_category',
+  'product_id',
+  'category_id',
+  'supplier_id',
+  'warehouse_id',
+  'sku',
+  'barcode',
+  'stock_status',
+]
+
+const activeAdvancedCount = computed(
+  () => ADVANCED_FILTER_KEYS.filter((key) => String(filters.value[key] ?? '').trim() !== '').length
+)
+
+const hasActiveFilters = computed(
+  () => activeAdvancedCount.value > 0 || String(filters.value.search || '').trim() !== ''
+)
+
 function setPeriodPreset(preset: PeriodPreset) {
   if (preset === 'custom') {
     customDatesOpen.value = true
@@ -816,9 +897,6 @@ function resetFilters() {
     page_size: 25,
     shop_id: '',
     item_type: '',
-    vehicle_plate: '',
-    mechanic_id: '',
-    service_status: '',
     order_type: '',
     table_number: '',
     waiter_id: '',
@@ -1005,35 +1083,75 @@ onMounted(() => {
     </section>
 
     <section class="filter-panel">
-      <div class="filter-grid">
-        <label class="field">
-          <span>{{ t('reportCenter.startDate') }}</span>
-          <input v-model="filters.start_date" type="date" />
-        </label>
-        <label class="field">
-          <span>{{ t('reportCenter.endDate') }}</span>
-          <input v-model="filters.end_date" type="date" />
-        </label>
+      <div class="filter-simple">
         <label class="field wide">
           <span>{{ t('common.search') }}</span>
-          <input v-model="filters.search" type="search" :placeholder="t('reportCenter.searchPlaceholder')" />
+          <input
+            v-model="filters.search"
+            type="search"
+            :placeholder="t('reportCenter.searchPlaceholder')"
+            @keyup.enter="applyFilters"
+          />
         </label>
+        <button class="btn btn-primary" type="button" @click="applyFilters">
+          {{ t('reportCenter.applyFilter') }}
+        </button>
+        <button class="btn btn-light" type="button" @click="toggleAdvanced">
+          {{ advancedOpen ? t('reportCenter.hideAdvanced') : t('reportCenter.showAdvanced') }}
+          <span v-if="activeAdvancedCount" class="filter-count">{{ activeAdvancedCount }}</span>
+        </button>
+        <button v-if="hasActiveFilters" class="btn btn-light" type="button" @click="resetFilters">
+          {{ t('reportCenter.resetFilter') }}
+        </button>
+      </div>
+
+      <div v-if="advancedOpen" class="filter-grid">
         <label class="field">
           <span>{{ t('reportCenter.labels.paymentMethod') }}</span>
           <input v-model="filters.payment_method" type="text" :placeholder="t('reportCenter.paymentPlaceholder')" />
         </label>
-        <label class="field">
+
+        <label v-if="showsFilter('cashier')" class="field">
           <span>{{ t('reportCenter.labels.cashier') }}</span>
-          <input v-model="filters.cashier_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.cashier') })" />
+          <select v-if="optionsFor('cashier')" v-model="filters.cashier_id">
+            <option value="">{{ t('reportCenter.all') }}</option>
+            <option v-for="option in optionsFor('cashier')" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <input
+            v-else
+            v-model="filters.cashier_id"
+            type="text"
+            :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.cashier') })"
+          />
         </label>
-        <label class="field">
+
+        <label v-if="showsFilter('customer')" class="field">
           <span>{{ t('reportCenter.labels.customer') }}</span>
-          <input v-model="filters.customer_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.customer') })" />
+          <select v-if="optionsFor('customer')" v-model="filters.customer_id">
+            <option value="">{{ t('reportCenter.all') }}</option>
+            <option v-for="option in optionsFor('customer')" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <input
+            v-else
+            v-model="filters.customer_id"
+            type="text"
+            :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.customer') })"
+          />
         </label>
+
         <label class="field">
           <span>{{ t('reportCenter.labels.status') }}</span>
-          <input v-model="filters.status" type="text" placeholder="PAID, PENDING..." />
+          <select v-model="filters.status">
+            <option value="">{{ t('reportCenter.all') }}</option>
+            <option value="paid">{{ t('reportCenter.statuses.paid') }}</option>
+            <option value="unpaid">{{ t('reportCenter.statuses.unpaid') }}</option>
+          </select>
         </label>
+
         <label v-if="isPlatformAdmin" class="field">
           <span>{{ t('reportCenter.shopIdLabel') }}</span>
           <input v-model="filters.shop_id" type="text" :placeholder="t('reportCenter.optional')" />
@@ -1044,22 +1162,10 @@ onMounted(() => {
             <span>{{ t('reportCenter.labels.itemType') }}</span>
             <select v-model="filters.item_type">
               <option value="">{{ t('reportCenter.all') }}</option>
-              <option value="MENU">MENU</option>
-              <option value="SERVICE">SERVICE</option>
-              <option value="SPAREPART">SPAREPART</option>
+              <option v-for="type in ITEM_TYPES" :key="type" :value="type">
+                {{ t(`reportCenter.itemTypes.${type}`) }}
+              </option>
             </select>
-          </label>
-          <label class="field">
-            <span>{{ t('reportCenter.labels.vehiclePlate') }}</span>
-            <input v-model="filters.vehicle_plate" type="text" />
-          </label>
-          <label class="field">
-            <span>{{ t('reportCenter.labels.mechanic') }}</span>
-            <input v-model="filters.mechanic_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.mechanic') })" />
-          </label>
-          <label class="field">
-            <span>{{ t('reportCenter.serviceStatus') }}</span>
-            <input v-model="filters.service_status" type="text" />
           </label>
         </template>
 
@@ -1068,18 +1174,29 @@ onMounted(() => {
             <span>{{ t('reportCenter.labels.orderType') }}</span>
             <select v-model="filters.order_type">
               <option value="">{{ t('reportCenter.all') }}</option>
-              <option value="DINE_IN">DINE_IN</option>
-              <option value="TAKEAWAY">TAKEAWAY</option>
-              <option value="DELIVERY">DELIVERY</option>
+              <option v-for="type in ORDER_TYPES" :key="type" :value="type">
+                {{ t(`reportCenter.orderTypes.${type}`) }}
+              </option>
             </select>
           </label>
           <label class="field">
             <span>{{ t('reportCenter.tableNumber') }}</span>
             <input v-model="filters.table_number" type="text" />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('waiter')" class="field">
             <span>{{ t('reportCenter.labels.waiter') }}</span>
-            <input v-model="filters.waiter_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.waiter') })" />
+            <select v-if="optionsFor('waiter')" v-model="filters.waiter_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('waiter')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.waiter_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.waiter') })"
+            />
           </label>
           <label class="field">
             <span>{{ t('reportCenter.menuCategory') }}</span>
@@ -1088,21 +1205,65 @@ onMounted(() => {
         </template>
 
         <template v-else>
-          <label class="field">
+          <label v-if="showsFilter('product')" class="field">
             <span>{{ t('reportCenter.labels.product') }}</span>
-            <input v-model="filters.product_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.product') })" />
+            <select v-if="optionsFor('product')" v-model="filters.product_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('product')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.product_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.product') })"
+            />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('category')" class="field">
             <span>{{ t('reportCenter.labels.category') }}</span>
-            <input v-model="filters.category_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.category') })" />
+            <select v-if="optionsFor('category')" v-model="filters.category_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('category')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.category_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.category') })"
+            />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('supplier')" class="field">
             <span>{{ t('reportCenter.labels.supplier') }}</span>
-            <input v-model="filters.supplier_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.supplier') })" />
+            <select v-if="optionsFor('supplier')" v-model="filters.supplier_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('supplier')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.supplier_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.supplier') })"
+            />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('warehouse')" class="field">
             <span>{{ t('reportCenter.labels.warehouse') }}</span>
-            <input v-model="filters.warehouse_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.warehouse') })" />
+            <select v-if="optionsFor('warehouse')" v-model="filters.warehouse_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('warehouse')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.warehouse_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.warehouse') })"
+            />
           </label>
           <label class="field">
             <span>{{ t('reportCenter.labels.sku') }}</span>
@@ -1114,12 +1275,16 @@ onMounted(() => {
           </label>
           <label class="field">
             <span>{{ t('reportCenter.labels.stockStatus') }}</span>
-            <input v-model="filters.stock_status" type="text" />
+            <select v-model="filters.stock_status">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option value="low_stock">{{ t('reportCenter.stockStatuses.lowStock') }}</option>
+              <option value="out_of_stock">{{ t('reportCenter.stockStatuses.outOfStock') }}</option>
+            </select>
           </label>
         </template>
       </div>
 
-      <div class="filter-actions">
+      <div v-if="advancedOpen" class="filter-actions">
         <button class="btn btn-primary" type="button" @click="applyFilters">{{ t('reportCenter.applyFilter') }}</button>
         <button class="btn btn-light" type="button" @click="resetFilters">{{ t('reportCenter.resetFilter') }}</button>
       </div>

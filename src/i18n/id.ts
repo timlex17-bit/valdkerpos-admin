@@ -273,6 +273,28 @@ const id = {
   },
 
   reportCenter: {
+    showAdvanced: 'Filter lainnya',
+    hideAdvanced: 'Sembunyikan filter',
+    statuses: {
+      paid: 'Lunas',
+      unpaid: 'Belum lunas',
+    },
+    stockStatuses: {
+      lowStock: 'Stok menipis',
+      outOfStock: 'Stok habis',
+    },
+    itemTypes: {
+      product: 'Produk',
+      menu: 'Menu',
+      service: 'Jasa',
+      sparepart: 'Suku cadang',
+    },
+    orderTypes: {
+      GENERAL: 'Umum',
+      DINE_IN: 'Makan di tempat',
+      TAKE_OUT: 'Bawa pulang',
+      DELIVERY: 'Antar',
+    },
     period: {
       caption: 'Periode',
       today: 'Hari ini',

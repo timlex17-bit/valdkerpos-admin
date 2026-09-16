@@ -273,6 +273,28 @@ const tet = {
   },
 
   reportCenter: {
+    showAdvanced: 'Filtru seluk',
+    hideAdvanced: 'Subar filtru',
+    statuses: {
+      paid: 'Selu ona',
+      unpaid: 'Seidauk selu',
+    },
+    stockStatuses: {
+      lowStock: 'Stok menus',
+      outOfStock: 'Stok hotu ona',
+    },
+    itemTypes: {
+      product: 'Produtu',
+      menu: 'Menu',
+      service: 'Servisu',
+      sparepart: 'Peza sobresalente',
+    },
+    orderTypes: {
+      GENERAL: 'Jerál',
+      DINE_IN: 'Han iha ne’e',
+      TAKE_OUT: 'Lori ba uma',
+      DELIVERY: 'Entrega',
+    },
     period: {
       caption: 'Períodu',
       today: 'Ohin loron',

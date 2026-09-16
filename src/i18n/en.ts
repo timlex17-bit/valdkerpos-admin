@@ -273,6 +273,28 @@ const en = {
   },
 
   reportCenter: {
+    showAdvanced: 'More filters',
+    hideAdvanced: 'Hide filters',
+    statuses: {
+      paid: 'Paid',
+      unpaid: 'Unpaid',
+    },
+    stockStatuses: {
+      lowStock: 'Low stock',
+      outOfStock: 'Out of stock',
+    },
+    itemTypes: {
+      product: 'Product',
+      menu: 'Menu',
+      service: 'Service',
+      sparepart: 'Spare part',
+    },
+    orderTypes: {
+      GENERAL: 'General',
+      DINE_IN: 'Dine in',
+      TAKE_OUT: 'Takeaway',
+      DELIVERY: 'Delivery',
+    },
     period: {
       caption: 'Period',
       today: 'Today',
