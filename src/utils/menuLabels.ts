@@ -7,13 +7,14 @@
 const camel = (key: string) => key.replace(/[-_]([a-z])/g, (_, char: string) => char.toUpperCase())
 
 // Module keys whose label lives under another name. "reports" is both a
-// sidebar group and the Dashboard Summary module; without the alias the
-// module read "REPORTS", the group heading.
+// sidebar group and the report page itself; without the alias the entry read
+// "REPORTS", the group heading. It is called Overview now that the page opens
+// on the summary rather than on a table.
 const MODULE_LABEL_ALIASES: Record<string, string> = {
   staff: 'users',
   stock_transfers: 'transferStocks',
   backup_center: 'backupRestore',
-  reports: 'dashboardSummary',
+  reports: 'reportsOverview',
 }
 
 export function moduleLabelKey(moduleKey: string): string {

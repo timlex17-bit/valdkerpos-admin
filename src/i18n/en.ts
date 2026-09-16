@@ -5,6 +5,7 @@ const en = {
   logout: 'Logout',
   shop: 'BRANCH',
   menu: {
+    reportsOverview: 'Overview',
     main: 'MAIN',
     sales: 'SALES',
     inventory: 'INVENTORY',
@@ -273,6 +274,7 @@ const en = {
   },
 
   reportCenter: {
+    transactionsTitle: 'Transactions in this period',
     showAdvanced: 'More filters',
     hideAdvanced: 'Hide filters',
     statuses: {

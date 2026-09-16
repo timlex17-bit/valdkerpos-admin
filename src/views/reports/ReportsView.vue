@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
+import { canShowModule } from '@/utils/moduleVisibility'
 import { useI18n } from 'vue-i18n'
 import { getApiErrorMessage } from '@/utils/apiError'
 import reportService, { type ReportParams } from '@/services/reportService'
@@ -194,7 +195,7 @@ const currentBusinessTypeLabel = computed(() => currentBusinessType.value.toUppe
 
 const reportTitle = computed(() => {
   const tab = tabs.find((item) => item.key === activeReport.value)
-  return tab ? label(tab.label) : t('menu.reports')
+  return tab ? tabLabel(tab) : t('menu.reports')
 })
 
 const summary = computed(() => rawPayload.value.summary || {})
@@ -301,6 +302,43 @@ const FIGURE_TYPES: Record<FigureKey, 'currency' | 'number' | 'percent'> = {
 }
 
 const isOverview = computed(() => activeReport.value === 'dashboard')
+
+/**
+ * Sidebar now lists three entries; everything else is reached from the tabs
+ * here, so the tabs must obey the same permissions the sidebar did. A tab for
+ * a report the backend refuses only leads to "you do not have access".
+ */
+const TAB_MODULE_KEYS: Record<ReportKey, string> = {
+  dashboard: 'reports',
+  sales: 'sales_report',
+  sales_items: 'sales_items_report',
+  payments: 'payment_report',
+  expenses: 'expense_report',
+  stock: 'stock_report',
+  low_stock: 'low_stock_report',
+  shifts: 'shift_report',
+}
+
+const visibleTabs = computed(() =>
+  tabs.filter((tab) => canShowModule(TAB_MODULE_KEYS[tab.key], storedUser.value))
+)
+
+/** The two chart pages, still modules of their own, reached from here. */
+const chartPages = computed(() =>
+  [
+    { key: 'sales_chart', route: '/sales-chart', label: t('menu.salesChart') },
+    { key: 'expense_chart', route: '/expense-chart', label: t('menu.expenseChart') },
+  ].filter((page) => canShowModule(page.key, storedUser.value))
+)
+
+/** The first tab is the page's own overview: it is named like the menu entry
+ *  that leads here, not "Dashboard Summary", which sounded like the Dashboard. */
+function tabLabel(tab: { key: ReportKey; label: string }) {
+  return tab.key === 'dashboard' ? t('menu.reportsOverview') : label(tab.label)
+}
+
+/** Only the sales report has an export endpoint (reports/sales/export/). */
+const canExport = computed(() => activeReport.value === 'sales')
 
 const currentRange = computed<DateRange>(() => ({
   start: String(filters.value.start_date),
@@ -990,7 +1028,11 @@ watch(
 )
 
 onMounted(() => {
-  activeReport.value = routeToReport()
+  const requested = routeToReport()
+  // The route guard already refused a report this user may not open; this
+  // only covers the tab the page defaults to.
+  const allowed = visibleTabs.value.some((tab) => tab.key === requested)
+  activeReport.value = allowed ? requested : (visibleTabs.value[0]?.key ?? requested)
   void fetchReport()
 })
 </script>
@@ -1012,10 +1054,22 @@ onMounted(() => {
         <button class="btn btn-light" type="button" :disabled="loading" @click="fetchReport">
           {{ loading ? t('dashboardPage.refreshing') : t('common.refresh') }}
         </button>
-        <button class="btn btn-light" type="button" :disabled="Boolean(exportLoading)" @click="exportSales('pdf')">
+        <button
+          v-if="canExport"
+          class="btn btn-light"
+          type="button"
+          :disabled="Boolean(exportLoading)"
+          @click="exportSales('pdf')"
+        >
           {{ exportLoading === 'pdf' ? t('reportCenter.exporting') : t('reportCenter.exportPdf') }}
         </button>
-        <button class="btn btn-light" type="button" :disabled="Boolean(exportLoading)" @click="exportSales('xlsx')">
+        <button
+          v-if="canExport"
+          class="btn btn-light"
+          type="button"
+          :disabled="Boolean(exportLoading)"
+          @click="exportSales('xlsx')"
+        >
           {{ exportLoading === 'xlsx' ? t('reportCenter.exporting') : t('reportCenter.exportExcel') }}
         </button>
         <button class="btn btn-primary" type="button" @click="printReport">{{ t('reportCenter.print') }}</button>
@@ -1071,15 +1125,18 @@ onMounted(() => {
 
     <section class="tabs-wrap">
       <button
-        v-for="tab in tabs"
+        v-for="tab in visibleTabs"
         :key="tab.key"
         class="tab-button"
         :class="{ active: activeReport === tab.key }"
         type="button"
         @click="setActiveReport(tab.key)"
       >
-        {{ label(tab.label) }}
+        {{ tabLabel(tab) }}
       </button>
+      <RouterLink v-for="chart in chartPages" :key="chart.route" class="tab-button chart-link" :to="chart.route">
+        {{ chart.label }}
+      </RouterLink>
     </section>
 
     <section class="filter-panel">
@@ -1301,14 +1358,15 @@ onMounted(() => {
       </article>
     </section>
 
-    <section class="charts-section">
+    <!-- Only when there is something to draw: the overview endpoint sends no
+         breakdown, and an empty panel saying so filled a screenful. -->
+    <section v-if="hasBreakdownData" class="charts-section">
       <div class="section-heading">
         <h2>{{ t('reportCenter.charts') }}</h2>
         <p>{{ t('reportCenter.chartsSubtitle') }}</p>
       </div>
 
-      <div v-if="!hasBreakdownData" class="empty-chart">{{ t('reportCenter.noBreakdown') }}</div>
-      <div v-else class="chart-grid">
+      <div class="chart-grid">
         <article v-for="section in chartSections" :key="section.title" class="chart-card">
           <h3>{{ label(section.title) }}</h3>
           <div class="bar-list">
@@ -1331,7 +1389,7 @@ onMounted(() => {
     <section class="table-card">
       <div class="table-head">
         <div>
-          <h2>{{ t('reportCenter.tableTitle', { name: reportTitle }) }}</h2>
+          <h2>{{ isOverview ? t('reportCenter.transactionsTitle') : t('reportCenter.tableTitle', { name: reportTitle }) }}</h2>
           <p v-if="hasSummaryData && rows.length === 0">{{ t('reportCenter.summaryOnly') }}</p>
           <p v-else>{{ t('reportCenter.rowCount', { count: totalRows }) }}</p>
         </div>

@@ -5,6 +5,7 @@ const tet = {
   logout: 'Sai',
   shop: 'BRANCH',
   menu: {
+    reportsOverview: 'Rezumu',
     main: 'PRINSIPAL',
     sales: 'VENDA',
     inventory: 'INVENTARIU',
@@ -273,6 +274,7 @@ const tet = {
   },
 
   reportCenter: {
+    transactionsTitle: 'Transasaun iha períodu ne’e',
     showAdvanced: 'Filtru seluk',
     hideAdvanced: 'Subar filtru',
     statuses: {

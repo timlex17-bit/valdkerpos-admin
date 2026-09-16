@@ -5,6 +5,7 @@ const id = {
   logout: 'Keluar',
   shop: 'BRANCH',
   menu: {
+    reportsOverview: 'Ringkasan',
     main: 'UTAMA',
     sales: 'PENJUALAN',
     inventory: 'INVENTORI',
@@ -273,6 +274,7 @@ const id = {
   },
 
   reportCenter: {
+    transactionsTitle: 'Transaksi pada periode ini',
     showAdvanced: 'Filter lainnya',
     hideAdvanced: 'Sembunyikan filter',
     statuses: {
