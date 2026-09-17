@@ -16,6 +16,12 @@ export type MenuItemConfig = {
   label: string
   route?: string
   children?: MenuItemConfig[]
+  /**
+   * Reachable as a tab on another page of the same group (the report pages),
+   * so the sidebar lists it only for a user who cannot open that page. The
+   * entry is never hidden from someone who has no other way in.
+   */
+  secondary?: boolean
 }
 
 export type ModuleUser = {
@@ -131,8 +137,22 @@ export function isMenuItemAvailable(item: MenuItemConfig, user?: ModuleUser | nu
   return canShowModule(item.key, user)
 }
 
+/**
+ * Secondary entries are dropped once the page they live on is available: the
+ * five extra report pages are tabs of the overview, so listing them again in
+ * the sidebar only made the group long. A user who was granted one of them but
+ * not the overview keeps their entry, because for them it is the only way in.
+ */
+export function withoutRedundantSecondaries<T extends MenuItemConfig>(
+  menuItems: T[],
+  user?: ModuleUser | null
+): T[] {
+  const hasHost = menuItems.some((item) => !item.secondary && canShowModule(item.key, user))
+  return hasHost ? menuItems.filter((item) => !item.secondary) : menuItems
+}
+
 export function getVisibleMenuItems<T extends MenuItemConfig>(menuItems: T[], user?: ModuleUser | null): T[] {
-  return menuItems
+  return withoutRedundantSecondaries(menuItems, user)
     .map((item) => {
       const children = item.children ? getVisibleMenuItems(item.children, user) : undefined
       return {

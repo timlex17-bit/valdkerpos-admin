@@ -1,10 +1,27 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
+import { canShowModule } from '@/utils/moduleVisibility'
 import { useI18n } from 'vue-i18n'
 import { getApiErrorMessage } from '@/utils/apiError'
 import reportService, { type ReportParams } from '@/services/reportService'
+import {
+  PERIOD_PRESETS,
+  comparisonPeriod,
+  matchPreset,
+  resolvePeriod,
+  toIsoDate,
+  type Change,
+  type DateRange,
+  type PeriodPreset,
+} from '@/utils/reportPeriods'
+import { collectFigures, type Figure, type FigureKey } from '@/utils/reportFigures'
+import {
+  loadFilterOptions,
+  type FilterOption,
+  type FilterOptionKind,
+} from '@/services/filterOptions'
 
 type BusinessType = 'retail' | 'restaurant' | 'workshop'
 type ReportKey =
@@ -88,10 +105,11 @@ const tabs: Array<{ key: ReportKey; label: string }> = [
   { key: 'shifts', label: 'Shifts' },
 ]
 
-const today = new Date().toISOString().slice(0, 10)
-const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  .toISOString()
-  .slice(0, 10)
+// Local calendar dates, not UTC. toISOString() turned "1 September" into
+// "31 August" for a shop in Dili (UTC+9), so the default range quietly began a
+// day early and "this month" never matched the month it claimed to show.
+const today = toIsoDate(new Date())
+const startOfMonth = toIsoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 
 const loading = ref(false)
 const exportLoading = ref<'pdf' | 'xlsx' | ''>('')
@@ -100,6 +118,18 @@ const accessDenied = ref(false)
 const activeReport = ref<ReportKey>('dashboard')
 const rawPayload = ref<ReportPayload>({})
 const responseBusinessType = ref('')
+/** The same report over the comparison period, for the overview only. */
+const previousSummary = ref<Record<string, unknown> | null>(null)
+const customDatesOpen = ref(false)
+const advancedOpen = ref(false)
+/** Names for the pickers; a kind missing here falls back to an ID box. */
+const filterOptions = ref<Partial<Record<FilterOptionKind, FilterOption[]>>>({})
+
+// The values the backend accepts, taken from pos/api_reports.py rather than
+// guessed: `status` is only paid/unpaid there, and the old free-text box
+// suggesting "PAID, PENDING..." silently matched nothing for PENDING.
+const ITEM_TYPES = ['product', 'menu', 'service', 'sparepart'] as const
+const ORDER_TYPES = ['GENERAL', 'DINE_IN', 'TAKE_OUT', 'DELIVERY'] as const
 
 const filters = ref<Record<string, string | number>>({
   start_date: startOfMonth,
@@ -113,9 +143,6 @@ const filters = ref<Record<string, string | number>>({
   page_size: 25,
   shop_id: '',
   item_type: '',
-  vehicle_plate: '',
-  mechanic_id: '',
-  service_status: '',
   order_type: '',
   table_number: '',
   waiter_id: '',
@@ -168,7 +195,7 @@ const currentBusinessTypeLabel = computed(() => currentBusinessType.value.toUppe
 
 const reportTitle = computed(() => {
   const tab = tabs.find((item) => item.key === activeReport.value)
-  return tab ? label(tab.label) : t('menu.reports')
+  return tab ? tabLabel(tab) : t('menu.reports')
 })
 
 const summary = computed(() => rawPayload.value.summary || {})
@@ -211,12 +238,10 @@ const activeParams = computed<ReportParams>(() => {
   }
 
   if (currentBusinessType.value === 'workshop') {
-    Object.assign(params, {
-      item_type: String(filters.value.item_type || '').toUpperCase(),
-      vehicle_plate: filters.value.vehicle_plate,
-      mechanic_id: filters.value.mechanic_id,
-      service_status: filters.value.service_status,
-    })
+    // Only item_type: pos/api_reports.py accepts vehicle_plate, mechanic_id
+    // and service_status but never filters on them, so offering those boxes
+    // promised a narrowing that never happened.
+    Object.assign(params, { item_type: filters.value.item_type })
   }
 
   if (currentBusinessType.value === 'restaurant') {
@@ -241,6 +266,200 @@ const activeParams = computed<ReportParams>(() => {
   }
 
   return params
+})
+
+/**
+ * The overview: the four figures an owner actually asks about, each measured
+ * against the same stretch of the previous period, and the same numbers
+ * written out as a sentence above them. Everything is read from the backend
+ * summary and nothing is recomputed here, so the sentence cannot disagree with
+ * the cards or with the tables below it.
+ */
+const PRIMARY_FIGURES: FigureKey[] = ['revenue', 'grossProfit', 'expenses', 'netIncome']
+const SECONDARY_FIGURES: FigureKey[] = [
+  'orders',
+  'averageOrder',
+  'productSold',
+  'margin',
+  'lowStock',
+  'outOfStock',
+]
+
+const FIGURE_TYPES: Record<FigureKey, 'currency' | 'number' | 'percent'> = {
+  revenue: 'currency',
+  grossProfit: 'currency',
+  expenses: 'currency',
+  netIncome: 'currency',
+  orders: 'number',
+  averageOrder: 'currency',
+  productSold: 'number',
+  discount: 'currency',
+  tax: 'currency',
+  cost: 'currency',
+  margin: 'percent',
+  lowStock: 'number',
+  outOfStock: 'number',
+}
+
+const isOverview = computed(() => activeReport.value === 'dashboard')
+
+/**
+ * Sidebar now lists three entries; everything else is reached from the tabs
+ * here, so the tabs must obey the same permissions the sidebar did. A tab for
+ * a report the backend refuses only leads to "you do not have access".
+ */
+const TAB_MODULE_KEYS: Record<ReportKey, string> = {
+  dashboard: 'reports',
+  sales: 'sales_report',
+  sales_items: 'sales_items_report',
+  payments: 'payment_report',
+  expenses: 'expense_report',
+  stock: 'stock_report',
+  low_stock: 'low_stock_report',
+  shifts: 'shift_report',
+}
+
+const visibleTabs = computed(() =>
+  tabs.filter((tab) => canShowModule(TAB_MODULE_KEYS[tab.key], storedUser.value))
+)
+
+/** The two chart pages, still modules of their own, reached from here. */
+const chartPages = computed(() =>
+  [
+    { key: 'sales_chart', route: '/sales-chart', label: t('menu.salesChart') },
+    { key: 'expense_chart', route: '/expense-chart', label: t('menu.expenseChart') },
+  ].filter((page) => canShowModule(page.key, storedUser.value))
+)
+
+/** The first tab is the page's own overview: it is named like the menu entry
+ *  that leads here, not "Dashboard Summary", which sounded like the Dashboard. */
+function tabLabel(tab: { key: ReportKey; label: string }) {
+  return tab.key === 'dashboard' ? t('menu.reportsOverview') : label(tab.label)
+}
+
+/** Only the sales report has an export endpoint (reports/sales/export/). */
+const canExport = computed(() => activeReport.value === 'sales')
+
+const currentRange = computed<DateRange>(() => ({
+  start: String(filters.value.start_date),
+  end: String(filters.value.end_date),
+}))
+
+const activePreset = computed<PeriodPreset>(() => matchPreset(currentRange.value))
+const comparisonRange = computed(() => comparisonPeriod(currentRange.value))
+
+const primaryFigures = computed(() =>
+  collectFigures(summary.value, previousSummary.value, PRIMARY_FIGURES)
+)
+const secondaryFigures = computed(() =>
+  collectFigures(summary.value, previousSummary.value, SECONDARY_FIGURES)
+)
+
+function figureOf(key: FigureKey) {
+  return [...primaryFigures.value, ...secondaryFigures.value].find((figure) => figure.key === key)
+}
+
+function figureValue(figure: Figure) {
+  // Percentages go through formatPercent so a margin reads the same in the
+  // card as in the sentence above it.
+  return FIGURE_TYPES[figure.key] === 'percent'
+    ? formatPercent(figure.value)
+    : formatTypedValue(figure.value, FIGURE_TYPES[figure.key])
+}
+
+function figureLabel(key: FigureKey) {
+  return t(`reportCenter.figures.${key}`)
+}
+
+function formatPercent(value: number) {
+  return `${new Intl.NumberFormat(numberLocale.value, { maximumFractionDigits: 1 }).format(Math.abs(value))}%`
+}
+
+/** "up 12.5%", or only "up" when a percentage would be dishonest. */
+function changeText(change: Change | null) {
+  if (!change) return ''
+  if (change.direction === 'flat') return t('reportCenter.change.flat')
+  // "up from nothing" says what happened; "up 100%" from zero would not.
+  if (change.fromNothing) return t(`reportCenter.change.${change.direction}FromZero`)
+  if (change.percent === null) return t(`reportCenter.change.${change.direction}Plain`)
+  return t(`reportCenter.change.${change.direction}`, { percent: formatPercent(change.percent) })
+}
+
+const periodLabel = computed(() =>
+  activePreset.value === 'custom'
+    ? `${formatDate(currentRange.value.start)} - ${formatDate(currentRange.value.end)}`
+    : t(`reportCenter.period.${activePreset.value}`)
+)
+
+const comparisonLabel = computed(
+  () => `${formatDate(comparisonRange.value.start)} - ${formatDate(comparisonRange.value.end)}`
+)
+
+/**
+ * The overview in words. Each sentence is built only from figures the backend
+ * sent, so a shop that records no expenses gets a shorter summary rather than
+ * a confident sentence about zero.
+ */
+const headlineSentences = computed(() => {
+  if (!isOverview.value || !hasSummaryData.value) return []
+
+  const sentences: string[] = []
+  const revenue = figureOf('revenue')
+  const orders = figureOf('orders')
+  const grossProfit = figureOf('grossProfit')
+  const margin = figureOf('margin')
+  const expenses = figureOf('expenses')
+  const net = figureOf('netIncome')
+
+  if (revenue) {
+    const amount = formatCurrency(revenue.value)
+    const base = orders
+      ? t('reportCenter.headline.revenueWithOrders', {
+          period: periodLabel.value,
+          amount,
+          orders: t('reportCenter.headline.orderCount', orders.value),
+        })
+      : t('reportCenter.headline.revenue', { period: periodLabel.value, amount })
+
+    const comparison = changeText(revenue.change)
+    sentences.push(
+      comparison
+        ? t('reportCenter.headline.comparedTo', {
+            base,
+            change: comparison,
+            period: comparisonLabel.value,
+          })
+        : t('reportCenter.headline.plain', { base })
+    )
+  }
+
+  if (grossProfit) {
+    sentences.push(
+      margin
+        ? t('reportCenter.headline.profitWithMargin', {
+            amount: formatCurrency(grossProfit.value),
+            margin: formatPercent(margin.value),
+          })
+        : t('reportCenter.headline.profit', { amount: formatCurrency(grossProfit.value) })
+    )
+  }
+
+  if (expenses) {
+    const spent = formatCurrency(expenses.value)
+    if (!net) {
+      sentences.push(t('reportCenter.headline.expensesOnly', { amount: spent }))
+    } else {
+      const key = net.value < 0 ? 'expensesNetLoss' : 'expensesNetProfit'
+      sentences.push(
+        t(`reportCenter.headline.${key}`, {
+          expenses: spent,
+          net: formatCurrency(Math.abs(net.value)),
+        })
+      )
+    }
+  }
+
+  return sentences
 })
 
 const summaryCards = computed(() => {
@@ -279,7 +498,7 @@ const summaryCards = computed(() => {
     ],
   }
 
-  return [...universal, ...specific[currentBusinessType.value]]
+  return [...universal, ...specific[currentBusinessType.value]].filter((item) => item.present)
 })
 
 const tableColumns = computed<Column[]>(() => {
@@ -427,11 +646,16 @@ function normalizeBusinessType(value: unknown): BusinessType {
 }
 
 function card(label: string, keys: string[], type: 'currency' | 'number' | 'percent') {
+  const raw = readFirst(summary.value, keys)
+
   return {
     label,
     keys,
     type,
-    value: formatTypedValue(readFirst(summary.value, keys), type),
+    // A card for a number the backend never sent says nothing; `present`
+    // keeps it off the page instead of showing a dash or a made-up zero.
+    present: raw !== null,
+    value: formatTypedValue(raw, type),
   }
 }
 
@@ -553,8 +777,11 @@ async function fetchReport() {
     if (payload.shop?.business_type) {
       responseBusinessType.value = payload.shop.business_type
     }
+
+    await fetchComparison()
   } catch (error: unknown) {
     rawPayload.value = {}
+    previousSummary.value = null
 
     accessDenied.value = axios.isAxiosError(error) && error.response?.status === 403
     if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -567,6 +794,120 @@ async function fetchReport() {
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * The overview also asks for the comparison period. It is a second read of the
+ * same endpoint, so a failure here costs only the little "up or down" line: the
+ * report itself stays on screen with no comparison rather than an error.
+ */
+async function fetchComparison() {
+  if (!isOverview.value) {
+    previousSummary.value = null
+    return
+  }
+
+  try {
+    const range = comparisonRange.value
+    const response = await serviceForReport(activeReport.value)({
+      ...activeParams.value,
+      start_date: range.start,
+      end_date: range.end,
+      page: 1,
+      page_size: 1,
+    })
+    previousSummary.value = ((response.data || {}) as ReportPayload).summary || null
+  } catch {
+    previousSummary.value = null
+  }
+}
+
+/** Which pickers this shop's advanced filters need. */
+const filterKindsForShop = computed<FilterOptionKind[]>(() => {
+  const shared: FilterOptionKind[] = ['cashier', 'customer']
+
+  if (currentBusinessType.value === 'restaurant') return [...shared, 'waiter']
+  if (currentBusinessType.value === 'workshop') return shared
+  return [...shared, 'product', 'category', 'supplier', 'warehouse']
+})
+
+function optionsFor(kind: FilterOptionKind) {
+  return filterOptions.value[kind] || null
+}
+
+/** False only while the shop has nothing of this kind to filter by. */
+function showsFilter(kind: FilterOptionKind) {
+  const options = filterOptions.value[kind]
+  return options === undefined || options.length > 0
+}
+
+/**
+ * Names are fetched when the advanced filters are opened, not on page load:
+ * most visits never open them, and a report page should not pull the whole
+ * product list to show four cards.
+ */
+async function loadFilterNames() {
+  const kinds = filterKindsForShop.value.filter((kind) => !(kind in filterOptions.value))
+
+  await Promise.all(
+    kinds.map(async (kind) => {
+      const options = await loadFilterOptions(kind)
+      // null means the list is not readable for this user: leave the kind
+      // unset so the template keeps the plain ID box for it. An empty list
+      // means the shop has none of these yet, and the filter is dropped.
+      if (options) filterOptions.value = { ...filterOptions.value, [kind]: options }
+    })
+  )
+}
+
+function toggleAdvanced() {
+  advancedOpen.value = !advancedOpen.value
+  if (advancedOpen.value) void loadFilterNames()
+}
+
+/** Filters in force beyond the period and the search box. */
+const ADVANCED_FILTER_KEYS = [
+  'payment_method',
+  'cashier_id',
+  'customer_id',
+  'status',
+  'shop_id',
+  'item_type',
+  'order_type',
+  'table_number',
+  'waiter_id',
+  'menu_category',
+  'product_id',
+  'category_id',
+  'supplier_id',
+  'warehouse_id',
+  'sku',
+  'barcode',
+  'stock_status',
+]
+
+const activeAdvancedCount = computed(
+  () => ADVANCED_FILTER_KEYS.filter((key) => String(filters.value[key] ?? '').trim() !== '').length
+)
+
+const hasActiveFilters = computed(
+  () => activeAdvancedCount.value > 0 || String(filters.value.search || '').trim() !== ''
+)
+
+function setPeriodPreset(preset: PeriodPreset) {
+  if (preset === 'custom') {
+    customDatesOpen.value = true
+    return
+  }
+
+  const range = resolvePeriod(preset)
+  if (!range) return
+
+  customDatesOpen.value = false
+  filters.value.start_date = range.start
+  filters.value.end_date = range.end
+  filters.value.page = 1
+  void fetchReport()
 }
 
 function setActiveReport(report: ReportKey) {
@@ -594,9 +935,6 @@ function resetFilters() {
     page_size: 25,
     shop_id: '',
     item_type: '',
-    vehicle_plate: '',
-    mechanic_id: '',
-    service_status: '',
     order_type: '',
     table_number: '',
     waiter_id: '',
@@ -690,7 +1028,11 @@ watch(
 )
 
 onMounted(() => {
-  activeReport.value = routeToReport()
+  const requested = routeToReport()
+  // The route guard already refused a report this user may not open; this
+  // only covers the tab the page defaults to.
+  const allowed = visibleTabs.value.some((tab) => tab.key === requested)
+  activeReport.value = allowed ? requested : (visibleTabs.value[0]?.key ?? requested)
   void fetchReport()
 })
 </script>
@@ -712,59 +1054,161 @@ onMounted(() => {
         <button class="btn btn-light" type="button" :disabled="loading" @click="fetchReport">
           {{ loading ? t('dashboardPage.refreshing') : t('common.refresh') }}
         </button>
-        <button class="btn btn-light" type="button" :disabled="Boolean(exportLoading)" @click="exportSales('pdf')">
+        <button
+          v-if="canExport"
+          class="btn btn-light"
+          type="button"
+          :disabled="Boolean(exportLoading)"
+          @click="exportSales('pdf')"
+        >
           {{ exportLoading === 'pdf' ? t('reportCenter.exporting') : t('reportCenter.exportPdf') }}
         </button>
-        <button class="btn btn-light" type="button" :disabled="Boolean(exportLoading)" @click="exportSales('xlsx')">
+        <button
+          v-if="canExport"
+          class="btn btn-light"
+          type="button"
+          :disabled="Boolean(exportLoading)"
+          @click="exportSales('xlsx')"
+        >
           {{ exportLoading === 'xlsx' ? t('reportCenter.exporting') : t('reportCenter.exportExcel') }}
         </button>
         <button class="btn btn-primary" type="button" @click="printReport">{{ t('reportCenter.print') }}</button>
       </div>
     </section>
 
+    <section class="period-bar">
+      <span class="period-caption">{{ t('reportCenter.period.caption') }}</span>
+      <div class="period-buttons">
+        <button
+          v-for="preset in PERIOD_PRESETS"
+          :key="preset"
+          class="period-button"
+          :class="{ active: activePreset === preset || (preset === 'custom' && customDatesOpen) }"
+          type="button"
+          :disabled="loading"
+          @click="setPeriodPreset(preset)"
+        >
+          {{ t(`reportCenter.period.${preset}`) }}
+        </button>
+      </div>
+      <div v-if="activePreset === 'custom' || customDatesOpen" class="period-dates">
+        <input v-model="filters.start_date" type="date" :aria-label="t('reportCenter.startDate')" />
+        <span>-</span>
+        <input v-model="filters.end_date" type="date" :aria-label="t('reportCenter.endDate')" />
+        <button class="btn btn-primary btn-sm" type="button" :disabled="loading" @click="applyFilters">
+          {{ t('reportCenter.applyFilter') }}
+        </button>
+      </div>
+    </section>
+
+    <section v-if="isOverview && headlineSentences.length" class="headline-card">
+      <p v-for="sentence in headlineSentences" :key="sentence">{{ sentence }}</p>
+    </section>
+
+    <section v-if="isOverview && primaryFigures.length" class="figure-grid">
+      <article v-for="figure in primaryFigures" :key="figure.key" class="figure-card">
+        <span class="figure-label">{{ figureLabel(figure.key) }}</span>
+        <strong class="figure-value" :class="{ negative: figure.value < 0 }">{{ figureValue(figure) }}</strong>
+        <span v-if="figure.change" class="figure-change" :class="figure.change.direction">
+          {{ changeText(figure.change) }}
+          <span class="figure-compare">{{ t('reportCenter.change.versus', { period: comparisonLabel }) }}</span>
+        </span>
+        <span v-else class="figure-change none">{{ t('reportCenter.change.noComparison') }}</span>
+      </article>
+    </section>
+
+    <section v-if="isOverview && secondaryFigures.length" class="figure-strip">
+      <span v-for="figure in secondaryFigures" :key="figure.key">
+        {{ figureLabel(figure.key) }}: <strong>{{ figureValue(figure) }}</strong>
+      </span>
+    </section>
+
     <section class="tabs-wrap">
       <button
-        v-for="tab in tabs"
+        v-for="tab in visibleTabs"
         :key="tab.key"
         class="tab-button"
         :class="{ active: activeReport === tab.key }"
         type="button"
         @click="setActiveReport(tab.key)"
       >
-        {{ label(tab.label) }}
+        {{ tabLabel(tab) }}
       </button>
+      <RouterLink v-for="chart in chartPages" :key="chart.route" class="tab-button chart-link" :to="chart.route">
+        {{ chart.label }}
+      </RouterLink>
     </section>
 
     <section class="filter-panel">
-      <div class="filter-grid">
-        <label class="field">
-          <span>{{ t('reportCenter.startDate') }}</span>
-          <input v-model="filters.start_date" type="date" />
-        </label>
-        <label class="field">
-          <span>{{ t('reportCenter.endDate') }}</span>
-          <input v-model="filters.end_date" type="date" />
-        </label>
+      <div class="filter-simple">
         <label class="field wide">
           <span>{{ t('common.search') }}</span>
-          <input v-model="filters.search" type="search" :placeholder="t('reportCenter.searchPlaceholder')" />
+          <input
+            v-model="filters.search"
+            type="search"
+            :placeholder="t('reportCenter.searchPlaceholder')"
+            @keyup.enter="applyFilters"
+          />
         </label>
+        <button class="btn btn-primary" type="button" @click="applyFilters">
+          {{ t('reportCenter.applyFilter') }}
+        </button>
+        <button class="btn btn-light" type="button" @click="toggleAdvanced">
+          {{ advancedOpen ? t('reportCenter.hideAdvanced') : t('reportCenter.showAdvanced') }}
+          <span v-if="activeAdvancedCount" class="filter-count">{{ activeAdvancedCount }}</span>
+        </button>
+        <button v-if="hasActiveFilters" class="btn btn-light" type="button" @click="resetFilters">
+          {{ t('reportCenter.resetFilter') }}
+        </button>
+      </div>
+
+      <div v-if="advancedOpen" class="filter-grid">
         <label class="field">
           <span>{{ t('reportCenter.labels.paymentMethod') }}</span>
           <input v-model="filters.payment_method" type="text" :placeholder="t('reportCenter.paymentPlaceholder')" />
         </label>
-        <label class="field">
+
+        <label v-if="showsFilter('cashier')" class="field">
           <span>{{ t('reportCenter.labels.cashier') }}</span>
-          <input v-model="filters.cashier_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.cashier') })" />
+          <select v-if="optionsFor('cashier')" v-model="filters.cashier_id">
+            <option value="">{{ t('reportCenter.all') }}</option>
+            <option v-for="option in optionsFor('cashier')" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <input
+            v-else
+            v-model="filters.cashier_id"
+            type="text"
+            :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.cashier') })"
+          />
         </label>
-        <label class="field">
+
+        <label v-if="showsFilter('customer')" class="field">
           <span>{{ t('reportCenter.labels.customer') }}</span>
-          <input v-model="filters.customer_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.customer') })" />
+          <select v-if="optionsFor('customer')" v-model="filters.customer_id">
+            <option value="">{{ t('reportCenter.all') }}</option>
+            <option v-for="option in optionsFor('customer')" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <input
+            v-else
+            v-model="filters.customer_id"
+            type="text"
+            :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.customer') })"
+          />
         </label>
+
         <label class="field">
           <span>{{ t('reportCenter.labels.status') }}</span>
-          <input v-model="filters.status" type="text" placeholder="PAID, PENDING..." />
+          <select v-model="filters.status">
+            <option value="">{{ t('reportCenter.all') }}</option>
+            <option value="paid">{{ t('reportCenter.statuses.paid') }}</option>
+            <option value="unpaid">{{ t('reportCenter.statuses.unpaid') }}</option>
+          </select>
         </label>
+
         <label v-if="isPlatformAdmin" class="field">
           <span>{{ t('reportCenter.shopIdLabel') }}</span>
           <input v-model="filters.shop_id" type="text" :placeholder="t('reportCenter.optional')" />
@@ -775,22 +1219,10 @@ onMounted(() => {
             <span>{{ t('reportCenter.labels.itemType') }}</span>
             <select v-model="filters.item_type">
               <option value="">{{ t('reportCenter.all') }}</option>
-              <option value="MENU">MENU</option>
-              <option value="SERVICE">SERVICE</option>
-              <option value="SPAREPART">SPAREPART</option>
+              <option v-for="type in ITEM_TYPES" :key="type" :value="type">
+                {{ t(`reportCenter.itemTypes.${type}`) }}
+              </option>
             </select>
-          </label>
-          <label class="field">
-            <span>{{ t('reportCenter.labels.vehiclePlate') }}</span>
-            <input v-model="filters.vehicle_plate" type="text" />
-          </label>
-          <label class="field">
-            <span>{{ t('reportCenter.labels.mechanic') }}</span>
-            <input v-model="filters.mechanic_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.mechanic') })" />
-          </label>
-          <label class="field">
-            <span>{{ t('reportCenter.serviceStatus') }}</span>
-            <input v-model="filters.service_status" type="text" />
           </label>
         </template>
 
@@ -799,18 +1231,29 @@ onMounted(() => {
             <span>{{ t('reportCenter.labels.orderType') }}</span>
             <select v-model="filters.order_type">
               <option value="">{{ t('reportCenter.all') }}</option>
-              <option value="DINE_IN">DINE_IN</option>
-              <option value="TAKEAWAY">TAKEAWAY</option>
-              <option value="DELIVERY">DELIVERY</option>
+              <option v-for="type in ORDER_TYPES" :key="type" :value="type">
+                {{ t(`reportCenter.orderTypes.${type}`) }}
+              </option>
             </select>
           </label>
           <label class="field">
             <span>{{ t('reportCenter.tableNumber') }}</span>
             <input v-model="filters.table_number" type="text" />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('waiter')" class="field">
             <span>{{ t('reportCenter.labels.waiter') }}</span>
-            <input v-model="filters.waiter_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.waiter') })" />
+            <select v-if="optionsFor('waiter')" v-model="filters.waiter_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('waiter')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.waiter_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.waiter') })"
+            />
           </label>
           <label class="field">
             <span>{{ t('reportCenter.menuCategory') }}</span>
@@ -819,21 +1262,65 @@ onMounted(() => {
         </template>
 
         <template v-else>
-          <label class="field">
+          <label v-if="showsFilter('product')" class="field">
             <span>{{ t('reportCenter.labels.product') }}</span>
-            <input v-model="filters.product_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.product') })" />
+            <select v-if="optionsFor('product')" v-model="filters.product_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('product')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.product_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.product') })"
+            />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('category')" class="field">
             <span>{{ t('reportCenter.labels.category') }}</span>
-            <input v-model="filters.category_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.category') })" />
+            <select v-if="optionsFor('category')" v-model="filters.category_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('category')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.category_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.category') })"
+            />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('supplier')" class="field">
             <span>{{ t('reportCenter.labels.supplier') }}</span>
-            <input v-model="filters.supplier_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.supplier') })" />
+            <select v-if="optionsFor('supplier')" v-model="filters.supplier_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('supplier')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.supplier_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.supplier') })"
+            />
           </label>
-          <label class="field">
+          <label v-if="showsFilter('warehouse')" class="field">
             <span>{{ t('reportCenter.labels.warehouse') }}</span>
-            <input v-model="filters.warehouse_id" type="text" :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.warehouse') })" />
+            <select v-if="optionsFor('warehouse')" v-model="filters.warehouse_id">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option v-for="option in optionsFor('warehouse')" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <input
+              v-else
+              v-model="filters.warehouse_id"
+              type="text"
+              :placeholder="t('reportCenter.idOf', { name: t('reportCenter.labels.warehouse') })"
+            />
           </label>
           <label class="field">
             <span>{{ t('reportCenter.labels.sku') }}</span>
@@ -845,12 +1332,16 @@ onMounted(() => {
           </label>
           <label class="field">
             <span>{{ t('reportCenter.labels.stockStatus') }}</span>
-            <input v-model="filters.stock_status" type="text" />
+            <select v-model="filters.stock_status">
+              <option value="">{{ t('reportCenter.all') }}</option>
+              <option value="low_stock">{{ t('reportCenter.stockStatuses.lowStock') }}</option>
+              <option value="out_of_stock">{{ t('reportCenter.stockStatuses.outOfStock') }}</option>
+            </select>
           </label>
         </template>
       </div>
 
-      <div class="filter-actions">
+      <div v-if="advancedOpen" class="filter-actions">
         <button class="btn btn-primary" type="button" @click="applyFilters">{{ t('reportCenter.applyFilter') }}</button>
         <button class="btn btn-light" type="button" @click="resetFilters">{{ t('reportCenter.resetFilter') }}</button>
       </div>
@@ -860,21 +1351,22 @@ onMounted(() => {
       {{ errorMessage }}
     </section>
 
-    <section class="summary-grid">
+    <section v-if="!isOverview" class="summary-grid">
       <article v-for="item in summaryCards" :key="item.label" class="summary-card">
         <span>{{ label(item.label) }}</span>
         <strong>{{ item.value }}</strong>
       </article>
     </section>
 
-    <section class="charts-section">
+    <!-- Only when there is something to draw: the overview endpoint sends no
+         breakdown, and an empty panel saying so filled a screenful. -->
+    <section v-if="hasBreakdownData" class="charts-section">
       <div class="section-heading">
         <h2>{{ t('reportCenter.charts') }}</h2>
         <p>{{ t('reportCenter.chartsSubtitle') }}</p>
       </div>
 
-      <div v-if="!hasBreakdownData" class="empty-chart">{{ t('reportCenter.noBreakdown') }}</div>
-      <div v-else class="chart-grid">
+      <div class="chart-grid">
         <article v-for="section in chartSections" :key="section.title" class="chart-card">
           <h3>{{ label(section.title) }}</h3>
           <div class="bar-list">
@@ -897,7 +1389,7 @@ onMounted(() => {
     <section class="table-card">
       <div class="table-head">
         <div>
-          <h2>{{ t('reportCenter.tableTitle', { name: reportTitle }) }}</h2>
+          <h2>{{ isOverview ? t('reportCenter.transactionsTitle') : t('reportCenter.tableTitle', { name: reportTitle }) }}</h2>
           <p v-if="hasSummaryData && rows.length === 0">{{ t('reportCenter.summaryOnly') }}</p>
           <p v-else>{{ t('reportCenter.rowCount', { count: totalRows }) }}</p>
         </div>
@@ -1137,6 +1629,161 @@ onMounted(() => {
   color: #9a3412;
 }
 
+.period-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.period-caption {
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.period-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.period-button {
+  padding: 8px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.period-button:hover:not(:disabled) {
+  border-color: var(--brand-200);
+  color: var(--brand-700);
+}
+
+.period-button.active {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.period-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.period-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.period-dates input {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.headline-card {
+  padding: 18px 20px;
+  background: var(--brand-25, #faf6ff);
+  border: 1px solid var(--brand-100, #ebd9fd);
+  border-radius: 10px;
+}
+
+.headline-card p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #1f2937;
+}
+
+.headline-card p + p {
+  margin-top: 6px;
+}
+
+.figure-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.figure-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid var(--brand-600);
+  border-radius: 10px;
+}
+
+.figure-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.figure-value {
+  font-size: 22px;
+  color: #111827;
+}
+
+.figure-value.negative {
+  color: #b91c1c;
+}
+
+.figure-change {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.figure-change.up {
+  color: #15803d;
+}
+
+.figure-change.down {
+  color: #b91c1c;
+}
+
+.figure-compare {
+  display: block;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.figure-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 12px 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.figure-strip strong {
+  color: #111827;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1330,6 +1977,7 @@ onMounted(() => {
 
 @media (max-width: 1180px) {
   .filter-grid,
+  .figure-grid,
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1348,6 +1996,7 @@ onMounted(() => {
   }
 
   .filter-grid,
+  .figure-grid,
   .summary-grid,
   .chart-grid {
     grid-template-columns: 1fr;

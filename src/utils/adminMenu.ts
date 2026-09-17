@@ -86,16 +86,20 @@ export const adminMenuGroups: MenuGroupConfig[] = [
     key: 'reports',
     label: 'Reports',
     items: [
-      { key: 'reports', label: 'Dashboard Summary', route: '/reports/dashboard-summary' },
+      // Three ways in, not ten. The rest are tabs and links on the overview
+      // page itself, so they are marked secondary: the sidebar hides them for
+      // anyone who can open that page, and still lists them for a user the
+      // owner granted one single report and nothing else.
+      { key: 'reports', label: 'Overview', route: '/reports/dashboard-summary' },
       { key: 'sales_report', label: 'Sales Report', route: '/reports/sales' },
-      { key: 'sales_items_report', label: 'Sales Items', route: '/reports/sales-items' },
-      { key: 'payment_report', label: 'Payment Report', route: '/reports/payments' },
-      { key: 'expense_report', label: 'Expense Report', route: '/reports/expenses' },
       { key: 'stock_report', label: 'Stock Report', route: '/reports/stock' },
-      { key: 'low_stock_report', label: 'Low Stock Report', route: '/reports/low-stock' },
-      { key: 'shift_report', label: 'Shift Report', route: '/reports/shifts' },
-      { key: 'sales_chart', label: 'Sales Chart', route: '/sales-chart' },
-      { key: 'expense_chart', label: 'Expense Chart', route: '/expense-chart' },
+      { key: 'sales_items_report', label: 'Sales Items', route: '/reports/sales-items', secondary: true },
+      { key: 'payment_report', label: 'Payment Report', route: '/reports/payments', secondary: true },
+      { key: 'expense_report', label: 'Expense Report', route: '/reports/expenses', secondary: true },
+      { key: 'low_stock_report', label: 'Low Stock Report', route: '/reports/low-stock', secondary: true },
+      { key: 'shift_report', label: 'Shift Report', route: '/reports/shifts', secondary: true },
+      { key: 'sales_chart', label: 'Sales Chart', route: '/sales-chart', secondary: true },
+      { key: 'expense_chart', label: 'Expense Chart', route: '/expense-chart', secondary: true },
     ],
   },
   {
