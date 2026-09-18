@@ -140,7 +140,7 @@ const filters = ref<Record<string, string | number>>({
   status: '',
   search: '',
   page: 1,
-  page_size: 25,
+  page_size: 10,
   shop_id: '',
   item_type: '',
   order_type: '',
@@ -932,7 +932,7 @@ function resetFilters() {
     status: '',
     search: '',
     page: 1,
-    page_size: 25,
+    page_size: 10,
     shop_id: '',
     item_type: '',
     order_type: '',
@@ -1043,10 +1043,14 @@ onMounted(() => {
       <div>
         <p class="eyebrow">{{ t('menu.reports') }}</p>
         <h1>{{ reportTitle }}</h1>
+        <!-- The shop's name is enough for its owner. The business type and the
+             shop ID only matter to a platform admin working across shops. -->
         <div class="header-meta">
           <span>{{ currentShopName }}</span>
-          <span class="business-badge">{{ currentBusinessTypeLabel }}</span>
-          <span v-if="currentShopId">{{ t('reportCenter.shopId', { id: currentShopId }) }}</span>
+          <template v-if="isPlatformAdmin">
+            <span class="business-badge">{{ currentBusinessTypeLabel }}</span>
+            <span v-if="currentShopId">{{ t('reportCenter.shopId', { id: currentShopId }) }}</span>
+          </template>
         </div>
       </div>
 
@@ -1784,10 +1788,12 @@ onMounted(() => {
   color: #111827;
 }
 
+/* As many as fit on a row. Eight figures used to fill two tall rows, half a
+   screen before the table they describe. */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 12px;
 }
 
 .summary-card {
@@ -1795,20 +1801,20 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   border-left: 4px solid var(--brand-600);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px 14px;
 }
 
 .summary-card span {
   display: block;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .summary-card strong {
   display: block;
-  margin-top: 8px;
-  font-size: 20px;
+  margin-top: 4px;
+  font-size: 18px;
   color: #111827;
 }
 

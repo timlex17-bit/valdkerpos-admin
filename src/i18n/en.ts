@@ -111,6 +111,12 @@ const en = {
   },
 
   dashboardPage: {
+    headlineSales: 'Today: sales {sales} from {orders}.',
+    headlineLeft: 'Expenses {expenses}, leaving {amount}.',
+    headlineShort: 'Expenses {expenses}, so today is {amount} short.',
+    orderCount: '{count} transaction | {count} transactions',
+    attentionLowStock: '{count} product is below its minimum stock | {count} products are below their minimum stock',
+    attentionPending: '{count} order is still unpaid | {count} orders are still unpaid',
     title: 'Dashboard',
     subtitle: 'Welcome back. Here is your business overview for today.',
     refreshing: 'Refreshing...',
