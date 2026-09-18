@@ -1,16 +1,11 @@
 <template>
   <div class="dashboard-page">
-    <!-- Header -->
+    <!-- Title and the two actions. The welcome line said the page was a
+         summary of today's business, which the sentence below it then gives;
+         the breadcrumb read "Home / Dashboard" on the page that is home. -->
     <section class="page-header">
       <div>
         <h1 class="page-title">{{ t('dashboardPage.title') }}</h1>
-        <p class="page-subtitle">{{ t('dashboardPage.subtitle') }}</p>
-
-        <div class="breadcrumb">
-          <span>{{ t('common.home') }}</span>
-          <span>/</span>
-          <span class="active">{{ t('dashboardPage.title') }}</span>
-        </div>
       </div>
 
       <div class="header-actions">
@@ -445,7 +440,9 @@ function normalizeOrder(raw: any): OrderRow {
     id: asNumber(raw?.id, 0),
     invoice: String(raw?.invoice_number || raw?.invoice || raw?.invoice_id || `ORDER-${raw?.id ?? 'NA'}`),
     type: formatLabel(raw?.default_order_type || raw?.order_type || raw?.type || 'General'),
-    customer: normalizeCustomer(raw?.customer),
+    // The summary endpoint sends `customer_name` (empty for a walk-in), never
+    // a `customer` object, so every order used to read "walk-in" here.
+    customer: normalizeCustomer(raw?.customer_name || raw?.customer),
     total: asNumber(raw?.total ?? raw?.grand_total ?? raw?.amount, 0),
     payment: formatLabel(raw?.payment_method || raw?.payment_method_name || raw?.payment_type || raw?.payments?.[0]?.payment_method || '-'),
     status: raw?.is_paid === false || String(raw?.status || '').toLowerCase() === 'unpaid' ? 'Unpaid' : 'Paid',
@@ -656,7 +653,12 @@ function normalizeCustomer(value: any): string {
   if (typeof value === 'object') {
     return String(value.name || value.full_name || value.username || t('ordersPage.customerLabel', { id: value.id ?? '-' }))
   }
-  return t('ordersPage.customerLabel', { id: value })
+
+  // A name arrives as a string ("Ana Maria"); only a bare id needs the
+  // "Customer #12" form.
+  const text = String(value).trim()
+  if (!text) return t('ordersPage.walkIn')
+  return /^\d+$/.test(text) ? t('ordersPage.customerLabel', { id: text }) : text
 }
 
 function normalizeUser(value: any): string {
@@ -703,25 +705,6 @@ onMounted(() => {
   line-height: 1.15;
   font-weight: 800;
   color: #1f2a44;
-}
-
-.page-subtitle {
-  margin: 10px 0 12px;
-  color: #6b7280;
-  font-size: 1rem;
-}
-
-.breadcrumb {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  color: #64748b;
-  font-size: 0.98rem;
-}
-
-.breadcrumb .active {
-  color: var(--brand-600);
-  font-weight: 700;
 }
 
 .header-actions {
