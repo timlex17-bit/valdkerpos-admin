@@ -24,6 +24,8 @@ interface Props {
   shops: Shop[]
   currentShop: Shop | null
   currentUser: PermissionUser | null
+  /** Name shown above "Admin panel"; the layout resolves it from the session. */
+  shopName?: string
 }
 
 const props = defineProps<Props>()
@@ -51,6 +53,18 @@ const {
 
 const safeShops = computed<Shop[]>(() => shops.value ?? [])
 const safeCurrentShop = computed<Shop | null>(() => currentShop.value ?? null)
+
+/**
+ * The shop this session is working in, shown at the top of the menu. The
+ * layout's name wins because it also covers a session whose shop list never
+ * arrived; the product name is only the last resort.
+ */
+const displayShopName = computed(
+  () => props.shopName?.trim() || safeCurrentShop.value?.name?.trim() || 'Valora'
+)
+
+/** One shop is not a choice: the name above already says which one it is. */
+const showShopSwitcher = computed(() => safeShops.value.length > 1)
 
 // The dashboard is gated like every other module: a user the owner limited
 // to, say, inventory does not get a Dashboard link that only answers
@@ -99,13 +113,16 @@ const handleShopChange = (event: Event) => {
         </svg>
       </div>
 
+      <!-- The shop's own name, where the product name used to be: an owner
+           knows they are using Valora, but needs to see which shop they are
+           in, next to the menu it applies to rather than up in the top bar. -->
       <div v-if="!isCollapsed" class="brand-text">
-        <h2 class="logo">Valora</h2>
+        <h2 class="logo" :title="displayShopName">{{ displayShopName }}</h2>
         <p class="brand-subtitle">{{ t('adminPanel') }}</p>
       </div>
     </div>
 
-    <div v-if="!isCollapsed && safeShops.length" class="shop-switcher">
+    <div v-if="!isCollapsed && showShopSwitcher" class="shop-switcher">
       <label class="shop-label" for="sidebar-shop">{{ t('shop') }}</label>
       <select
         id="sidebar-shop"
@@ -254,11 +271,22 @@ const handleShopChange = (event: Event) => {
   color: #fff;
 }
 
+/* Without this the name cannot shrink inside the flex row, so a long one
+   pushes the box wider instead of being cut short. */
+.brand-text {
+  min-width: 0;
+}
+
 .logo {
   margin: 0;
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.2px;
+  /* Shop names are written by their owners and can be long; the full name is
+     on the element's title attribute. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brand-subtitle {

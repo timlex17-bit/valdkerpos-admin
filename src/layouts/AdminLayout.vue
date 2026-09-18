@@ -214,6 +214,7 @@ onMounted(() => {
       :pending-order-count="pendingOrderCount"
       :shops="shops"
       :current-shop="currentShop"
+      :shop-name="displayShopName"
       :current-user="loggedUser"
       @toggle-group="toggleGroup"
       @close-mobile="closeMobileSidebar"
@@ -225,7 +226,6 @@ onMounted(() => {
       <AppTopbar
         :is-dark="isDark"
         :user-name="displayUserName"
-        :current-shop-name="displayShopName"
         :profile-open="profileOpen"
         @toggle-mobile-sidebar="toggleMobileSidebar"
         @toggle-dark="toggleDark"

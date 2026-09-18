@@ -9,14 +9,12 @@ type AppLocale = 'en' | 'id' | 'tet'
 interface Props {
   isDark?: boolean
   userName?: string
-  currentShopName?: string
   profileOpen?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isDark: false,
   userName: 'Owner',
-  currentShopName: 'Main Shop',
   profileOpen: false,
 })
 
@@ -65,13 +63,11 @@ const logout = () => {
 <template>
   <header class="topbar" :class="{ dark: props.isDark }">
     <div class="topbar-left">
+      <!-- The shop's name moved to the top of the sidebar, above "Admin
+           panel", where it sits beside the menu it applies to. -->
       <button class="mobile-menu-btn" type="button" @click="emit('toggle-mobile-sidebar')">
         ☰
       </button>
-
-      <div class="topbar-title-wrap">
-        <p>{{ props.currentShopName }}</p>
-      </div>
     </div>
 
     <div class="topbar-right">
@@ -133,17 +129,6 @@ const logout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.topbar-title-wrap p {
-  margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--brand-600);
-}
-
-.topbar.dark .topbar-title-wrap p {
-  color: var(--brand-600);
 }
 
 .mobile-menu-btn,
