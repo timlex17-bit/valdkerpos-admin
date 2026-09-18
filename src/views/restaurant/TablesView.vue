@@ -13,6 +13,7 @@ import {
 } from '@/services/restaurantService'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { canShowModule, parseStoredJson } from '@/utils/moduleVisibility'
+import ToggleField from '@/components/form/ToggleField.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -424,13 +425,13 @@ onMounted(() => {
               <small v-if="fieldErrors.area" class="field-error">{{ fieldErrors.area }}</small>
             </label>
 
-            <label class="form-group">
-              <span>{{ t('tablesPage.isActive') }}</span>
-              <span class="checkbox-row">
-                <input v-model="form.is_active" type="checkbox" />
-                <span>{{ form.is_active ? t('tablesPage.isActive') : t('tablesPage.inactive') }}</span>
-              </span>
-            </label>
+            <div class="form-group">
+              <ToggleField
+                v-model="form.is_active"
+                :label="t('tablesPage.isActive')"
+                :description="form.is_active ? t('tablesPage.isActive') : t('tablesPage.inactive')"
+              />
+            </div>
           </div>
 
           <!-- No status control: the field is server-derived and read-only. -->

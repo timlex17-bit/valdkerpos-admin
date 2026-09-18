@@ -182,20 +182,9 @@
           </div>
 
           <div class="checkbox-grid">
-            <label class="check-item">
-              <input v-model="backupSettings.includeMedia" type="checkbox" />
-              <span>{{ t('backupPage.includeMedia') }}</span>
-            </label>
-
-            <label class="check-item">
-              <input v-model="backupSettings.includeUsers" type="checkbox" />
-              <span>{{ t('backupPage.includeUsers') }}</span>
-            </label>
-
-            <label class="check-item">
-              <input v-model="backupSettings.includeSettings" type="checkbox" />
-              <span>{{ t('backupPage.includeSettings') }}</span>
-            </label>
+            <CheckboxField v-model="backupSettings.includeMedia" :label="t('backupPage.includeMedia')" />
+            <CheckboxField v-model="backupSettings.includeUsers" :label="t('backupPage.includeUsers')" />
+            <CheckboxField v-model="backupSettings.includeSettings" :label="t('backupPage.includeSettings')" />
           </div>
 
           <div class="action-row">
@@ -577,6 +566,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import CheckboxField from '@/components/form/CheckboxField.vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { getApiErrorMessage, looksLikeDebugPage } from '@/utils/apiError'

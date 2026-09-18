@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { ENDPOINTS } from '@/services/endpoints'
 import { getApiErrorMessage } from '@/utils/apiError'
+import CheckboxField from '@/components/form/CheckboxField.vue'
 
 type AppLocale = 'en' | 'id' | 'tet'
 
@@ -325,10 +326,7 @@ onMounted(() => {
             </div>
 
             <div class="form-options">
-              <label class="remember-box">
-                <input v-model="rememberMe" type="checkbox" />
-                <span>{{ t('loginPage.rememberMe') }}</span>
-              </label>
+              <CheckboxField v-model="rememberMe" :label="t('loginPage.rememberMe')" class="remember-box" />
 
               <button type="button" class="forgot-link" @click="showForgotHint = !showForgotHint">
                 {{ t('loginPage.forgotPassword') }}

@@ -6,6 +6,8 @@ import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { loadModuleContract } from '@/services/moduleContract'
 import { normalizeBusinessType, normalizePlan } from '@/utils/moduleVisibility'
+import CheckboxField from '@/components/form/CheckboxField.vue'
+import ToggleField from '@/components/form/ToggleField.vue'
 
 const { t, locale } = useI18n()
 
@@ -488,20 +490,17 @@ onMounted(() => {
           <small class="form-hint">{{ t('settingsPage.lowStockHint') }}</small>
         </label>
 
-        <label class="form-group toggle-group">
-          <span>{{ t('settingsPage.allowNegativeStock') }}</span>
-          <span class="toggle-row">
-            <input
-              v-model="posForm.allowNegativeStock"
-              type="checkbox"
-              :disabled="!canEditSettings || posSaving"
-            />
-            <span>{{ posForm.allowNegativeStock ? t('settingsPage.allowed') : t('settingsPage.blocked') }}</span>
-          </span>
+        <div class="form-group toggle-group">
+          <ToggleField
+            v-model="posForm.allowNegativeStock"
+            :label="t('settingsPage.allowNegativeStock')"
+            :description="posForm.allowNegativeStock ? t('settingsPage.allowed') : t('settingsPage.blocked')"
+            :disabled="!canEditSettings || posSaving"
+          />
           <small class="form-hint" :class="{ danger: enablingNegativeStock }">
             {{ t('settingsPage.negativeStockHint') }}
           </small>
-        </label>
+        </div>
       </div>
     </section>
 
@@ -590,10 +589,11 @@ onMounted(() => {
           <p class="confirm-note">
             {{ t('settingsPage.confirmNegativeStock') }}
           </p>
-          <label class="confirm-check">
-            <input v-model="negativeStockAcknowledged" type="checkbox" />
-            <span>{{ t('settingsPage.confirmNegativeStockCheck') }}</span>
-          </label>
+          <CheckboxField
+            v-model="negativeStockAcknowledged"
+            :label="t('settingsPage.confirmNegativeStockCheck')"
+            class="confirm-check"
+          />
         </div>
 
         <div class="modal-actions">
