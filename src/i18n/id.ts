@@ -111,6 +111,7 @@ const id = {
   },
 
   dashboardPage: {
+    noSalesLast7Days: 'Belum ada penjualan dalam 7 hari terakhir.',
     headlineSales: 'Hari ini: penjualan {sales} dari {orders}.',
     headlineLeft: 'Pengeluaran {expenses}, sisa {amount}.',
     headlineShort: 'Pengeluaran {expenses}, jadi hari ini kurang {amount}.',

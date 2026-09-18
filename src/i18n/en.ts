@@ -111,6 +111,7 @@ const en = {
   },
 
   dashboardPage: {
+    noSalesLast7Days: 'No sales in the last 7 days.',
     headlineSales: 'Today: sales {sales} from {orders}.',
     headlineLeft: 'Expenses {expenses}, leaving {amount}.',
     headlineShort: 'Expenses {expenses}, so today is {amount} short.',

@@ -111,6 +111,7 @@ const tet = {
   },
 
   dashboardPage: {
+    noSalesLast7Days: 'Seidauk iha venda iha loron 7 ikus.',
     headlineSales: 'Ohin loron: venda {sales} husi {orders}.',
     headlineLeft: 'Gastu {expenses}, hela {amount}.',
     headlineShort: 'Gastu {expenses}, entaun ohin menus {amount}.',

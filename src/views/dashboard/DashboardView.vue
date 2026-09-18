@@ -105,10 +105,16 @@
       </div>
 
       <div class="chart-card">
+        <p v-if="!hasSalesInChart" class="chart-empty-note">{{ t('dashboardPage.noSalesLast7Days') }}</p>
+
         <div class="chart-bars">
           <div v-for="item in salesChart" :key="item.label" class="chart-bar-item">
             <div class="bar-wrap">
-              <div class="bar-fill" :style="{ height: `${item.height}%` }"></div>
+              <div
+                class="bar-fill"
+                :class="{ 'is-empty': item.value <= 0 }"
+                :style="{ height: `${item.height}%` }"
+              ></div>
             </div>
             <div class="bar-value">${{ item.value.toFixed(2) }}</div>
             <div class="bar-label">{{ item.label }}</div>
@@ -380,6 +386,9 @@ const salesChart = computed(() => {
     height: row.height || (values[index] > 0 ? Math.max((values[index] / max) * 100, 8) : 0),
   }))
 })
+
+/** Whether the week has any sales at all, so the chart can say so in words. */
+const hasSalesInChart = computed(() => salesChart.value.some((item) => item.value > 0))
 
 // Copy before sorting: `.sort()` mutates in place, so sorting the ref's own
 // array here reordered the product list for every other consumer of it.
@@ -963,21 +972,35 @@ onMounted(() => {
   height: 100%;
 }
 
+/* A baseline, not a container. The grey box that used to sit behind every bar
+   was all a quiet day showed: seven empty boxes that looked like something
+   had failed to load. A day with no sales is now a flat grey stub on the
+   line, which is what "nothing sold" looks like. */
 .bar-wrap {
   flex: 1;
   width: 100%;
-  background: #f1f5f9;
-  border-radius: 16px;
   display: flex;
   align-items: end;
-  padding: 8px;
+  padding: 8px 8px 0;
   min-height: 120px;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .bar-fill {
   width: 100%;
-  border-radius: 12px;
+  min-height: 4px;
+  border-radius: 12px 12px 0 0;
   background: var(--brand-gradient);
+}
+
+.bar-fill.is-empty {
+  background: #e2e8f0;
+}
+
+.chart-empty-note {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #64748b;
 }
 
 .bar-value {
