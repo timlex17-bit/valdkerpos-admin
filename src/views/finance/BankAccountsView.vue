@@ -229,11 +229,12 @@
               />
             </div>
 
-            <div class="field checkbox-field field-full">
-              <label class="checkbox-wrap">
-                <input v-model="form.is_active" type="checkbox" />
-                <span>{{ t('bankAccountsPage.activeAccount') }}</span>
-              </label>
+            <div class="field field-full">
+              <ToggleField
+                v-model="form.is_active"
+                :label="t('common.status')"
+                :description="t('bankAccountsPage.activeAccount')"
+              />
             </div>
           </div>
 
@@ -259,6 +260,7 @@ import { useI18n } from 'vue-i18n'
 import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
+import ToggleField from '@/components/form/ToggleField.vue'
 
 type AccountType = 'BANK' | 'EWALLET' | 'QRIS'
 

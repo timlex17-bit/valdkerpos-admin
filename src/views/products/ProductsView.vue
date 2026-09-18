@@ -463,28 +463,22 @@
                   />
                 </div>
 
-                <div class="form-group checkbox-row">
-                  <label>{{ t('productsPage.trackStock') }}</label>
-                  <div class="checkbox-wrap">
-                    <input
-                      v-model="form.track_stock"
-                      type="checkbox"
-                      :disabled="modalMode === 'view'"
-                    />
-                    <span>{{ t('productsPage.enableStockTracking') }}</span>
-                  </div>
+                <div class="form-group">
+                  <ToggleField
+                    v-model="form.track_stock"
+                    :label="t('productsPage.trackStock')"
+                    :description="t('productsPage.enableStockTracking')"
+                    :disabled="modalMode === 'view'"
+                  />
                 </div>
 
-                <div class="form-group checkbox-row">
-                  <label>{{ t('productsPage.isActive') }}</label>
-                  <div class="checkbox-wrap">
-                    <input
-                      v-model="form.is_active"
-                      type="checkbox"
-                      :disabled="modalMode === 'view'"
-                    />
-                    <span>{{ t('productsPage.productIsActive') }}</span>
-                  </div>
+                <div class="form-group">
+                  <ToggleField
+                    v-model="form.is_active"
+                    :label="t('productsPage.isActive')"
+                    :description="t('productsPage.productIsActive')"
+                    :disabled="modalMode === 'view'"
+                  />
                 </div>
 
                 <div class="form-group full">
@@ -573,6 +567,7 @@ import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { toMultipart } from '@/utils/multipart'
+import ToggleField from '@/components/form/ToggleField.vue'
 
 type ModalMode = 'create' | 'edit' | 'view'
 

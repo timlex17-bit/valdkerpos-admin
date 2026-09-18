@@ -212,18 +212,20 @@
               />
             </div>
 
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input v-model="form.is_active" type="checkbox" />
-                <span>{{ t('warehousesPage.activeWarehouseLabel') }}</span>
-              </label>
+            <div class="form-group">
+              <ToggleField
+                v-model="form.is_active"
+                :label="t('common.status')"
+                :description="t('warehousesPage.activeWarehouseLabel')"
+              />
             </div>
 
-            <div class="form-group checkbox-group">
-              <label class="checkbox-label">
-                <input v-model="form.is_default" type="checkbox" />
-                <span>{{ t('warehousesPage.defaultWarehouseLabel') }}</span>
-              </label>
+            <div class="form-group">
+              <ToggleField
+                v-model="form.is_default"
+                :label="t('warehousesPage.defaultLabel')"
+                :description="t('warehousesPage.defaultWarehouseLabel')"
+              />
             </div>
           </div>
 
@@ -254,6 +256,7 @@ import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { normalizeApiList } from '@/utils/apiData'
+import ToggleField from '@/components/form/ToggleField.vue'
 
 type Warehouse = {
   id: number
