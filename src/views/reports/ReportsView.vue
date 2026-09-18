@@ -140,7 +140,7 @@ const filters = ref<Record<string, string | number>>({
   status: '',
   search: '',
   page: 1,
-  page_size: 25,
+  page_size: 10,
   shop_id: '',
   item_type: '',
   order_type: '',
@@ -932,7 +932,7 @@ function resetFilters() {
     status: '',
     search: '',
     page: 1,
-    page_size: 25,
+    page_size: 10,
     shop_id: '',
     item_type: '',
     order_type: '',
@@ -1043,10 +1043,14 @@ onMounted(() => {
       <div>
         <p class="eyebrow">{{ t('menu.reports') }}</p>
         <h1>{{ reportTitle }}</h1>
+        <!-- The shop's name is enough for its owner. The business type and the
+             shop ID only matter to a platform admin working across shops. -->
         <div class="header-meta">
           <span>{{ currentShopName }}</span>
-          <span class="business-badge">{{ currentBusinessTypeLabel }}</span>
-          <span v-if="currentShopId">{{ t('reportCenter.shopId', { id: currentShopId }) }}</span>
+          <template v-if="isPlatformAdmin">
+            <span class="business-badge">{{ currentBusinessTypeLabel }}</span>
+            <span v-if="currentShopId">{{ t('reportCenter.shopId', { id: currentShopId }) }}</span>
+          </template>
         </div>
       </div>
 
@@ -1150,14 +1154,22 @@ onMounted(() => {
             @keyup.enter="applyFilters"
           />
         </label>
-        <button class="btn btn-primary" type="button" @click="applyFilters">
+        <!-- Apply and Reset live at the foot of the advanced panel while it is
+             open, next to the fields being changed, so they are not offered
+             twice on the same screen. -->
+        <button v-if="!advancedOpen" class="btn btn-primary" type="button" @click="applyFilters">
           {{ t('reportCenter.applyFilter') }}
         </button>
         <button class="btn btn-light" type="button" @click="toggleAdvanced">
           {{ advancedOpen ? t('reportCenter.hideAdvanced') : t('reportCenter.showAdvanced') }}
           <span v-if="activeAdvancedCount" class="filter-count">{{ activeAdvancedCount }}</span>
         </button>
-        <button v-if="hasActiveFilters" class="btn btn-light" type="button" @click="resetFilters">
+        <button
+          v-if="hasActiveFilters && !advancedOpen"
+          class="btn btn-light"
+          type="button"
+          @click="resetFilters"
+        >
           {{ t('reportCenter.resetFilter') }}
         </button>
       </div>
@@ -1567,10 +1579,58 @@ onMounted(() => {
   padding: 18px;
 }
 
+/* The everyday row: search, then its buttons beside it. Without this the
+   search box took the full width and the buttons fell underneath it, touching
+   each other. */
+.filter-simple {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.filter-simple .field {
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.filter-simple .field.wide {
+  grid-column: auto;
+}
+
+/* Bottom-aligned with the search box, which carries a label above it. */
+.filter-simple .btn {
+  height: 44px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--brand-600);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filter-simple .btn-primary .filter-count {
+  background: #ffffff;
+  color: var(--brand-700);
+}
+
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+  margin-top: 16px;
 }
 
 .field {
@@ -1784,10 +1844,12 @@ onMounted(() => {
   color: #111827;
 }
 
+/* As many as fit on a row. Eight figures used to fill two tall rows, half a
+   screen before the table they describe. */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 12px;
 }
 
 .summary-card {
@@ -1795,20 +1857,20 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   border-left: 4px solid var(--brand-600);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px 14px;
 }
 
 .summary-card span {
   display: block;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .summary-card strong {
   display: block;
-  margin-top: 8px;
-  font-size: 20px;
+  margin-top: 4px;
+  font-size: 18px;
   color: #111827;
 }
 

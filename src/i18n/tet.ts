@@ -111,6 +111,13 @@ const tet = {
   },
 
   dashboardPage: {
+    noSalesLast7Days: 'Seidauk iha venda iha loron 7 ikus.',
+    headlineSales: 'Ohin loron: venda {sales} husi {orders}.',
+    headlineLeft: 'Gastu {expenses}, hela {amount}.',
+    headlineShort: 'Gastu {expenses}, entaun ohin menus {amount}.',
+    orderCount: 'transasaun {count} | transasaun {count}',
+    attentionLowStock: 'produtu {count} iha okos stok mínimu | produtu {count} iha okos stok mínimu',
+    attentionPending: 'pedidu {count} seidauk selu | pedidu {count} seidauk selu',
     title: 'Dashboard',
     subtitle: 'Bemvindu fali. Ne’e rezumu ita-nia negósiu ohin.',
     refreshing: 'Atualiza hela...',

@@ -111,6 +111,13 @@ const id = {
   },
 
   dashboardPage: {
+    noSalesLast7Days: 'Belum ada penjualan dalam 7 hari terakhir.',
+    headlineSales: 'Hari ini: penjualan {sales} dari {orders}.',
+    headlineLeft: 'Pengeluaran {expenses}, sisa {amount}.',
+    headlineShort: 'Pengeluaran {expenses}, jadi hari ini kurang {amount}.',
+    orderCount: '{count} transaksi | {count} transaksi',
+    attentionLowStock: '{count} produk di bawah stok minimum | {count} produk di bawah stok minimum',
+    attentionPending: '{count} pesanan belum lunas | {count} pesanan belum lunas',
     title: 'Dashboard',
     subtitle: 'Selamat datang kembali. Berikut ringkasan usaha Anda hari ini.',
     refreshing: 'Memuat ulang...',

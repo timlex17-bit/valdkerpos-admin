@@ -28,8 +28,28 @@
       <button type="button" class="ghost-btn" @click="loadDashboard">{{ t('dashboardPage.retry') }}</button>
     </section>
 
-    <!-- KPI Cards -->
-    <section class="stats-grid stats-grid-6">
+    <!-- Today in one sentence, before any table. -->
+    <section v-if="headlineToday" class="headline-card">
+      <p>{{ headlineToday }}</p>
+    </section>
+
+    <!-- Only what needs doing. Nothing here means nothing is waiting. -->
+    <section v-if="attentionItems.length" class="attention-bar">
+      <button
+        v-for="item in attentionItems"
+        :key="item.key"
+        class="attention-chip"
+        type="button"
+        @click="goTo(item.route)"
+      >
+        <ModuleIcon :module="item.icon" :size="28" variant="soft" />
+        <span>{{ item.text }}</span>
+      </button>
+    </section>
+
+    <!-- The four numbers of the day. Low stock and unpaid orders used to sit
+         here as cards reading 0; they are in the bar above when they matter. -->
+    <section class="stats-grid">
       <div class="stat-card">
         <div class="stat-top">
           <ModuleIcon module="sales_chart" :size="40" variant="soft" />
@@ -52,16 +72,6 @@
 
       <div class="stat-card">
         <div class="stat-top">
-          <ModuleIcon module="reports" :size="40" variant="soft" />
-          <span class="trend" :class="profitTrendClass">{{ profitTrendLabel }}</span>
-        </div>
-        <div class="stat-label">{{ t('dashboardPage.profitEstimate') }}</div>
-        <div class="stat-value">${{ profitEstimate.toFixed(2) }}</div>
-        <div class="stat-note">{{ t('dashboardPage.salesMinusExpenses') }}</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-top">
           <ModuleIcon module="expenses" :size="40" variant="soft" />
           <span class="trend" :class="expensesTrendClass">{{ expensesTrendLabel }}</span>
         </div>
@@ -72,285 +82,89 @@
 
       <div class="stat-card">
         <div class="stat-top">
-          <ModuleIcon module="low_stock_report" :size="40" variant="soft" />
-          <span class="trend flat">{{ t('dashboardPage.needAction') }}</span>
+          <ModuleIcon module="reports" :size="40" variant="soft" />
+          <span class="trend" :class="profitTrendClass">{{ profitTrendLabel }}</span>
         </div>
-        <div class="stat-label">{{ t('dashboardPage.lowStockAlerts') }}</div>
-        <div class="stat-value">{{ lowStockItems.length }}</div>
-        <div class="stat-note">{{ t('dashboardPage.productsBelowMinimum') }}</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-top">
-          <ModuleIcon module="shift_report" :size="40" variant="soft" />
-          <span class="trend flat">{{ t('dashboardPage.followUp') }}</span>
-        </div>
-        <div class="stat-label">{{ t('dashboardPage.pendingOrders') }}</div>
-        <div class="stat-value">{{ pendingOrders }}</div>
-        <div class="stat-note">{{ t('dashboardPage.ordersWaiting') }}</div>
+        <div class="stat-label">{{ t('dashboardPage.profitEstimate') }}</div>
+        <div class="stat-value">${{ profitEstimate.toFixed(2) }}</div>
+        <div class="stat-note">{{ t('dashboardPage.salesMinusExpenses') }}</div>
       </div>
     </section>
 
-    <!-- Chart + Payment Summary -->
-    <section class="content-grid content-grid-2">
-      <div class="panel-card">
-        <div class="panel-header">
-          <div>
-            <h2>{{ t('dashboardPage.salesLast7Days') }}</h2>
-            <p>{{ t('dashboardPage.dailySalesOverview') }}</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="goTo('/sales-chart')">{{ t('dashboardPage.viewReport') }}</button>
-        </div>
-
-        <div class="chart-card">
-          <div class="chart-bars">
-            <div
-              v-for="item in salesChart"
-              :key="item.label"
-              class="chart-bar-item"
-            >
-              <div class="bar-wrap">
-                <div
-                  class="bar-fill"
-                  :style="{ height: `${item.height}%` }"
-                ></div>
-              </div>
-              <div class="bar-value">${{ item.value.toFixed(2) }}</div>
-              <div class="bar-label">{{ item.label }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-card">
-        <div class="panel-header">
-          <div>
-            <h2>{{ t('dashboardPage.paymentMethods') }}</h2>
-            <p>{{ t('dashboardPage.salesByPaymentType') }}</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="goTo('/sales-chart')">{{ t('dashboardPage.details') }}</button>
-        </div>
-
-        <div class="payment-summary">
-          <div class="donut-placeholder" :style="paymentDonutStyle">
-            <div class="donut-center">
-              <strong>${{ totalPaymentSummary.toFixed(2) }}</strong>
-              <span>{{ t('common.total') }}</span>
-            </div>
-          </div>
-
-          <div class="payment-list">
-            <div v-if="paymentMethods.length === 0" class="empty-row">
-              {{ t('dashboardPage.noPaymentData') }}
-            </div>
-            <div
-              v-for="item in paymentMethods"
-              :key="item.label"
-              class="payment-item"
-            >
-              <div class="payment-item__left">
-                <span class="payment-dot" :class="item.colorClass"></span>
-                <div>
-                  <div class="payment-name">{{ item.label }}</div>
-                  <div class="payment-sub">{{ t('dashboardPage.percentOfSales', { percent: item.percent }) }}</div>
-                </div>
-              </div>
-              <div class="payment-amount">${{ item.amount.toFixed(2) }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Low stock + Top products -->
-    <section class="content-grid content-grid-2">
-      <div class="panel-card">
-        <div class="panel-header">
-          <div>
-            <h2>{{ t('dashboardPage.lowStockProducts') }}</h2>
-            <p>{{ t('dashboardPage.needRestock') }}</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="goTo('/products')">{{ t('menu.products') }}</button>
-        </div>
-
-        <div class="list-stack">
-          <div v-if="lowStockItems.length === 0" class="empty-row">
-            {{ t('dashboardPage.noLowStock') }}
-          </div>
-          <div
-            v-for="item in lowStockItems"
-            :key="item.id"
-            class="list-row"
-          >
-            <div class="list-row__left">
-              <div class="product-avatar">
-                {{ getInitial(item.name) }}
-              </div>
-              <div>
-                <div class="list-title">{{ item.name }}</div>
-                <div class="list-sub">{{ t('dashboardPage.sku', { sku: item.sku }) }}</div>
-              </div>
-            </div>
-
-            <div class="list-row__right">
-              <span class="status-badge cancelled">{{ t('dashboardPage.stockCount', { count: item.stock }) }}</span>
-              <span class="mini-note">{{ t('dashboardPage.minCount', { count: item.minStock }) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-card">
-        <div class="panel-header">
-          <div>
-            <h2>{{ t('dashboardPage.topSellingProducts') }}</h2>
-            <p>{{ t('dashboardPage.bestProductsToday') }}</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="goTo('/sales-report')">{{ t('dashboardPage.viewReport') }}</button>
-        </div>
-
-        <div class="list-stack">
-          <div v-if="topProducts.length === 0" class="empty-row">
-            {{ t('dashboardPage.noSalesData') }}
-          </div>
-          <div
-            v-for="item in topProducts"
-            :key="item.id"
-            class="list-row"
-          >
-            <div class="list-row__left">
-              <div class="product-avatar product-avatar--green">
-                {{ getInitial(item.name) }}
-              </div>
-              <div>
-                <div class="list-title">{{ item.name }}</div>
-                <div class="list-sub">{{ t('dashboardPage.itemsSold', { count: item.qty }) }}</div>
-              </div>
-            </div>
-
-            <div class="list-row__right">
-              <span class="amount-strong">${{ item.total.toFixed(2) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Recent orders + Expenses -->
-    <section class="content-grid content-grid-2">
-      <div class="table-card">
-        <div class="table-header">
-          <div>
-            <h2>{{ t('dashboardPage.recentOrders') }}</h2>
-            <p>{{ t('dashboardPage.latestSales') }}</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="goTo('/orders')">{{ t('dashboardPage.allOrders') }}</button>
-        </div>
-
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>{{ t('common.invoice') }}</th>
-                <th>{{ t('common.customer') }}</th>
-                <th>{{ t('common.total') }}</th>
-                <th>{{ t('common.payment') }}</th>
-                <th>{{ t('common.status') }}</th>
-                <th>{{ t('dashboardPage.servedBy') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="recentOrders.length === 0">
-                <td colspan="6" class="empty-cell">{{ t('dashboardPage.noRecentOrders') }}</td>
-              </tr>
-              <tr v-for="order in recentOrders" :key="order.id">
-                <td>
-                  <div class="ref-main">{{ order.invoice }}</div>
-                  <div class="ref-sub">{{ order.type }}</div>
-                </td>
-                <td>{{ order.customer }}</td>
-                <td class="amount-strong">${{ order.total.toFixed(2) }}</td>
-                <td>{{ order.payment }}</td>
-                <td>
-                  <span class="status-badge" :class="order.status === 'Paid' ? 'paid' : 'unpaid'">
-                    {{ order.status === 'Paid' ? t('dashboardPage.paid') : t('dashboardPage.unpaid') }}
-                  </span>
-                </td>
-                <td>{{ order.servedBy }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="table-card">
-        <div class="table-header">
-          <div>
-            <h2>{{ t('dashboardPage.recentExpenses') }}</h2>
-            <p>{{ t('dashboardPage.latestExpenses') }}</p>
-          </div>
-          <button class="ghost-btn" type="button" @click="goTo('/expenses')">{{ t('dashboardPage.allExpenses') }}</button>
-        </div>
-
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>{{ t('common.name') }}</th>
-                <th>{{ t('common.amount') }}</th>
-                <th>{{ t('common.date') }}</th>
-                <th>{{ t('dashboardPage.createdBy') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="recentExpenses.length === 0">
-                <td colspan="4" class="empty-cell">{{ t('dashboardPage.noRecentExpenses') }}</td>
-              </tr>
-              <tr v-for="expense in recentExpenses" :key="expense.id">
-                <td>
-                  <div class="title-main">{{ expense.name }}</div>
-                  <div class="ref-sub">{{ expense.note }}</div>
-                </td>
-                <td class="amount-strong amount-expense">${{ expense.amount.toFixed(2) }}</td>
-                <td>{{ expense.date }}</td>
-                <td>{{ expense.createdBy }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- Activity -->
+    <!-- One chart, one table. Payment split, best sellers and the expense
+         list are a click away in the reports rather than repeated here. -->
     <section class="panel-card">
       <div class="panel-header">
         <div>
-          <h2>{{ t('dashboardPage.recentActivity') }}</h2>
-          <p>{{ t('dashboardPage.latestActivity') }}</p>
+          <h2>{{ t('dashboardPage.salesLast7Days') }}</h2>
+          <p>{{ t('dashboardPage.dailySalesOverview') }}</p>
         </div>
-        <button class="ghost-btn" type="button" @click="goTo('/stock-movements')">{{ t('dashboardPage.viewAll') }}</button>
+        <button class="ghost-btn" type="button" @click="goTo('/reports/sales')">
+          {{ t('dashboardPage.viewReport') }}
+        </button>
       </div>
 
-      <div class="activity-list">
-        <div v-if="dynamicRecentActivities.length === 0" class="empty-row">
-          {{ t('dashboardPage.noRecentActivity') }}
-        </div>
-        <div
-          v-for="activity in dynamicRecentActivities"
-          :key="activity.id"
-          class="activity-row"
-        >
-          <div class="activity-icon" :class="activity.colorClass">
-            {{ activity.icon }}
-          </div>
+      <div class="chart-card">
+        <p v-if="!hasSalesInChart" class="chart-empty-note">{{ t('dashboardPage.noSalesLast7Days') }}</p>
 
-          <div class="activity-content">
-            <div class="activity-title">{{ activity.title }}</div>
-            <div class="activity-sub">{{ activity.description }}</div>
+        <div class="chart-bars">
+          <div v-for="item in salesChart" :key="item.label" class="chart-bar-item">
+            <div class="bar-wrap">
+              <div
+                class="bar-fill"
+                :class="{ 'is-empty': item.value <= 0 }"
+                :style="{ height: `${item.height}%` }"
+              ></div>
+            </div>
+            <div class="bar-value">${{ item.value.toFixed(2) }}</div>
+            <div class="bar-label">{{ item.label }}</div>
           </div>
-
-          <div class="activity-time">{{ activity.time }}</div>
         </div>
+      </div>
+    </section>
+
+    <section class="table-card">
+      <div class="table-header">
+        <div>
+          <h2>{{ t('dashboardPage.recentOrders') }}</h2>
+          <p>{{ t('dashboardPage.latestSales') }}</p>
+        </div>
+        <button class="ghost-btn" type="button" @click="goTo('/orders')">
+          {{ t('dashboardPage.allOrders') }}
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ t('common.invoice') }}</th>
+              <th>{{ t('common.customer') }}</th>
+              <th>{{ t('common.total') }}</th>
+              <th>{{ t('common.payment') }}</th>
+              <th>{{ t('common.status') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="recentOrders.length === 0">
+              <td colspan="5" class="empty-cell">{{ t('dashboardPage.noRecentOrders') }}</td>
+            </tr>
+            <tr v-for="order in recentOrders.slice(0, 5)" :key="order.id">
+              <td>
+                <div class="ref-main">{{ order.invoice }}</div>
+                <div class="ref-sub">{{ order.type }}</div>
+              </td>
+              <td>{{ order.customer }}</td>
+              <td class="amount-strong">${{ order.total.toFixed(2) }}</td>
+              <td>{{ order.payment }}</td>
+              <td>
+                <span class="status-badge" :class="order.status === 'Paid' ? 'paid' : 'unpaid'">
+                  {{ order.status === 'Paid' ? t('dashboardPage.paid') : t('dashboardPage.unpaid') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
   </div>
@@ -496,6 +310,68 @@ const pendingOrders = computed(() =>
 const profitEstimate = computed(() => salesToday.value - expensesToday.value)
 const profitYesterday = computed(() => salesYesterday.value - expensesYesterday.value)
 
+function money(value: number) {
+  return `$${value.toFixed(2)}`
+}
+
+/**
+ * The day in one sentence, above the cards.
+ *
+ * The same four numbers the cards show, read as a sentence, so an owner who
+ * only glances at the page still knows whether today is going well. It says
+ * "left over" or "short by" rather than showing a minus sign, which is the
+ * part people misread.
+ */
+const headlineToday = computed(() => {
+  if (loading.value) return ''
+
+  const sales = t('dashboardPage.headlineSales', {
+    sales: money(salesToday.value),
+    orders: t('dashboardPage.orderCount', ordersToday.value),
+  })
+  const rest =
+    profitEstimate.value < 0
+      ? t('dashboardPage.headlineShort', {
+          expenses: money(expensesToday.value),
+          amount: money(Math.abs(profitEstimate.value)),
+        })
+      : t('dashboardPage.headlineLeft', {
+          expenses: money(expensesToday.value),
+          amount: money(profitEstimate.value),
+        })
+
+  return `${sales} ${rest}`
+})
+
+/**
+ * Only what is waiting for someone. An empty bar is the answer "nothing
+ * needs you right now", which is why these are no longer cards permanently
+ * reading 0.
+ */
+const attentionItems = computed(() => {
+  const items: Array<{ key: string; icon: string; text: string; route: string }> = []
+
+  if (lowStockItems.value.length) {
+    items.push({
+      key: 'low-stock',
+      icon: 'low_stock_report',
+      text: t('dashboardPage.attentionLowStock', lowStockItems.value.length),
+      route: '/reports/low-stock',
+    })
+  }
+
+  if (pendingOrders.value) {
+    items.push({
+      key: 'pending',
+      icon: 'orders',
+      text: t('dashboardPage.attentionPending', pendingOrders.value),
+      route: '/orders',
+    })
+  }
+
+  return items
+})
+
 const salesChart = computed(() => {
   const rows =
     dashboardSalesChart.value.length > 0
@@ -511,41 +387,8 @@ const salesChart = computed(() => {
   }))
 })
 
-const totalPaymentSummary = computed(() =>
-  dashboardPayments.value.reduce((sum, item) => sum + item.amount, 0)
-)
-
-const paymentMethods = computed<Array<PaymentRow & { percent: number; colorClass: string }>>(() => {
-  const colorClasses = ['dot-green', 'dot-blue', 'dot-orange', 'dot-purple']
-
-  return dashboardPayments.value.slice(0, 4).map((item, index) => ({
-    label: item.label,
-    amount: item.amount,
-    percent:
-      totalPaymentSummary.value > 0
-        ? Math.round((item.amount / totalPaymentSummary.value) * 100)
-        : 0,
-    colorClass: colorClasses[index] || 'dot-purple',
-  }))
-})
-
-const paymentDonutStyle = computed(() => {
-  if (paymentMethods.value.length === 0 || totalPaymentSummary.value <= 0) return {}
-
-  const colors = ['#22c55e', '#3b82f6', '#fb923c', '#8b5cf6']
-  let start = 0
-  const segments = paymentMethods.value.map((item, index) => {
-    const degrees = (item.amount / totalPaymentSummary.value) * 360
-    const end = start + degrees
-    const segment = `${colors[index] || colors[0]} ${start}deg ${end}deg`
-    start = end
-    return segment
-  })
-
-  return {
-    background: `conic-gradient(${segments.join(', ')})`,
-  }
-})
+/** Whether the week has any sales at all, so the chart can say so in words. */
+const hasSalesInChart = computed(() => salesChart.value.some((item) => item.value > 0))
 
 // Copy before sorting: `.sort()` mutates in place, so sorting the ref's own
 // array here reordered the product list for every other consumer of it.
@@ -555,70 +398,11 @@ const lowStockItems = computed(() =>
     .slice(0, 4)
 )
 
-const topProducts = computed(() => dashboardTopProducts.value.slice(0, 4))
-
 const recentOrders = computed(() =>
   [...dashboardOrders.value]
     .sort((a, b) => timeValue(b.createdAt) - timeValue(a.createdAt))
     .slice(0, 4)
 )
-
-const recentExpenses = computed(() =>
-  [...dashboardExpenses.value]
-    .sort((a, b) => {
-      const bTime = `${b.date}T${b.time || '00:00:00'}`
-      const aTime = `${a.date}T${a.time || '00:00:00'}`
-      return timeValue(bTime) - timeValue(aTime)
-    })
-    .slice(0, 4)
-    .map((expense) => ({
-      ...expense,
-      date: formatDate(expense.date),
-    }))
-)
-
-const dynamicRecentActivities = computed(() => {
-  if (dashboardActivities.value.length > 0) {
-    return dashboardActivities.value
-  }
-
-  const orderActivities = recentOrders.value.slice(0, 2).map((order) => ({
-    id: `order-${order.id}`,
-    icon: '#',
-    title: t('dashboardPage.activityOrderTitle', { user: order.servedBy, invoice: order.invoice }),
-    description: t('dashboardPage.activityOrderText', { total: order.total.toFixed(2) }),
-    time: relativeTime(order.createdAt),
-    colorClass: 'activity-blue',
-  }))
-
-  const expenseActivities = dashboardExpenses.value
-    .slice()
-    .sort((a, b) => {
-      const bTime = `${b.date}T${b.time || '00:00:00'}`
-      const aTime = `${a.date}T${a.time || '00:00:00'}`
-      return timeValue(bTime) - timeValue(aTime)
-    })
-    .slice(0, 2)
-    .map((expense) => ({
-      id: `expense-${expense.id}`,
-      icon: '$',
-      title: t('dashboardPage.activityExpenseTitle', { name: expense.name }),
-      description: t('dashboardPage.activityExpenseText', { amount: expense.amount.toFixed(2) }),
-      time: relativeTime(`${expense.date}T${expense.time || '00:00:00'}`),
-      colorClass: 'activity-red',
-    }))
-
-  const stockActivities = lowStockItems.value.slice(0, 1).map((product) => ({
-    id: `stock-${product.id}`,
-    icon: '!',
-    title: t('dashboardPage.activityLowStockTitle', { name: product.name }),
-    description: t('dashboardPage.activityLowStockText', { stock: product.stock, min: product.minStock }),
-    time: t('dashboardPage.now'),
-    colorClass: 'activity-orange',
-  }))
-
-  return [...orderActivities, ...expenseActivities, ...stockActivities].slice(0, 5)
-})
 
 const salesTrendLabel = computed(() => trendLabel(salesToday.value, salesYesterday.value, '%'))
 const salesTrendClass = computed(() => trendClass(salesToday.value, salesYesterday.value))
@@ -830,17 +614,6 @@ function timeValue(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed
 }
 
-function formatDate(value: string): string {
-  if (!value) return '-'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return new Intl.DateTimeFormat(dateLocale.value, {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(parsed)
-}
-
 function relativeTime(value: string): string {
   const timestamp = timeValue(value)
   if (!timestamp) return '-'
@@ -902,10 +675,6 @@ function formatLabel(value: unknown): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(' ')
-}
-
-function getInitial(value: string) {
-  return value?.trim()?.charAt(0)?.toUpperCase() || 'P'
 }
 
 onMounted(() => {
@@ -1024,12 +793,51 @@ onMounted(() => {
 
 .stats-grid {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
   margin-bottom: 22px;
 }
 
-.stats-grid-6 {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+/* The day in words, above the numbers. */
+.headline-card {
+  margin-bottom: 18px;
+  padding: 18px 22px;
+  background: var(--brand-25, #faf6ff);
+  border: 1px solid var(--brand-100, #ebd9fd);
+  border-radius: 18px;
+}
+
+.headline-card p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #1f2937;
+}
+
+/* Shown only when something is waiting: an absent bar means nothing is. */
+.attention-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.attention-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px 8px 8px;
+  background: #fff;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #92400e;
+  cursor: pointer;
+}
+
+.attention-chip:hover {
+  border-color: #f59e0b;
 }
 
 .stat-card {
@@ -1164,21 +972,35 @@ onMounted(() => {
   height: 100%;
 }
 
+/* A baseline, not a container. The grey box that used to sit behind every bar
+   was all a quiet day showed: seven empty boxes that looked like something
+   had failed to load. A day with no sales is now a flat grey stub on the
+   line, which is what "nothing sold" looks like. */
 .bar-wrap {
   flex: 1;
   width: 100%;
-  background: #f1f5f9;
-  border-radius: 16px;
   display: flex;
   align-items: end;
-  padding: 8px;
+  padding: 8px 8px 0;
   min-height: 120px;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .bar-fill {
   width: 100%;
-  border-radius: 12px;
+  min-height: 4px;
+  border-radius: 12px 12px 0 0;
   background: var(--brand-gradient);
+}
+
+.bar-fill.is-empty {
+  background: #e2e8f0;
+}
+
+.chart-empty-note {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #64748b;
 }
 
 .bar-value {
@@ -1487,9 +1309,9 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-@media (max-width: 1400px) {
-  .stats-grid-6 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1521,7 +1343,7 @@ onMounted(() => {
     justify-content: center;
   }
 
-  .stats-grid-6 {
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 
