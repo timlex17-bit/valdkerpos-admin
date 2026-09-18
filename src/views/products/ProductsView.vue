@@ -91,13 +91,12 @@
           </select>
         </div>
 
-        <div class="toolbar-item">
+        <div v-if="showItemTypeColumn" class="toolbar-item">
           <select v-model="itemTypeFilter" class="filter-select">
             <option value="">{{ t('productsPage.allItemTypes') }}</option>
-            <option value="product">{{ t('productsPage.productType') }}</option>
-            <option value="menu">{{ t('productsPage.menuType') }}</option>
-            <option value="service">{{ t('productsPage.serviceType') }}</option>
-            <option value="sparepart">{{ t('productsPage.sparepartType') }}</option>
+            <option v-for="type in itemTypeOptions" :key="type" :value="type">
+              {{ formatItemType(type) }}
+            </option>
           </select>
         </div>
 
@@ -125,7 +124,7 @@
               <th>{{ t('productsPage.product') }}</th>
               <th>{{ t('productsPage.code') }}</th>
               <th>{{ t('productsPage.sku') }}</th>
-              <th>{{ t('productsPage.itemType') }}</th>
+              <th v-if="showItemTypeColumn">{{ t('productsPage.itemType') }}</th>
               <th>{{ t('productsPage.category') }}</th>
               <th>{{ t('productsPage.sellPrice') }}</th>
               <th>{{ t('productsPage.supplier') }}</th>
@@ -137,7 +136,7 @@
 
           <tbody>
             <tr v-if="!loading && filteredProducts.length === 0">
-              <td colspan="11" class="empty-cell">
+              <td :colspan="showItemTypeColumn ? 11 : 10" class="empty-cell">
                 {{ t('productsPage.noProductsFound') }}
               </td>
             </tr>
@@ -172,7 +171,7 @@
 
               <td>{{ product.code }}</td>
               <td>{{ product.sku || '-' }}</td>
-              <td>{{ formatItemType(product.item_type) }}</td>
+              <td v-if="showItemTypeColumn">{{ formatItemType(product.item_type) }}</td>
               <td>{{ product.category_name || '-' }}</td>
               <td class="price-cell">${{ formatMoney(product.sell_price) }}</td>
               <td class="supplier-cell">{{ product.supplier_name || '-' }}</td>
@@ -245,7 +244,7 @@
               <span class="label">{{ t('productsPage.sku') }}</span>
               <span class="value">{{ product.sku || '-' }}</span>
             </div>
-            <div class="info-item">
+            <div v-if="showItemTypeColumn" class="info-item">
               <span class="label">{{ t('productsPage.type') }}</span>
               <span class="value">{{ formatItemType(product.item_type) }}</span>
             </div>
@@ -349,13 +348,14 @@
                   />
                 </div>
 
-                <div class="form-group">
+                <!-- A retail shop sells products, and nothing else: the choice
+                     is only offered where there is one to make. -->
+                <div v-if="showItemTypeField" class="form-group">
                   <label>{{ t('productsPage.itemType') }} <span>*</span></label>
                   <select v-model="form.item_type" :disabled="modalMode === 'view'">
-                    <option value="product">{{ t('productsPage.productType') }}</option>
-                    <option value="menu">{{ t('productsPage.menuType') }}</option>
-                    <option value="service">{{ t('productsPage.serviceType') }}</option>
-                    <option value="sparepart">{{ t('productsPage.sparepartType') }}</option>
+                    <option v-for="type in itemTypeOptions" :key="type" :value="type">
+                      {{ formatItemType(type) }}
+                    </option>
                   </select>
                 </div>
 
@@ -567,6 +567,8 @@ import api from '@/services/api'
 import { getApiErrorMessage } from '@/utils/apiError'
 import { ENDPOINTS } from '@/services/endpoints'
 import { toMultipart } from '@/utils/multipart'
+import { getStoredBusinessType } from '@/utils/moduleVisibility'
+import { itemTypesForBusiness, showsItemTypeChoice } from '@/utils/productItemTypes'
 import ToggleField from '@/components/form/ToggleField.vue'
 
 type ModalMode = 'create' | 'edit' | 'view'
@@ -630,6 +632,16 @@ const search = ref('')
 const categoryFilter = ref('')
 const supplierFilter = ref('')
 const itemTypeFilter = ref('')
+
+/** Which kinds of item this shop can have; see utils/productItemTypes.ts. */
+const itemTypeOptions = computed(() => itemTypesForBusiness(getStoredBusinessType()))
+
+/** The column and the filter: pointless when every row says the same word. */
+const showItemTypeColumn = computed(() => itemTypeOptions.value.length > 1)
+
+const showItemTypeField = computed(() =>
+  showsItemTypeChoice(getStoredBusinessType(), form.item_type)
+)
 
 const showModal = ref(false)
 const modalMode = ref<ModalMode>('create')
