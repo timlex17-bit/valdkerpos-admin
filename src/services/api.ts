@@ -12,7 +12,7 @@ const clearAuthStorage = () => {
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.valdker.web.id',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.valorapos.cloud',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
