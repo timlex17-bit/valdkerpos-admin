@@ -20,10 +20,7 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     strictPort: true,
     allowedHosts: [
-      'app.valdker.web.id',
-      'api.valdker.web.id',
-      'valdker.web.id',
-      'valdker.biz.id',
+      'admin.valorapos.cloud',
       'localhost',
       '127.0.0.1',
     ],
@@ -34,10 +31,7 @@ export default defineConfig(({ mode }) => ({
     port: 4173,
     strictPort: true,
     allowedHosts: [
-      'app.valdker.web.id',
-      'api.valdker.web.id',
-      'valdker.web.id',
-      'valdker.biz.id',
+      'admin.valorapos.cloud',
       'localhost',
       '127.0.0.1',
     ],
